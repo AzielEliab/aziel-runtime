@@ -218,4 +218,41 @@ assert.equal(STATS_DO_CAP_PER_MIN, 6); n++;
   assert.equal((await fu.raise(statsFloorStorageKey("light", base), 0)).floor, 67939);
   n++;
 }
+
+// A warm bare-key cache of the pre-unmask total must not raise the new floor series.
+{
+  clearStatsMemo();
+  const envP = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const fp = statsFloorFor(envP);
+  const raised = [];
+  const c = { raise: async (k, u) => { raised.push([k, u]); return fp.raise(k, u); } };
+  const cache = {
+    m: new Map(),
+    async match(k) { const v = this.m.get(k); return v ? new Response(v) : undefined; },
+    async put(k, res) { this.m.set(k, await res.text()); },
+  };
+  const t0 = 120_000_000;
+  const seeded = await cachedUses("full", async () => body(112111), { now: t0, cache, floor: c });
+  assert.equal(seeded.uses, 112111);
+  clearStatsMemo();
+  const reconciled = {
+    ok: true,
+    uses: 67939,
+    uses_complete: true,
+    uses_legacy: 62051,
+    uses_durable: 5888,
+    uses_total_source: USES_TOTAL_SOURCE,
+  };
+  const series = statsFloorStorageKey("full", reconciled);
+  raised.length = 0;
+  const unmasked = await cachedUses("full", async () => reconciled, { now: t0 + 1_000, cache, floor: c });
+  assert.equal(unmasked.uses, 67939);
+  assert.equal(unmasked.cache.uses_floor_applied, false);
+  assert.equal(unmasked.cache.floor_epoch, USES_TOTAL_SOURCE);
+  assert.equal((await fp.raise(series, 0)).floor, 67939);
+  assert.equal((await fp.raise("full", 0)).floor, 112111);
+  assert.ok(raised.every(([k, u]) => k !== series || u !== 112111));
+  assert.ok(raised.some(([k, u]) => k === series && u === 67939));
+  n++;
+}
 console.log(`ok stats floor: ${n} checks`);

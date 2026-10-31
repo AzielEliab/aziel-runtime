@@ -55,9 +55,45 @@ function pickEntry(a, b) {
  * the highest count already served per key in this isolate, and never serve a lower one there (KV reads are
  * eventually consistent, so a fresh read can lag a count already shown).
  */
+function cacheReqKey(storageKey) {
+  return "https://stats-cache.internal/" + encodeURIComponent(storageKey);
+}
+
+function entryFresh(entry, now) {
+  return entry && Number.isFinite(entry.at) && now - entry.at < STATS_TTL_S * 1000 && cacheable(entry.body);
+}
+
+async function peekFreshEntry(storageKey, now, cache) {
+  const local = memo.get(storageKey) || null;
+  let shared = null;
+  if (cache) {
+    try {
+      const res = await cache.match(cacheReqKey(storageKey));
+      if (res) shared = await res.json();
+    } catch {
+      shared = null;
+    }
+  }
+  const fl = entryFresh(local, now) ? local : null;
+  const fs = entryFresh(shared, now) ? shared : null;
+  if (fl && fs) return fl.at >= fs.at ? fl : fs;
+  return fl || fs;
+}
+
+async function rememberEntry(storageKey, entry, cache) {
+  highWater.set(storageKey, entry);
+  memo.set(storageKey, entry);
+  if (!cache) return;
+  try {
+    await cache.put(cacheReqKey(storageKey), new Response(JSON.stringify(entry), { headers: { "content-type": "application/json", "cache-control": `max-age=${STATS_TTL_S}` } }));
+  } catch {
+    /* the isolate memo still holds it */
+  }
+}
+
 async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCache() } = {}) {
-  const fresh = (e) => e && Number.isFinite(e.at) && now - e.at < STATS_TTL_S * 1000 && cacheable(e.body);
-  const reqKey = "https://stats-cache.internal/" + encodeURIComponent(key);
+  const fresh = (e) => entryFresh(e, now);
+  const reqKey = cacheReqKey(key);
   const local = memo.get(key) || null;
   let shared = null;
   if (cache) {
@@ -183,12 +219,40 @@ function raiseBatched(floor, key, candidate, now) {
   return batch.promise.then((got) => ({ got, batch_size: batch.size }));
 }
 
+function reconciledBody(body) {
+  return Boolean(body && body.uses_total_source === USES_TOTAL_SOURCE);
+}
+
 export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache(), floor = null } = {}) {
   const refuse = (why) => ({ ok: false, code: STATS_FLOOR_UNAVAILABLE, reason: why, retry_after_s: STATS_FLOOR_RETRY_S, message: "The shared stats floor (Durable Object) could not be read, so no count was served. Retry shortly.", spec: "STATS-FLOOR-1.0" });
   if (!floor || typeof floor.raise !== "function") return refuse("unbound");
-  const body = await cachedUsesLocal(key, read, { now, cache });
-  const candidate = Math.max(0, countOf(body), countOf((highWater.get(key) || {}).body));
+  const epochKey = statsFloorStorageKey(key, { uses_total_source: USES_TOTAL_SOURCE });
+  // Bare-key highWater / Cache API can still hold a pre-unmask body (uses 112111).
+  // That entry must not become the candidate for the reconciled floor series.
+  let body;
+  const epochFresh = await peekFreshEntry(epochKey, now, cache);
+  if (epochFresh && reconciledBody(epochFresh.body)) {
+    const high = highWater.get(epochKey);
+    const serve = high && reconciledBody(high.body) && countOf(high.body) > countOf(epochFresh.body) ? high : epochFresh;
+    body = stamp(serve.body, serve.at, true, now, serve !== epochFresh);
+  } else {
+    body = await cachedUsesLocal(key, read, { now, cache });
+    if (!reconciledBody(body)) {
+      const fresh = await read();
+      if (reconciledBody(fresh)) body = fresh;
+    }
+    if (reconciledBody(body)) {
+      const entry = { at: now, body };
+      const prev = highWater.get(epochKey);
+      const best = pickEntry(prev && reconciledBody(prev.body) ? prev : null, entry);
+      await rememberEntry(epochKey, best, cache);
+      if (best !== entry) body = stamp(best.body, best.at, true, now, true);
+    }
+  }
   const floorKey = statsFloorStorageKey(key, body);
+  const seriesHigh = highWater.get(floorKey);
+  const seriesCount = seriesHigh && statsFloorStorageKey(key, seriesHigh.body) === floorKey ? countOf(seriesHigh.body) : -1;
+  const candidate = Math.max(0, countOf(body), seriesCount);
   // STATS-FLOOR-REUSE-1.0: same KV candidate as this isolate's last floor read, and that read is
   // under 10s old -> serve that floor without a DO call (bounded staleness: 10s).
   const prev = lastFloor.get(floorKey);
