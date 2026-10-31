@@ -11,6 +11,9 @@
  * the object first and fall back to the legacy USES namespace, so existing
  * counters and sessions carry over without a wipe. Legacy KV is never written
  * again and never deleted here.
+ * The USES "total" key is the exception, handled in readUses: once the object
+ * holds its own total, hybrid get hides the frozen legacy total. readUses adds
+ * the two. That sum is not written back into the object.
  *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
@@ -205,6 +208,12 @@ export function hybridKv(ns, legacy) {
     durable: true,
     /** Legacy (frozen, never written) namespace, for one-time reads such as the snapshot's legacy base. */
     legacy: hasLegacy ? legacy : null,
+    /** Durable Object value only. Null when the key is absent. No legacy fallback. */
+    async durableGet(key, opts) {
+      const raw = await stub.kvGet(String(key));
+      if (raw == null) return null;
+      return decode(raw, opts);
+    },
     /** Durable Object entries (name, value) under a prefix, one request per page of up to 1000. */
     async scan(prefix, after = "", limit = RUNTIME_KV_LIST_CAP) {
       return call({ op: "scan", prefix, after, limit });
