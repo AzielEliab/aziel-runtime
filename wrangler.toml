@@ -192,6 +192,11 @@ service = "embryolock-download-tracker"
 REQUIRE_TOKEN = "1"
 # LATTICE_REMOTE is unset on purpose. POST /v1/lattice/wrap and GET|POST /v1/lattice/pull
 # stay fail-closed until an operator sets LATTICE_REMOTE=1. Do not set it here.
+# COVERAGE_LIVE is unset on purpose. AZRT-ANCHOR-COVERAGE-1.0 cron ticks (verifier and
+# deadline watchdog) and refusal-path coverage rows do not run until COVERAGE_LIVE is
+# explicitly on (1, true, yes, or on). A refusal still seals on the refusals chain.
+# Cos must not turn COVERAGE_LIVE on without Aziel OK. Not LIVE until the code and this flag
+# are both on. Cap-7 is not ICANN. Paid satellite stays HELD. Do not set it here.
 # This Worker is the primary lattice. Secondary is aziel-corpus (not this route).
 # auto_update, RF, and sat stay off. Mesh membership flags are unchanged.
 # Cap-7 is not ICANN. live stays false. No spend.

@@ -158,7 +158,7 @@ export function capBucketOf(surface, door) { return surface === "runtime" ? "doo
  * Seal one door refusal through receipt-guard sealRefusal. Returns the receipt view.
  * `surface` is "runtime" for this Worker's own doors, or a PEER_SURFACES name.
  */
-export async function sealDoorRefusal(store, { surface = "runtime", door, code, reason, method, route, status, routeHash = null, reasonExtra = null }, { ctx, now = Date.now(), budgetMs = REFUSAL_SEAL_BUDGET_MS } = {}) {
+export async function sealDoorRefusal(store, { surface = "runtime", door, code, reason, method, route, status, routeHash = null, reasonExtra = null }, { ctx, now = Date.now(), budgetMs = REFUSAL_SEAL_BUDGET_MS, env = null } = {}) {
   const { sealRefusal, REFUSAL_SPEC, REFUSAL_CHAIN } = await import("./receipt-guard.js");
   const minute = Math.floor(now / 60000);
   const m = memoFor(minute);
@@ -180,7 +180,7 @@ export async function sealDoorRefusal(store, { surface = "runtime", door, code, 
   m.sealed.set(bucket, used + 1);
   const work = sealRefusal(store, {
     code, tool: surface === "runtime" ? "http" : surface, slug: door, op: method,
-    args: { door, status: Number(status) || null }, minuteBucket: minute, extra, trustedNames: true,
+    args: { door, status: Number(status) || null }, minuteBucket: minute, extra, trustedNames: true, env,
   });
   let timer;
   const timeout = new Promise((r) => { timer = setTimeout(() => r(null), Math.max(0, budgetMs)); });
@@ -212,7 +212,7 @@ function headerValue(view) {
  * budgetMs is what is left of the request deadline (index.js); 0 means seal in the background (pending).
  * /p/* 5xx are upstream errors, not refusals: logged and marked X-Azrt-Upstream-Error, never sealed.
  */
-export async function withDoorRefusalReceipt(request, response, { store, ctx, budgetMs = REFUSAL_SEAL_BUDGET_MS } = {}) {
+export async function withDoorRefusalReceipt(request, response, { store, ctx, budgetMs = REFUSAL_SEAL_BUDGET_MS, env = null } = {}) {
   try {
     if (!response || Number(response.status) < 400 || Number(response.status) === 429) return response;
     const method = String((request && request.method) || "GET").toUpperCase();
@@ -235,7 +235,7 @@ export async function withDoorRefusalReceipt(request, response, { store, ctx, bu
     if (!ref || ref.already) return response;
     if (isAuthRefusal(response.status, ref.code)) return response;
     const rt = await routeTemplate(url.pathname);
-    const view = await sealDoorRefusal(store, { surface: "runtime", door, code: ref.code, reason: ref.reason, method, route: rt.route, routeHash: rt.route_sha256 || null, status: response.status }, { ctx, budgetMs: Math.min(REFUSAL_SEAL_BUDGET_MS, Math.max(0, budgetMs)) });
+    const view = await sealDoorRefusal(store, { surface: "runtime", door, code: ref.code, reason: ref.reason, method, route: rt.route, routeHash: rt.route_sha256 || null, status: response.status }, { ctx, budgetMs: Math.min(REFUSAL_SEAL_BUDGET_MS, Math.max(0, budgetMs)), env });
     const headers = new Headers(response.headers);
     const hv = headerValue(view);
     if (hv) headers.set("X-Azrt-Refusal-Receipt", hv);
@@ -251,7 +251,7 @@ export async function withDoorRefusalReceipt(request, response, { store, ctx, bu
 }
 
 /** POST https://peer.aziel.internal/v1/refusals/peer — AZ-OS / azinterface refusal over a service binding. */
-export async function handlePeerRefusal(request, { store, ctx } = {}) {
+export async function handlePeerRefusal(request, { store, ctx, env = null } = {}) {
   const json = (b, s) => new Response(JSON.stringify(b, null, 2), { status: s, headers: { "content-type": "application/json; charset=utf-8" } });
   const url = new URL(request.url);
   if (url.hostname !== PEER_HOST || request.headers.get("cf-connecting-ip")) {
@@ -269,7 +269,7 @@ export async function handlePeerRefusal(request, { store, ctx } = {}) {
   // The runtime is the authority: any reason text a peer sends is hashed here and never stored as text.
   const peerText = typeof b.reason === "string" && b.reason ? b.reason : null;
   const peerHash = !peerText && typeof b.reason_sha256 === "string" && REASON_HASH_RE.test(b.reason_sha256) ? b.reason_sha256 : null;
-  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: peerText, reasonExtra: peerHash ? { reason_sha256: peerHash } : null, method, route: rt.route, routeHash: rt.route_sha256 || null, status: Number(b.status) || 400 }, { ctx });
+  const view = await sealDoorRefusal(store, { surface, door: surface, code, reason: peerText, reasonExtra: peerHash ? { reason_sha256: peerHash } : null, method, route: rt.route, routeHash: rt.route_sha256 || null, status: Number(b.status) || 400 }, { ctx, env });
   return json({ ok: Boolean(view.sealed), refusal_receipt: view }, 200);
 }
 
