@@ -179,8 +179,11 @@ function hubListHtml() {
   return `<ul>\n${items}\n  </ul>`;
 }
 
-export function softwareJsonLd(origin, catalog) {
+export function softwareJsonLd(origin, catalog, canonicalPath = "/v1/software") {
   const base = String(origin || "").replace(/\/$/, "");
+  const pagePath = String(canonicalPath || "/v1/software").startsWith("/")
+    ? String(canonicalPath || "/v1/software")
+    : `/${canonicalPath}`;
   const person = personJsonLd();
   const entries = (catalog && catalog.software) || [];
   return {
@@ -192,9 +195,9 @@ export function softwareJsonLd(origin, catalog) {
       ecosystemJsonLd(origin),
       {
         "@type": "WebPage",
-        "@id": `${base}/v1/software#page`,
+        "@id": `${base}${pagePath}#page`,
         name: SOFTWARE_PAGE_TITLE,
-        url: `${base}/v1/software`,
+        url: `${base}${pagePath}`,
         description: SOFTWARE_PAGE_DESCRIPTION,
         isPartOf: { "@id": `${base}/#website` },
         author: { "@id": AUTHOR_ID },
@@ -369,8 +372,11 @@ ${namedComponentsHtml()}
   );
 }
 
-export function softwareCatalogHtml(origin, catalog, css, calling = null) {
+export function softwareCatalogHtml(origin, catalog, css, calling = null, canonicalPath = "/v1/software") {
   const base = String(origin || "").replace(/\/$/, "");
+  const pagePath = String(canonicalPath || "/v1/software").startsWith("/")
+    ? String(canonicalPath || "/v1/software")
+    : `/${canonicalPath}`;
   const entries = (catalog && catalog.software) || [];
   const rows = entries
     .map((s) => {
@@ -405,10 +411,14 @@ export function softwareCatalogHtml(origin, catalog, css, calling = null) {
     })
     .join("\n");
   const product = calling && calling.rotated ? calling.calling_name : PRODUCT_NAME;
+  const prettyHint =
+    pagePath === "/software"
+      ? `  <p class="hint">This page is /software. Programs still use JSON at <a href="${base}/v1/software">/v1/software</a>.</p>\n`
+      : "";
   const inner = `  <p class="human-cta"><a class="cta" href="${base}/workspace#workspace">Use Softwares</a> <a class="cta" href="${base}/workspace#workspace">Open workspace</a></p>
-  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a></p>
+  <p><a href="${base}/">← ${escapeHtml(product)}</a> · <a href="${base}/workspace">Use in browser</a> · <a href="${base}/aziel">Aziel</a></p>
   <h1>Softwares</h1>
-  <p>Pick a Software and open it in the browser. A stub is not a live door. Programs still receive JSON from /v1/software.</p>
+${prettyHint}  <p>Pick a Software and open it in the browser. A stub is not a live door. Programs still receive JSON from /v1/software.</p>
   <p class="hint" id="software-count-definitions">${escapeHtml((catalog && catalog.count_definitions && catalog.count_definitions.summary) || "")}</p>
   ${aboutAzielStripHtml({ id: "about-aziel-strip-software" })}
   <p class="lead">${escapeHtml(SOFTWARE_PAGE_DESCRIPTION)}</p>
@@ -477,8 +487,8 @@ ${(sisterProductCiteField().products || [])
     origin,
     rewriteLiveCallingDisplay(SOFTWARE_PAGE_TITLE, calling),
     SOFTWARE_PAGE_DESCRIPTION,
-    "/v1/software",
-    softwareJsonLd(origin, catalog),
+    pagePath,
+    softwareJsonLd(origin, catalog, pagePath),
     css,
     inner,
   );

@@ -1128,6 +1128,8 @@ export function humanNavHtml(origin, { current } = {}) {
   <a href="${escapeHtml(home)}#cite">Cite / docs</a>
   <a class="nav-secondary" href="${escapeHtml(suiteDownloadHref(base))}" download="aziel-runtime-suite.json">Download suite</a>
   <a href="${escapeHtml(base)}/v1/software">Softwares</a>
+  <a href="${escapeHtml(base)}/software">/software</a>
+  <a href="${escapeHtml(base)}/aziel">Aziel</a>
   <button type="button" id="ui-close" class="nav-secondary" title="Hides this shell. Does not seal the session or leave the mesh.">Close UI</button>
 </nav>`;
 }

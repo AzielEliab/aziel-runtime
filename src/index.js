@@ -14,6 +14,8 @@
  * 1.6.0 FragGate door: hashed registry, thin tools/list, DecisionGATE before exec, ask/refuse ledger.
  *
  * GET  /                      HTML (indexable) + rose-star brand mark + human workspace pane
+ * GET  /software              Softwares HTML pretty path (JSON stays GET /v1/software)
+ * GET  /aziel                 Aziel handles tab. Not LIVE until Dual CLEAR + Aziel merge OK + Cos.
  * GET  /workspace             Human task pane (FragGate console, labeled ops, live mesh)
  * POST /v1/ui/detach         Close UI hold. Does not seal a session or leave the mesh.
  * POST /v1/ui/attach         Shell open again. Does not seal or leave.
@@ -408,6 +410,16 @@ import {
   prefersHtml,
   softwareCatalogHtml,
 } from "./seo-html.js";
+import {
+  AZIEL_HANDLES_PATH,
+  SOFTWARE_PRETTY_PATH,
+  azielHandlesJson,
+  azielPageHtml,
+  fleetCiteFields,
+  fleetLlmsBlock,
+  fleetWhoIsBlock,
+  injectSiteFooter,
+} from "./fleet-seo.js";
 import {
   HUMAN_UI_CSS,
   fragGateDoorHtml,
@@ -1382,12 +1394,20 @@ async function servePackedSoftware(request, env, origin, extra = {}) {
   await adoptSoftwares(PRODUCTS.map((p) => p.slug), { enabled: false });
   const packed = await readPackedCatalog(env, origin, PRODUCTS, softwareExtra(env));
   const stamped = applyCatalogGitHonesty(packed.catalog, softwareMeta(env, { updated_at: LASTMOD }));
-  const body = { ...stamped, rl: packed.rl, donation: donationStatic(), ...extra };
-  const path = extra.mirror_of || "/v1/software";
-  if (prefersHtml(request)) {
+  const forceHtml = extra.force_html === true;
+  const canonical = extra.canonical || extra.mirror_of || "/v1/software";
+  const citeExtra = { ...extra };
+  delete citeExtra.force_html;
+  delete citeExtra.canonical;
+  const body = { ...stamped, rl: packed.rl, donation: donationStatic(), ...citeExtra };
+  const path = citeExtra.mirror_of || canonical;
+  if (forceHtml || prefersHtml(request)) {
     return asHead(
       request,
-      html(softwareCatalogHtml(origin, body, PAGE_CSS + HUMAN_UI_CSS, resolveCallingName(env)), catalogLinkHeaders(origin, path)),
+      html(
+        softwareCatalogHtml(origin, body, PAGE_CSS + HUMAN_UI_CSS, resolveCallingName(env), canonical),
+        catalogLinkHeaders(origin, path),
+      ),
     );
   }
   return json(body, 200, catalogLinkHeaders(origin, path));
@@ -1432,7 +1452,7 @@ function respondHumanOrJson(request, pathname, out, headerExtra = {}) {
 
 function html(body, extra = {}) {
   const { status, ...headers } = extra;
-  return new Response(body, {
+  return new Response(injectSiteFooter(body), {
     status: status || 200,
     headers: {
       "Content-Type": "text/html; charset=utf-8",
@@ -1637,6 +1657,8 @@ function sitemapXml(origin) {
   const base = origin.replace(/\/$/, "");
   const urls = [
     { loc: base + "/", priority: "1.0", changefreq: "daily" },
+    { loc: base + SOFTWARE_PRETTY_PATH, priority: "0.94", changefreq: "weekly" },
+    { loc: base + AZIEL_HANDLES_PATH, priority: "0.94", changefreq: "weekly" },
     { loc: base + "/workspace", priority: "0.96", changefreq: "daily" },
     { loc: base + "/operator", priority: "0.9", changefreq: "daily" },
     { loc: base + "/download", priority: "0.88", changefreq: "daily" },
@@ -1762,6 +1784,8 @@ function llmsTxt(origin, env = {}) {
     "",
     llmsWhatThisIsBlock(calling).trimEnd(),
     "",
+    fleetLlmsBlock(base).trimEnd(),
+    "",
     ...llmsIdentityHeader(calling),
     rewriteLiveCallingDisplay(aboutAzielLlmsBlock(), calling).trimEnd(),
     "",
@@ -1833,7 +1857,9 @@ function llmsTxt(origin, env = {}) {
     `Stats rollup: ${base}/v1/stats-rollups`,
     `Machine catalog: ${base}/v1/catalog.json`,
     `Authoritative software (hubs fetch this): ${base}/v1/software`,
+    `Softwares HTML (pretty path): ${base}/software`,
     `Softwares HTML shell (Accept: text/html): ${base}/v1/software`,
+    `Aziel handles: ${base}/aziel`,
     `FragGate software mirror: ${base}/v1/fraggate/software`,
     `FragGate describe docs: ${base}/v1/fraggate/describe?slug={slug} (HTML when Accept prefers text/html)`,
     `AZCoherence describe: ${base}/v1/fraggate/describe?slug=azcoherence`,
@@ -2081,6 +2107,7 @@ function citeJson(origin, env = {}) {
     hedidntjump_cite: HEDIDNTJUMP_CITE,
     hedidntjump_llms: HEDIDNTJUMP_LLMS,
     hedidntjump_software_tab: false,
+    ...fleetCiteFields(base),
     entity_graph: entityGraphCiteField(origin),
     azcoherence: azcoherenceCiteField(origin),
     mesh_get_never_enables: true,
@@ -2504,6 +2531,8 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
     <a href="${origin}/openapi.json">Combined OpenAPI 3.1</a>
     <a href="${origin}/v1/catalog.json">/v1/catalog.json</a>
     <a href="${origin}/about">/about</a>
+    <a href="${origin}/software">/software</a>
+    <a href="${origin}/aziel">/aziel</a>
     <a href="${origin}/v1/about">/v1/about</a>
     <a href="${origin}/v1/software">/v1/software</a>
     <a href="${origin}/v1/update/check?slug=aziel-runtime">/v1/update/check?slug=aziel-runtime</a>
@@ -2984,6 +3013,24 @@ function staticPaths(origin, env = {}) {
         ),
         tags: ["catalog"],
         responses: { "200": { description: "About HTML" } },
+      },
+    },
+    "/software": {
+      get: {
+        operationId: "catalog_software_pretty",
+        summary:
+          "Softwares HTML pretty path. Same catalog as GET /v1/software. Programs still use JSON at /v1/software. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        tags: ["catalog"],
+        responses: { "200": { description: "Softwares HTML" } },
+      },
+    },
+    "/aziel": {
+      get: {
+        operationId: "catalog_aziel_handles",
+        summary:
+          "Aziel handles tab. Same public doors as azieleliab.com/doors. He Didn't Jump is a handle, not a Live Node. Cap-7 is not ICANN. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
+        tags: ["catalog"],
+        responses: { "200": { description: "HTML, or JSON when format=json" } },
       },
     },
     "/v1/about": {
@@ -3589,6 +3636,8 @@ function healthBody(origin, env = {}) {
     azpipe_arch: "/v1/azpipe/arch",
     memory: "/v1/memory",
     about: "/about",
+    software_pretty_path: SOFTWARE_PRETTY_PATH,
+    aziel_handles: AZIEL_HANDLES_PATH,
     cite: "/cite.json",
     person_jsonld: "/person.jsonld",
     who_is: "/who-is",
@@ -4261,6 +4310,33 @@ async function handleRequest(request, env, ctx) {
       );
     }
 
+    if (
+      (url.pathname === SOFTWARE_PRETTY_PATH || url.pathname === `${SOFTWARE_PRETTY_PATH}/`) &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      return asHead(
+        request,
+        await servePackedSoftware(request, env, origin, {
+          force_html: true,
+          canonical: SOFTWARE_PRETTY_PATH,
+        }),
+      );
+    }
+
+    if (
+      (url.pathname === AZIEL_HANDLES_PATH || url.pathname === `${AZIEL_HANDLES_PATH}/`) &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      const wantJson = url.searchParams.get("format") === "json";
+      if (wantJson) {
+        return asHead(request, json(azielHandlesJson(origin), 200, extra(AZIEL_HANDLES_PATH)));
+      }
+      return asHead(
+        request,
+        html(azielPageHtml(origin), { ...extra(AZIEL_HANDLES_PATH), ...catalogCacheHeaders() }),
+      );
+    }
+
     if ((url.pathname === "/agents" || url.pathname === "/agents/") && (request.method === "GET" || request.method === "HEAD")) {
       // AGENT-SUBNET-1.0 human viewer (public counts; signed-statement scoped rows).
       const { agentsPageHtml } = await import("./agent-subnet.js");
@@ -4315,7 +4391,7 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/ark/signin" && (request.method === "GET" || request.method === "HEAD")) {
       // USER-SIGNIN-ARK-1.0 §12.2: static, no-network key helper (credentials never leave the page).
-      return new Response(request.method === "HEAD" ? null : signinHelperHtml(), { status: 200, headers: SIGNIN_HELPER_HEADERS });
+      return new Response(request.method === "HEAD" ? null : injectSiteFooter(signinHelperHtml()), { status: 200, headers: SIGNIN_HELPER_HEADERS });
     }
     if ((url.pathname === "/about" || url.pathname === "/v1/about") && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(
@@ -4390,7 +4466,13 @@ async function handleRequest(request, env, ctx) {
       (url.pathname === "/who-is" || url.pathname === "/who-is-aziel-eliab.txt") &&
       (request.method === "GET" || request.method === "HEAD")
     ) {
-      return asHead(request, text(whoIsTxt(origin, resolveCallingName(env)), extra(url.pathname)));
+      return asHead(
+        request,
+        text(
+          `${whoIsTxt(origin, resolveCallingName(env))}\n${fleetWhoIsBlock(origin)}`,
+          extra(url.pathname),
+        ),
+      );
     }
 
     // AZ-LOCKSTEP-1.0: one contract + one design source for runtime, AZInterface, AZ-OS (read-only).
@@ -4827,7 +4909,10 @@ async function handleRequest(request, env, ctx) {
 
     if ((url.pathname === "/aznews" || url.pathname === "/4dmap/globe") && (request.method === "GET" || request.method === "HEAD")) {
       const { aznewsPageHtml } = await import("./aznews-page.js");
-      return asHead(request, new Response(aznewsPageHtml(), { headers: { "content-type": "text/html; charset=utf-8", "cache-control": "public, max-age=60" } }));
+      return asHead(
+        request,
+        html(aznewsPageHtml(), { ...extra("/aznews"), "cache-control": "public, max-age=60" }),
+      );
     }
 
     // LATTICE-DOC-UNIQUE-1.0 backfill: operator-only, paged and resumable (docs/DOC-INDEX-BACKFILL.md).

@@ -37,6 +37,8 @@ Runtime wires this once as `workerLaunchHtml` (`src/about-aziel.js` + `src/launc
 |------|------|---------|
 | `GET /` | `text/html; charset=utf-8` | Indexable homepage. Lead with the Aziel Runtime abstract (not a changelog). |
 | `GET /about` | `text/html; charset=utf-8` | About Aziel (published work) + About Aziel Runtime + FoldLock corpus-tip + product-specific `#hashtag` launch parts |
+| `GET /software` | `text/html; charset=utf-8` | Softwares HTML pretty path. Programs still use JSON at `GET /v1/software` |
+| `GET /aziel` | `text/html; charset=utf-8` | Aziel handles tab. `?format=json` returns the same list. Not LIVE until Dual CLEAR + Aziel merge OK + Cos |
 | `GET /robots.txt` | `text/plain; charset=utf-8` | Open crawl |
 | `GET /sitemap.xml` | `application/xml; charset=utf-8` | This host only |
 | `GET /llms.txt` | `text/plain; charset=utf-8` | LLM / AI crawlers |
