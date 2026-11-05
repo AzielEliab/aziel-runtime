@@ -65,7 +65,7 @@ Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/he
 - GodLock.uk → https://godlock.uk/ — GodLock challenge/score
 - He Didn't Jump (sister archive) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml — Zioncheck archive sister
 - The Furnace Isn't Free (official Aziel site, not a Live Node) → https://www.furnaceisntfree.com/ · Aziel https://furnaceisntfree.com/aziel/ · sitemap https://www.furnaceisntfree.com/sitemap.xml
-- TimeToUnsealTheBook (official Aziel site, handle, not a Live Node) → https://www.timetounsealthebook.net · sitemap https://www.timetounsealthebook.net/sitemap.xml — `/aziel` on that host is HTTP 307, not a 200 door
+- TimeToUnsealTheBook (official Aziel site, handle, not a Live Node) → https://www.timetounsealthebook.net · Aziel https://timetounsealthebook.net/aziel (HTTP 200) · sitemap https://www.timetounsealthebook.net/sitemap.xml — `/aziel` on that host is HTTP 200
 - This Worker → FragGate engine-runtime / MCP Softwares door 2.0.0-rc1 · https://aziel-runtime.vibelock.workers.dev/
 - Trades-Runtime (sister product, not a Softwares-tab engine; `fraggate_call` does not execute company ops) → https://github.com/AzielEliab/trades-runtime · Worker https://trades-runtime.vibelock.workers.dev · MCP https://trades-runtime.vibelock.workers.dev/mcp · download https://trades-runtime.vibelock.workers.dev/download
 - FragGate registry → https://github.com/AzielEliab/fraggate

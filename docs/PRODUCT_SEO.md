@@ -272,7 +272,7 @@ JSON-LD Person (`https://www.azieleliab.com/#aziel`) + SoftwareApplication / Ite
 
 `/cite.json` and `/llms.txt` cross-link Softwares hubs (azieleliab.com, azielcorpuslibrary.net, godlock.uk) plus AZCoherence, the He Didn't Jump sister archive, and cite-only sister product Trades-Runtime (`sister_products` / catalog `extras[]` kind `cite_only`; not a FragGate true-engine; `fraggate_call` does not execute company ops). Identity Aziel Eliab only.
 
-`/cite.json` `person` + `/person.jsonld` + `/who-is` list site coverage blurbs: azieleliab.com (Person hub + Softwares + research landing); azielcorpuslibrary.net (Digital Library MASTER); godlock.uk (GodLock challenge/score); hedidntjump.com (Zioncheck archive sister); this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1); The Furnace Isn't Free (`https://www.furnaceisntfree.com/` and `https://furnaceisntfree.com/aziel/`); TimeToUnsealTheBook (`https://www.timetounsealthebook.net`). `sameAs` cross-links hub Person/who-is/cite files. Growth-ON. NO-LIE. Furnace and Unseal are official Aziel sites, not Live Nodes. Unseal `/aziel` is HTTP 307, not a 200 door.
+`/cite.json` `person` + `/person.jsonld` + `/who-is` list site coverage blurbs: azieleliab.com (Person hub + Softwares + research landing); azielcorpuslibrary.net (Digital Library MASTER); godlock.uk (GodLock challenge/score); hedidntjump.com (Zioncheck archive sister); this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1); The Furnace Isn't Free (`https://www.furnaceisntfree.com/` and `https://furnaceisntfree.com/aziel/`); TimeToUnsealTheBook (`https://www.timetounsealthebook.net` and `https://timetounsealthebook.net/aziel`). `sameAs` cross-links hub Person/who-is/cite files. Growth-ON. NO-LIE. Furnace and Unseal are official Aziel sites, not Live Nodes. Unseal `/aziel` is HTTP 200.
 
 `/cite.json` and `/v1/catalog.json` also publish `stats` / `social_status` (person_id `https://www.azieleliab.com/#aziel`) for AZindex awareness. Live stats: `https://www.azieleliab.com/v1/stats`, `https://www.azielcorpuslibrary.net/stats` (not `/v1/stats`; version is `GET /v1/health`), `https://www.hedidntjump.com/api/stats`. GodLock public snapshot is `https://godlock.uk/stats` (not `/v1/stats`). Runtime agent/MCP usage is `GET /v1/uses`. Optional hub rollup: `GET /v1/stats-rollups` (read-only; never invent numbers).
 
@@ -302,6 +302,7 @@ Concise **Part of the Aziel Eliab ecosystem** block on homepage Softwares / clie
 - The Furnace Isn't Free → https://www.furnaceisntfree.com/
 - The Furnace Isn't Free · Aziel → https://furnaceisntfree.com/aziel/
 - TimeToUnsealTheBook → https://www.timetounsealthebook.net
+- TimeToUnsealTheBook · Aziel → https://timetounsealthebook.net/aziel (HTTP 200)
 
 A short **Includes named components such as FragGate…** line may sit with that chrome. It does not replace the Softwares catalog. The Furnace Isn't Free and TimeToUnsealTheBook are official Aziel sites, not Live Nodes. Cap-7 is not ICANN. Paid satellite stays HELD.
 

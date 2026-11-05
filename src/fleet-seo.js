@@ -12,6 +12,8 @@ import {
   FURNACE_HOME,
   FURNACE_NAME,
   RUNTIME_WORKER_HOME,
+  UNSEAL_AZIEL,
+  UNSEAL_AZIEL_HTTP,
   UNSEAL_HOME,
   UNSEAL_LLMS,
   UNSEAL_NAME,
@@ -52,7 +54,7 @@ export const DECRYPTION_PUBLIC = "decryption_complete stays false.";
 export const GROWTH_ON_ALLOW = "Growth-ON. Allow.";
 export const HDJ_NOTE = "He Didn't Jump is a handle, not a Live Node.";
 export const UNSEAL_NOTE =
-  `${UNSEAL_NAME} is a handle, not a Live Node, and is not LIVE on this Worker until Dual CLEAR, Aziel merge OK, and Cos. Official door ${UNSEAL_HOME}. The /aziel path on that host is HTTP 307, not a 200 door. Cos tip ${UNSEAL_COS_TIP}.`;
+  `${UNSEAL_NAME} is a handle, not a Live Node, and is not LIVE on this Worker until Dual CLEAR, Aziel merge OK, and Cos. Official doors ${UNSEAL_HOME} and ${UNSEAL_AZIEL}. The /aziel path on that host is HTTP ${UNSEAL_AZIEL_HTTP}. Cos tip ${UNSEAL_COS_TIP}.`;
 export const FURNACE_NOTE =
   `${FURNACE_NAME} is an official Aziel site and a handle, not a Live Node. Doors ${FURNACE_HOME} and ${FURNACE_AZIEL}. Not LIVE on this Worker until Dual CLEAR, Aziel merge OK, and Cos.`;
 
@@ -112,6 +114,7 @@ export function azielHandles(origin) {
     { label: FURNACE_NAME, href: FURNACE_HOME },
     { label: `${FURNACE_NAME} · Aziel`, href: FURNACE_AZIEL },
     { label: UNSEAL_NAME, href: UNSEAL_HOME },
+    { label: `${UNSEAL_NAME} · Aziel`, href: UNSEAL_AZIEL },
     { label: "Aziel Runtime handles", href: local },
   ];
 }
@@ -126,8 +129,8 @@ export function unsealCite() {
     name: UNSEAL_NAME,
     origin: UNSEAL_HOME,
     home: UNSEAL_HOME,
-    aziel: null,
-    aziel_http: 307,
+    aziel: UNSEAL_AZIEL,
+    aziel_http: UNSEAL_AZIEL_HTTP,
     sitemap: UNSEAL_SITEMAP,
     llms: UNSEAL_LLMS,
     cos_tip: UNSEAL_COS_TIP,

@@ -137,7 +137,7 @@ GitHub About (description / homepage / topics) is documented in [docs/GITHUB.md]
 
 ## Websites / Live sites
 
-**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing. This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. Sister archive: **[He Didn't Jump](https://www.hedidntjump.com/)**. Official Aziel sites: **[The Furnace Isn't Free](https://www.furnaceisntfree.com/)** ([Aziel](https://furnaceisntfree.com/aziel/)) and **[TimeToUnsealTheBook](https://www.timetounsealthebook.net)**. Neither is a Live Node.
+**[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing. This Worker homepage stays the **API / MCP / OpenAPI** execution surface. Human Softwares hubs are **azieleliab.com**, **Aziel Corpus Library**, and **GodLock.uk**. Sister archive: **[He Didn't Jump](https://www.hedidntjump.com/)**. Official Aziel sites: **[The Furnace Isn't Free](https://www.furnaceisntfree.com/)** ([Aziel](https://furnaceisntfree.com/aziel/)) and **[TimeToUnsealTheBook](https://www.timetounsealthebook.net)** ([Aziel](https://timetounsealthebook.net/aziel), HTTP 200). Neither is a Live Node.
 
 The Worker ships a FoldLock-packed **library tip** (index cite + sample MASTER + About Aziel) — not the entire live corpus. Verify via FragGate `foldlock/pack-verify`; open via `aziel-corpus/tip-pack`. Honesty: [`docs/corpus-fold-pack.md`](docs/corpus-fold-pack.md).
 
@@ -158,7 +158,7 @@ Every Worker launch (homepage, `/about`, every `/p/{slug}`, HTML Softwares/descr
 | GodLock.uk | https://godlock.uk — https://godlock.uk/AzielEliab — https://godlock.uk/software |
 | He Didn't Jump (sister archive) | https://www.hedidntjump.com/ |
 | The Furnace Isn't Free (official Aziel site, not a Live Node) | https://www.furnaceisntfree.com/ · Aziel https://furnaceisntfree.com/aziel/ |
-| TimeToUnsealTheBook (official Aziel site, handle, not a Live Node) | https://www.timetounsealthebook.net |
+| TimeToUnsealTheBook (official Aziel site, handle, not a Live Node) | https://www.timetounsealthebook.net · Aziel https://timetounsealthebook.net/aziel (HTTP 200) |
 | Trades-Runtime (sister product, cite-only) | Version **0.4.9** (live `GET /v1/health`). https://github.com/AzielEliab/trades-runtime — Worker https://trades-runtime.vibelock.workers.dev — MCP `/mcp` — download `/download`. Not a FragGate true-engine. `fraggate_call` does not execute company ops. |
 | Repos | https://github.com/AzielEliab/aziel-corpus · https://github.com/AzielEliab/godlock · https://github.com/AzielEliab/hedidntjump.com · https://github.com/AzielEliab/trades-runtime |
 | Donate (canonical) | https://www.azieleliab.com/donate |

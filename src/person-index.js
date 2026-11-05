@@ -21,6 +21,8 @@ import {
   FURNACE_NAME,
   FURNACE_SITEMAP,
   RUNTIME_WORKER_HOME,
+  UNSEAL_AZIEL,
+  UNSEAL_AZIEL_HTTP,
   UNSEAL_HOME,
   UNSEAL_LLMS,
   UNSEAL_NAME,
@@ -80,6 +82,7 @@ export const PERSON_SAME_AS = Object.freeze([
   FURNACE_HOME,
   FURNACE_AZIEL,
   UNSEAL_HOME,
+  UNSEAL_AZIEL,
   RUNTIME_WORKER_HOME,
   X_URL,
 ]);
@@ -103,7 +106,7 @@ export function personSocialsField() {
       "https://godlock.uk/",
     ],
     sister_archive: "https://www.hedidntjump.com/",
-    official_aziel_sites: [FURNACE_HOME, FURNACE_AZIEL, UNSEAL_HOME],
+    official_aziel_sites: [FURNACE_HOME, FURNACE_AZIEL, UNSEAL_HOME, UNSEAL_AZIEL],
     softwares: RUNTIME_WORKER_HOME,
     sameAs: PERSON_SAME_AS.slice(),
   };
@@ -446,7 +449,8 @@ export const PERSON_SITES = Object.freeze([
     host: "timetounsealthebook.net",
     name: UNSEAL_NAME,
     url: UNSEAL_HOME,
-    coverage: "Official Aziel site. Handle, not a Live Node. /aziel is HTTP 307, not a 200 door.",
+    aziel: UNSEAL_AZIEL,
+    coverage: `Official Aziel site. Handle, not a Live Node. /aziel is HTTP ${UNSEAL_AZIEL_HTTP}.`,
     llms: UNSEAL_LLMS,
     sitemap: UNSEAL_SITEMAP,
     software_tab: false,
@@ -527,7 +531,7 @@ export function personDescription() {
     "He builds receipt-first, local-first software and public MASTER records. Published work only. " +
     `Canonical person: ${PERSON_ID}. ` +
     "Primary surfaces: azieleliab.com (Person hub + Softwares + research landing), azielcorpuslibrary.net (Digital Library MASTER), godlock.uk (GodLock challenge/score), hedidntjump.com (Zioncheck archive sister), this Worker (FragGate engine-runtime / MCP Softwares door 2.0.0-rc1). " +
-    `Official Aziel sites: ${FURNACE_NAME} (${FURNACE_HOME} and ${FURNACE_AZIEL}); ${UNSEAL_NAME} (${UNSEAL_HOME}). Neither is a Live Node. ` +
+    `Official Aziel sites: ${FURNACE_NAME} (${FURNACE_HOME} and ${FURNACE_AZIEL}); ${UNSEAL_NAME} (${UNSEAL_HOME} and ${UNSEAL_AZIEL}). Neither is a Live Node. ` +
     `${MACHINE_15_20} The public identity is the published work. ${PERSON_HEBREW_NAME}`
   );
 }
@@ -587,6 +591,7 @@ export function personIndexJsonLd(origin, calling = null) {
       { "@type": "CreativeWork", name: FURNACE_NAME, url: FURNACE_HOME },
       { "@type": "CreativeWork", name: `${FURNACE_NAME} Aziel`, url: FURNACE_AZIEL },
       { "@type": "CreativeWork", name: UNSEAL_NAME, url: UNSEAL_HOME },
+      { "@type": "CreativeWork", name: `${UNSEAL_NAME} Aziel`, url: UNSEAL_AZIEL },
     ],
     machine: {
       chrome_15_20: false,
@@ -658,7 +663,8 @@ export function whoIsTxt(origin, calling = null) {
   lines.push(`Official Aziel site: ${FURNACE_NAME} — ${FURNACE_HOME}`);
   lines.push(`Official Aziel site: ${FURNACE_NAME} Aziel — ${FURNACE_AZIEL}`);
   lines.push(`Official Aziel site: ${UNSEAL_NAME} — ${UNSEAL_HOME}`);
-  lines.push("TimeToUnsealTheBook /aziel is HTTP 307, not a 200 door.");
+  lines.push(`Official Aziel site: ${UNSEAL_NAME} Aziel — ${UNSEAL_AZIEL}`);
+  lines.push(`${UNSEAL_NAME} /aziel is HTTP ${UNSEAL_AZIEL_HTTP}.`);
   lines.push(`Softwares: ${RUNTIME_WORKER_HOME}`);
   lines.push("");
   lines.push("## This Worker machine files");

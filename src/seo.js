@@ -26,6 +26,8 @@ import {
   FURNACE_NAME,
   FURNACE_SITEMAP,
   RUNTIME_WORKER_HOME,
+  UNSEAL_AZIEL,
+  UNSEAL_AZIEL_HTTP,
   UNSEAL_HOME,
   UNSEAL_LLMS,
   UNSEAL_NAME,
@@ -52,6 +54,8 @@ export {
   FURNACE_NAME,
   FURNACE_SITEMAP,
   RUNTIME_WORKER_HOME,
+  UNSEAL_AZIEL,
+  UNSEAL_AZIEL_HTTP,
   UNSEAL_HOME,
   UNSEAL_LLMS,
   UNSEAL_NAME,
@@ -869,6 +873,7 @@ export const ECOSYSTEM_LINKS = Object.freeze([
   { label: FURNACE_NAME, url: FURNACE_HOME },
   { label: `${FURNACE_NAME} · Aziel`, url: FURNACE_AZIEL },
   { label: UNSEAL_NAME, url: UNSEAL_HOME },
+  { label: `${UNSEAL_NAME} · Aziel`, url: UNSEAL_AZIEL },
 ]);
 
 /** Visible + llms sister-site doors. Not Softwares hubs. */
@@ -876,7 +881,7 @@ export function llmsEcosystemBlock() {
   const lines = [
     "## Ecosystem",
     "",
-    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}. Official Aziel sites (not Live Nodes): ${FURNACE_NAME} ${FURNACE_HOME} and ${FURNACE_AZIEL}; ${UNSEAL_NAME} ${UNSEAL_HOME}. Softwares: ${RUNTIME_WORKER_HOME}.`,
+    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}. Official Aziel sites (not Live Nodes): ${FURNACE_NAME} ${FURNACE_HOME} and ${FURNACE_AZIEL}; ${UNSEAL_NAME} ${UNSEAL_HOME} and ${UNSEAL_AZIEL}. Softwares: ${RUNTIME_WORKER_HOME}.`,
     "",
   ];
   for (const link of ECOSYSTEM_LINKS) {
@@ -1045,9 +1050,10 @@ export function llmsCiteBlock(origin, calling = null) {
     `${FURNACE_NAME} llms.txt: ${FURNACE_LLMS}`,
     `${FURNACE_NAME} sitemap.xml: ${FURNACE_SITEMAP}`,
     `${UNSEAL_NAME} (official Aziel site, handle, not a Live Node): ${UNSEAL_HOME}`,
+    `${UNSEAL_NAME} Aziel: ${UNSEAL_AZIEL}`,
     `${UNSEAL_NAME} llms.txt: ${UNSEAL_LLMS}`,
     `${UNSEAL_NAME} sitemap.xml: ${UNSEAL_SITEMAP}`,
-    `${UNSEAL_NAME} /aziel on that host is HTTP 307, not a 200 door.`,
+    `${UNSEAL_NAME} /aziel on that host is HTTP ${UNSEAL_AZIEL_HTTP}.`,
     `Softwares: ${RUNTIME_WORKER_HOME}`,
     `Trades-Runtime (sister product): ${AUTHOR_FAMILY_GIVEN}. (2026). Trades-Runtime ${TRADES_RUNTIME_VERSION} [Software]. Apache-2.0. ${TRADES_RUNTIME_GITHUB}`,
     `Trades-Runtime Worker: ${TRADES_RUNTIME_ORIGIN}`,
