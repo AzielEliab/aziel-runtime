@@ -19,6 +19,22 @@ import {
   personSocialsField,
 } from "./person-index.js";
 import {
+  FURNACE_AZIEL,
+  FURNACE_CITE,
+  FURNACE_HOME,
+  FURNACE_LLMS,
+  FURNACE_NAME,
+  FURNACE_SITEMAP,
+  RUNTIME_WORKER_HOME,
+  UNSEAL_HOME,
+  UNSEAL_LLMS,
+  UNSEAL_NAME,
+  UNSEAL_SITEMAP,
+  officialAzielSitePageUrls,
+  officialAzielSiteSitemaps,
+  officialAzielSitesHubFields,
+} from "./official-sites.js";
+import {
   TRADES_RUNTIME_CITE,
   TRADES_RUNTIME_DOWNLOAD,
   TRADES_RUNTIME_GITHUB,
@@ -27,6 +43,23 @@ import {
   TRADES_RUNTIME_VERSION,
   sisterProductHubFields,
 } from "./sister-products.js";
+
+export {
+  FURNACE_AZIEL,
+  FURNACE_CITE,
+  FURNACE_HOME,
+  FURNACE_LLMS,
+  FURNACE_NAME,
+  FURNACE_SITEMAP,
+  RUNTIME_WORKER_HOME,
+  UNSEAL_HOME,
+  UNSEAL_LLMS,
+  UNSEAL_NAME,
+  UNSEAL_SITEMAP,
+  officialAzielSitePageUrls,
+  officialAzielSiteSitemaps,
+  officialAzielSitesHubFields,
+} from "./official-sites.js";
 
 export const AUTHOR_NAME = "Aziel Eliab";
 export const AUTHOR_ALTERNATE_NAME = "Aziel Elroi Eliab";
@@ -388,6 +421,7 @@ export function hubPageSitemapUrls() {
       push(url);
     }
   }
+  for (const url of officialAzielSitePageUrls()) push(url);
   return out;
 }
 
@@ -624,6 +658,7 @@ export function hubSitemapList(origin, products) {
   push(`${base}/sitemap.xml`);
   for (const url of extraHubSitemaps()) push(url);
   for (const url of sisterArchiveSitemaps()) push(url);
+  for (const url of officialAzielSiteSitemaps()) push(url);
   for (const url of liveProductSitemapUrls(products)) push(url);
   return out;
 }
@@ -648,7 +683,7 @@ export function robotsTxt(origin, products) {
     "# Hash fragments on / are not the crawl path. Product cards are /p/{slug}.",
     "# Cap-7 is not an ICANN name. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
     "# Allow /v1/software /v1/update /mcp /openapi /survival — hubs and agents fetch these.",
-    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive), and live product Workers.",
+    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive), www.furnaceisntfree.com, www.timetounsealthebook.net, and live product Workers.",
     "",
     "User-agent: *",
     "Allow: /",
@@ -828,8 +863,12 @@ export const ECOSYSTEM_LINKS = Object.freeze([
   { label: "Official site", url: `${AUTHOR_SITE_ORIGIN}/` },
   { label: "Aziel Corpus Library", url: `${LIBRARY_ORIGIN}/` },
   { label: "Aziel Runtime on GitHub", url: RUNTIME_GITHUB },
+  { label: "Aziel Runtime", url: RUNTIME_WORKER_HOME },
   { label: "GodLock", url: `${GODLOCK_UK_ORIGIN}/` },
   { label: HEDIDNTJUMP_NAME, url: HEDIDNTJUMP_HOME },
+  { label: FURNACE_NAME, url: FURNACE_HOME },
+  { label: `${FURNACE_NAME} · Aziel`, url: FURNACE_AZIEL },
+  { label: UNSEAL_NAME, url: UNSEAL_HOME },
 ]);
 
 /** Visible + llms sister-site doors. Not Softwares hubs. */
@@ -837,7 +876,7 @@ export function llmsEcosystemBlock() {
   const lines = [
     "## Ecosystem",
     "",
-    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}.`,
+    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}. Official Aziel sites (not Live Nodes): ${FURNACE_NAME} ${FURNACE_HOME} and ${FURNACE_AZIEL}; ${UNSEAL_NAME} ${UNSEAL_HOME}. Softwares: ${RUNTIME_WORKER_HOME}.`,
     "",
   ];
   for (const link of ECOSYSTEM_LINKS) {
@@ -934,6 +973,7 @@ export function catalogHubFields(origin) {
     hedidntjump_cite: HEDIDNTJUMP_CITE,
     hedidntjump_llms: HEDIDNTJUMP_LLMS,
     hedidntjump_software_tab: false,
+    ...officialAzielSitesHubFields(),
     sister_archives: sisterArchiveCiteField(),
     ...sisterProductHubFields(),
     hubs: softwareHubCrawl(),
@@ -999,6 +1039,16 @@ export function llmsCiteBlock(origin, calling = null) {
     `${HEDIDNTJUMP_NAME} cite.json: ${HEDIDNTJUMP_CITE}`,
     `${HEDIDNTJUMP_NAME} llms.txt: ${HEDIDNTJUMP_LLMS}`,
     `${HEDIDNTJUMP_NAME} sitemap.xml: ${HEDIDNTJUMP_SITEMAP}`,
+    `${FURNACE_NAME} (official Aziel site, not a Live Node): ${FURNACE_HOME}`,
+    `${FURNACE_NAME} Aziel: ${FURNACE_AZIEL}`,
+    `${FURNACE_NAME} cite.json: ${FURNACE_CITE}`,
+    `${FURNACE_NAME} llms.txt: ${FURNACE_LLMS}`,
+    `${FURNACE_NAME} sitemap.xml: ${FURNACE_SITEMAP}`,
+    `${UNSEAL_NAME} (official Aziel site, handle, not a Live Node): ${UNSEAL_HOME}`,
+    `${UNSEAL_NAME} llms.txt: ${UNSEAL_LLMS}`,
+    `${UNSEAL_NAME} sitemap.xml: ${UNSEAL_SITEMAP}`,
+    `${UNSEAL_NAME} /aziel on that host is HTTP 307, not a 200 door.`,
+    `Softwares: ${RUNTIME_WORKER_HOME}`,
     `Trades-Runtime (sister product): ${AUTHOR_FAMILY_GIVEN}. (2026). Trades-Runtime ${TRADES_RUNTIME_VERSION} [Software]. Apache-2.0. ${TRADES_RUNTIME_GITHUB}`,
     `Trades-Runtime Worker: ${TRADES_RUNTIME_ORIGIN}`,
     `Trades-Runtime MCP: ${TRADES_RUNTIME_MCP}`,

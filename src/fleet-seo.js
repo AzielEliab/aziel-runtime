@@ -8,6 +8,17 @@
  */
 
 import {
+  FURNACE_AZIEL,
+  FURNACE_HOME,
+  FURNACE_NAME,
+  RUNTIME_WORKER_HOME,
+  UNSEAL_HOME,
+  UNSEAL_LLMS,
+  UNSEAL_NAME,
+  UNSEAL_SITEMAP,
+  officialAzielSitesHubFields,
+} from "./official-sites.js";
+import {
   AUTHOR_GITHUB,
   AUTHOR_ID,
   AUTHOR_NAME,
@@ -25,10 +36,7 @@ import { TRADES_RUNTIME_MCP, TRADES_RUNTIME_ORIGIN } from "./sister-products.js"
 export const AZIEL_HANDLES_PATH = "/aziel";
 export const SOFTWARE_PRETTY_PATH = "/software";
 export const DOORS_URL = `${AUTHOR_SITE_ORIGIN}/doors`;
-export const OFFICIAL_RUNTIME = "https://aziel-runtime.vibelock.workers.dev/";
-export const UNSEAL_NAME = "TimeToUnsealTheBook";
-export const UNSEAL_ORIGIN = "https://timetounsealthebook.net";
-export const UNSEAL_AZIEL = `${UNSEAL_ORIGIN}/aziel`;
+export const OFFICIAL_RUNTIME = RUNTIME_WORKER_HOME;
 export const UNSEAL_COS_TIP = "5b3c878e";
 export const PATTERN_LIVE_GATE = "Dual CLEAR + Aziel merge OK + Cos";
 
@@ -44,7 +52,9 @@ export const DECRYPTION_PUBLIC = "decryption_complete stays false.";
 export const GROWTH_ON_ALLOW = "Growth-ON. Allow.";
 export const HDJ_NOTE = "He Didn't Jump is a handle, not a Live Node.";
 export const UNSEAL_NOTE =
-  `${UNSEAL_NAME} is a handle, not a Live Node, and is not LIVE on this Worker until Dual CLEAR, Aziel merge OK, and Cos. Cos tip ${UNSEAL_COS_TIP} at ${UNSEAL_ORIGIN}/.`;
+  `${UNSEAL_NAME} is a handle, not a Live Node, and is not LIVE on this Worker until Dual CLEAR, Aziel merge OK, and Cos. Official door ${UNSEAL_HOME}. The /aziel path on that host is HTTP 307, not a 200 door. Cos tip ${UNSEAL_COS_TIP}.`;
+export const FURNACE_NOTE =
+  `${FURNACE_NAME} is an official Aziel site and a handle, not a Live Node. Doors ${FURNACE_HOME} and ${FURNACE_AZIEL}. Not LIVE on this Worker until Dual CLEAR, Aziel merge OK, and Cos.`;
 
 /**
  * Same-origin human tabs. Each one is a path a crawler can fetch.
@@ -99,7 +109,9 @@ export function azielHandles(origin) {
     { label: "Trades-Runtime", href: `${TRADES_RUNTIME_ORIGIN}/` },
     { label: "Trades-Runtime MCP", href: TRADES_RUNTIME_MCP },
     { label: `X ${X_HANDLE}`, href: X_URL },
-    { label: UNSEAL_NAME, href: UNSEAL_AZIEL },
+    { label: FURNACE_NAME, href: FURNACE_HOME },
+    { label: `${FURNACE_NAME} · Aziel`, href: FURNACE_AZIEL },
+    { label: UNSEAL_NAME, href: UNSEAL_HOME },
     { label: "Aziel Runtime handles", href: local },
   ];
 }
@@ -112,11 +124,17 @@ export function tabPathsAbsolute(origin) {
 export function unsealCite() {
   return {
     name: UNSEAL_NAME,
-    origin: `${UNSEAL_ORIGIN}/`,
-    aziel: UNSEAL_AZIEL,
+    origin: UNSEAL_HOME,
+    home: UNSEAL_HOME,
+    aziel: null,
+    aziel_http: 307,
+    sitemap: UNSEAL_SITEMAP,
+    llms: UNSEAL_LLMS,
     cos_tip: UNSEAL_COS_TIP,
     live: false,
     live_node: false,
+    official: true,
+    software_tab: false,
     decryption_complete: false,
     paid_satellite: "HELD",
     cap7_is_icann: false,
@@ -143,7 +161,19 @@ export function fleetCiteFields(origin) {
     pattern_live_gate: PATTERN_LIVE_GATE,
     growth: "ON",
     crawl: "Allow",
+    ...officialAzielSitesHubFields(),
     unseal: unsealCite(),
+    furnace_site: {
+      name: FURNACE_NAME,
+      home: FURNACE_HOME,
+      aziel: FURNACE_AZIEL,
+      live: false,
+      live_node: false,
+      official: true,
+      software_tab: false,
+      decryption_complete: false,
+      note: FURNACE_NOTE,
+    },
   };
 }
 
@@ -166,6 +196,8 @@ export function fleetLlmsBlock(origin) {
     handles,
     "",
     "He Didn't Jump is a handle. It is not a Live Node.",
+    FURNACE_NOTE,
+    UNSEAL_NOTE,
     "Cap-7: not an ICANN name. Paid satellite stays HELD.",
     DECRYPTION_PUBLIC,
     PATTERN_HOLD_PUBLIC,
@@ -183,6 +215,7 @@ export function fleetWhoIsBlock(origin) {
     "",
     "He Didn't Jump is a handle. It is not a Live Node.",
     `${CAP7_PUBLIC} ${PAID_SAT_PUBLIC}`,
+    FURNACE_NOTE,
     UNSEAL_NOTE,
     "decryption_complete: false.",
     "Growth-ON Allow.",
@@ -229,7 +262,17 @@ export function azielHandlesJson(origin) {
     cos_tip: UNSEAL_COS_TIP,
     growth: "ON",
     crawl: "Allow",
+    ...officialAzielSitesHubFields(),
     unseal: unsealCite(),
+    furnace_site: {
+      name: FURNACE_NAME,
+      home: FURNACE_HOME,
+      aziel: FURNACE_AZIEL,
+      live: false,
+      live_node: false,
+      official: true,
+      software_tab: false,
+    },
     text: azielHandlesText(origin),
   };
 }
@@ -245,7 +288,7 @@ export function siteFooterHtml() {
 <p>${esc(AUTHOR_NAME)} · <a href="/cite.json">cite.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a> · <a href="/sitemap.xml">sitemap</a> · <a href="${AZIEL_HANDLES_PATH}">Aziel</a> · Apache-2.0</p>
 <p class="paths">Paths: ${paths}.</p>
 <p>${esc(GROWTH_ON_ALLOW)}</p>
-<p>${esc(HDJ_NOTE)} ${esc(CAP7_PUBLIC)} ${esc(PAID_SAT_PUBLIC)} ${esc(DECRYPTION_PUBLIC)} ${esc(UNSEAL_NOTE)}</p>
+<p>${esc(HDJ_NOTE)} ${esc(CAP7_PUBLIC)} ${esc(PAID_SAT_PUBLIC)} ${esc(DECRYPTION_PUBLIC)} ${esc(FURNACE_NOTE)} ${esc(UNSEAL_NOTE)}</p>
 </footer>`;
 }
 
@@ -283,7 +326,7 @@ export function azielPageHtml(origin) {
   <p><a href="/">← Aziel Runtime</a> · <a href="${SOFTWARE_PRETTY_PATH}">Softwares</a> · <a href="/about">About</a></p>
   <h1>Aziel</h1>
   <h2>Handles</h2>
-  <p>Public identity on this page is ${esc(AUTHOR_NAME)}. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. Each site keeps its own receipt tip. ${esc(HDJ_NOTE)}</p>
+  <p>Public identity on this page is ${esc(AUTHOR_NAME)}. The handles below are the public doors listed on <a href="${esc(DOORS_URL)}">azieleliab.com</a>. Each site keeps its own receipt tip. ${esc(HDJ_NOTE)} ${esc(FURNACE_NOTE)} ${esc(UNSEAL_NOTE)}</p>
   <ul class="handles">
 ${items}
   </ul>
