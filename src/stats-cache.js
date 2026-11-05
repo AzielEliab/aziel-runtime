@@ -5,6 +5,8 @@
  * whether it is cached, when it was read, and the max age. Counts are never edited.
  * No KV or D1 writes. Author: Aziel Eliab only.
  */
+import { USES_TOTAL_SOURCE } from "./uses.js";
+
 export const STATS_CACHE_SPEC = "STATS-CACHE-1.0";
 export const STATS_TTL_S = 60;
 const memo = new Map();
@@ -53,9 +55,45 @@ function pickEntry(a, b) {
  * the highest count already served per key in this isolate, and never serve a lower one there (KV reads are
  * eventually consistent, so a fresh read can lag a count already shown).
  */
+function cacheReqKey(storageKey) {
+  return "https://stats-cache.internal/" + encodeURIComponent(storageKey);
+}
+
+function entryFresh(entry, now) {
+  return entry && Number.isFinite(entry.at) && now - entry.at < STATS_TTL_S * 1000 && cacheable(entry.body);
+}
+
+async function peekFreshEntry(storageKey, now, cache) {
+  const local = memo.get(storageKey) || null;
+  let shared = null;
+  if (cache) {
+    try {
+      const res = await cache.match(cacheReqKey(storageKey));
+      if (res) shared = await res.json();
+    } catch {
+      shared = null;
+    }
+  }
+  const fl = entryFresh(local, now) ? local : null;
+  const fs = entryFresh(shared, now) ? shared : null;
+  if (fl && fs) return fl.at >= fs.at ? fl : fs;
+  return fl || fs;
+}
+
+async function rememberEntry(storageKey, entry, cache) {
+  highWater.set(storageKey, entry);
+  memo.set(storageKey, entry);
+  if (!cache) return;
+  try {
+    await cache.put(cacheReqKey(storageKey), new Response(JSON.stringify(entry), { headers: { "content-type": "application/json", "cache-control": `max-age=${STATS_TTL_S}` } }));
+  } catch {
+    /* the isolate memo still holds it */
+  }
+}
+
 async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCache() } = {}) {
-  const fresh = (e) => e && Number.isFinite(e.at) && now - e.at < STATS_TTL_S * 1000 && cacheable(e.body);
-  const reqKey = "https://stats-cache.internal/" + encodeURIComponent(key);
+  const fresh = (e) => entryFresh(e, now);
+  const reqKey = cacheReqKey(key);
   const local = memo.get(key) || null;
   let shared = null;
   if (cache) {
@@ -99,7 +137,12 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
 
 /**
  * STATS-FLOOR-1.0: one shared floor per key in a Durable Object (no KV). The floor is the highest
- * `uses` ever served by any isolate in any colo.
+ * `uses` ever served for that series by any isolate in any colo.
+ * A read whose uses_total_source is the reconciled legacy+durable total uses its own series
+ * (`<key>:legacy-frozen+durable`). A floor stored on the pre-reconciliation key is not applied,
+ * so an inflated high water cannot pin published uses above uses_legacy + uses_durable. Later
+ * climbs of that total still raise the reconciled series. The sum is not written back into the
+ * USES Durable Object.
  * Every request makes exactly one DO call, raise(key, candidate), which atomically sets the floor
  * to max(floor, candidate) and returns it (a write only when the count rises). The served count is
  * that returned max. Floor: across colos the count may lag by up to 10s; within an isolate it never drops. Cost: one DO
@@ -108,6 +151,32 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
  * Fail closed: no CHAINLOCK binding, or the DO call fails -> no count is served (HTTP 503).
  * by_host/by_path/by_day/by_method/by_op are the raw read and are labelled as such.
  */
+
+/** Floor DO key. Reconciled totals do not share the pre-reconciliation high water. */
+export function statsFloorStorageKey(key, body) {
+  if (body && body.uses_total_source === USES_TOTAL_SOURCE) return `${key}:${USES_TOTAL_SOURCE}`;
+  return key;
+}
+
+function floorCache(body, served, extra) {
+  return {
+    ...body.cache,
+    floor_spec: "STATS-FLOOR-1.0",
+    floor_note: FLOOR_NOTE,
+    floor_shared: true,
+    ...extra,
+    uses_floor_applied: served > countOf(body),
+    ...(body && body.uses_total_source === USES_TOTAL_SOURCE ? { floor_epoch: USES_TOTAL_SOURCE } : {}),
+  };
+}
+
+function finishFloor(body, served, extra) {
+  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: floorCache(body, served, extra) };
+  if (served > countOf(body)) out.uses_read = body.uses;
+  out.uses = served;
+  return out;
+}
+
 export const FLOOR_NOTE = "across colos the count may lag by up to 10s; within an isolate it never drops.";
 export const STATS_FLOOR_UNAVAILABLE = "STATS-FLOOR-UNAVAILABLE";
 export const STATS_FLOOR_RETRY_S = 5;
@@ -150,25 +219,51 @@ function raiseBatched(floor, key, candidate, now) {
   return batch.promise.then((got) => ({ got, batch_size: batch.size }));
 }
 
+function reconciledBody(body) {
+  return Boolean(body && body.uses_total_source === USES_TOTAL_SOURCE);
+}
+
 export async function cachedUses(key, read, { now = Date.now(), cache = defaultCache(), floor = null } = {}) {
   const refuse = (why) => ({ ok: false, code: STATS_FLOOR_UNAVAILABLE, reason: why, retry_after_s: STATS_FLOOR_RETRY_S, message: "The shared stats floor (Durable Object) could not be read, so no count was served. Retry shortly.", spec: "STATS-FLOOR-1.0" });
   if (!floor || typeof floor.raise !== "function") return refuse("unbound");
-  const body = await cachedUsesLocal(key, read, { now, cache });
-  const candidate = Math.max(0, countOf(body), countOf((highWater.get(key) || {}).body));
+  const epochKey = statsFloorStorageKey(key, { uses_total_source: USES_TOTAL_SOURCE });
+  // Bare-key highWater / Cache API can still hold a pre-unmask body (uses 112111).
+  // That entry must not become the candidate for the reconciled floor series.
+  let body;
+  const epochFresh = await peekFreshEntry(epochKey, now, cache);
+  if (epochFresh && reconciledBody(epochFresh.body)) {
+    const high = highWater.get(epochKey);
+    const serve = high && reconciledBody(high.body) && countOf(high.body) > countOf(epochFresh.body) ? high : epochFresh;
+    body = stamp(serve.body, serve.at, true, now, serve !== epochFresh);
+  } else {
+    body = await cachedUsesLocal(key, read, { now, cache });
+    if (!reconciledBody(body)) {
+      const fresh = await read();
+      if (reconciledBody(fresh)) body = fresh;
+    }
+    if (reconciledBody(body)) {
+      const entry = { at: now, body };
+      const prev = highWater.get(epochKey);
+      const best = pickEntry(prev && reconciledBody(prev.body) ? prev : null, entry);
+      await rememberEntry(epochKey, best, cache);
+      if (best !== entry) body = stamp(best.body, best.at, true, now, true);
+    }
+  }
+  const floorKey = statsFloorStorageKey(key, body);
+  const seriesHigh = highWater.get(floorKey);
+  const seriesCount = seriesHigh && statsFloorStorageKey(key, seriesHigh.body) === floorKey ? countOf(seriesHigh.body) : -1;
+  const candidate = Math.max(0, countOf(body), seriesCount);
   // STATS-FLOOR-REUSE-1.0: same KV candidate as this isolate's last floor read, and that read is
   // under 10s old -> serve that floor without a DO call (bounded staleness: 10s).
-  const prev = lastFloor.get(key);
+  const prev = lastFloor.get(floorKey);
   if (prev && prev.candidate === candidate && now - prev.at >= 0 && now - prev.at < STATS_FLOOR_REUSE_MS) {
     const servedR = Math.max(prev.floor, candidate);
-    const outR = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_note: FLOOR_NOTE, floor_shared: true, floor_reused: true, floor_read_at: new Date(prev.at).toISOString(), uses_floor_applied: servedR > countOf(body) } };
-    if (servedR > countOf(body)) outR.uses_read = body.uses;
-    outR.uses = servedR;
-    return outR;
+    return finishFloor(body, servedR, { floor_reused: true, floor_read_at: new Date(prev.at).toISOString() });
   }
   let f;
   let batchSize = 1;
   try {
-    const r = await raiseBatched(floor, key, candidate, now);
+    const r = await raiseBatched(floor, floorKey, candidate, now);
     if (r && r.capped) {
       return { ok: false, code: STATS_CAP_CODE, retry_after_s: r.retry_after_s, message: `Stats floor calls are capped at ${STATS_DO_CAP_PER_MIN} per minute per isolate. No count was served. Retry after ${r.retry_after_s}s.`, spec: "STATS-FLOOR-CAP-1.0" };
     }
@@ -180,11 +275,8 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
     return refuse("unreachable");
   }
   const served = Math.max(f, candidate);
-  lastFloor.set(key, { at: now, candidate, floor: served });
-  const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: { ...body.cache, floor_spec: "STATS-FLOOR-1.0", floor_note: FLOOR_NOTE, floor_shared: true, floor_reused: false, floor_batch: batchSize, uses_floor_applied: served > countOf(body) } };
-  if (served > countOf(body)) out.uses_read = body.uses;
-  out.uses = served;
-  return out;
+  lastFloor.set(floorKey, { at: now, candidate, floor: served });
+  return finishFloor(body, served, { floor_reused: false, floor_batch: batchSize });
 }
 
 export function clearStatsMemo() {

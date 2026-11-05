@@ -2433,6 +2433,29 @@ export async function meshNodes(payload, env) {
   });
 }
 
+/** One site-viewer aggregate key. Not live_nodes, not nodes, not human_uses. */
+export async function readSiteLiveViewers(env) {
+  const bound = meshKv(env);
+  const now = nowMs();
+  let seal;
+  if (!bound) {
+    seal = { site_viewers: pruneSiteViewers(memory.site_viewers, now) };
+  } else {
+    const raw = await kvGetJson(bound.kv, siteAggregateKey(bound), {});
+    seal = chooseSiteSeal(bound.kv, raw, now);
+  }
+  const fleet = siteViewerFleet(seal.site_viewers, now);
+  return {
+    site_live_viewers: fleet.site_live_viewers,
+    site_live_viewers_components: fleet.components,
+    site_live_viewers_complete: fleet.complete === true,
+    site_live_viewers_source: "mesh site_viewers single-key",
+    site_live_viewers_read: "single-key",
+    excluded: ["nodes", "live_nodes", "human_uses", "software_nodes"],
+    note: "site_live_viewers is concurrent hub human-page presence on godlock.uk, azieleliab.com, and azielcorpuslibrary.net. It is not live_nodes and not nodes.",
+  };
+}
+
 export async function meshSitePresence(payload, env) {
   const src = payload && typeof payload === "object" && !Array.isArray(payload) ? payload : {};
   const state = await loadState(env);

@@ -15,8 +15,12 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { MCP_SESSION_HEADER } from "../src/mcp-transport.js";
 import { hybridKv, memoryRuntimeKvNamespace, withDurableKv } from "../src/durable-kv.js";
-import { memoryUsesKv, incrementUse, readUses } from "../src/uses.js";
-import { cachedUses, clearStatsMemo, statsFloorFor } from "../src/stats-cache.js";
+import { memoryUsesKv, incrementUse, readUses, USES_TOTAL_SOURCE } from "../src/uses.js";
+import { cachedUses, clearStatsMemo, statsFloorFor, statsFloorStorageKey } from "../src/stats-cache.js";
+import { PRODUCTS } from "../src/index.js";
+import { WORKER_ONLY_PRODUCTS } from "../src/software-catalog.js";
+import { softwareMeterRoster } from "../src/software-meters.js";
+import { USES_FORMULA, clearUsesRectifyCache } from "../src/uses-rectify.js";
 import { append } from "../src/chainlock/ops.js";
 import { DurableStore } from "../src/chainlock/store.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
@@ -173,6 +177,105 @@ async function initAndList(env, label) {
   assert.equal(served.cache.uses_floor_applied, false, "sum is above the floor, so the floor no longer masks");
   assert.equal(served.uses_read, undefined);
   assert.equal(served.uses_durable, 5333);
+  assert.equal(served.cache.floor_epoch, USES_TOTAL_SOURCE);
+}
+
+// --- 3c. Inflated pre-reconciliation floor does not pin the reconciled total ----
+{
+  const legacy = memoryUsesKv({ total: "62051" });
+  const RUNTIME_KV = memoryRuntimeKvNamespace();
+  const kv = hybridKv(RUNTIME_KV, legacy);
+  await kv.put("total", "5888");
+  const read = await readUses({ USES: kv }, { light: true });
+  assert.equal(read.uses_legacy, 62051);
+  assert.equal(read.uses_durable, 5888);
+  assert.equal(read.uses, 67939);
+  assert.equal(read.uses_total_source, USES_TOTAL_SOURCE);
+  const CHAINLOCK = memoryChainWriterNamespace({});
+  const floor = statsFloorFor({ CHAINLOCK });
+  await floor.raise("full", 112111);
+  await floor.raise("light", 112111);
+  clearStatsMemo();
+  clearUsesRectifyCache();
+  const meters = softwareMeterRoster(PRODUCTS, WORKER_ONLY_PRODUCTS).meters;
+  const corpusSlug = "aziel-corpus";
+  assert.ok(meters.some((row) => row.slug === corpusSlug));
+  const otherMeters = meters.filter((row) => row.slug !== corpusSlug).length;
+  const corpusViews = 448523;
+  const sumViews = otherMeters * 1 + corpusViews;
+  const hostedViews = 5102 + 5584;
+  const viewers = 4;
+  const published = 67939 + sumViews + hostedViews + viewers;
+  const urls = [];
+  const viewsFetch = async (url) => {
+    urls.push(String(url));
+    const json = (obj) => ({ ok: true, async json() { return obj; } });
+    if (url === "https://www.azieleliab.com/v1/stats") return json({ views: 5102, nodes: 99999, live_nodes: 88888, human_uses: 77777 });
+    if (url === "https://godlock.uk/stats") return json({ views: 5584, nodes: 6009, live_nodes: 52, uses: 56, downloads: 222 });
+    if (String(url).includes("azielcorpuslibrary.net")) throw new Error("corpus hub must be counted once, via the tracker");
+    if (String(url).includes("aziel-corpus-download-tracker")) return json({ views: corpusViews, downloads: 9, nodes: 1 });
+    return json({ views: 1, downloads: 8, nodes: 12345, live_nodes: 99 });
+  };
+  await legacy.put("mesh|site_viewers", JSON.stringify({
+    generation: 1,
+    sealed_at: new Date().toISOString(),
+    hosts: {
+      "azieleliab.com": {
+        host: "azieleliab.com",
+        viewers,
+        kind: "human-page",
+        last_seen: new Date().toISOString(),
+        heartbeat_mode: "idle",
+      },
+    },
+  }));
+  const env = { USES: legacy, RUNTIME_KV, CHAINLOCK, USES_VIEWS_FETCH: viewsFetch };
+  const res = await handler(new Request("https://x.example/v1/uses"), env, { waitUntil() {} });
+  assert.equal(res.status, 200);
+  const body = await res.json();
+  assert.equal(body.uses_formula, USES_FORMULA);
+  assert.equal(body.uses_components.uses_read, 67939);
+  assert.equal(body.uses_components.sum_views, sumViews);
+  assert.equal(body.uses_components.hosted_views, hostedViews);
+  assert.equal(body.uses_components.site_live_viewers, viewers);
+  assert.equal(body.uses_components.hosted.azieleliab.views, 5102);
+  assert.equal(body.uses_components.hosted.godlock.views, 5584);
+  assert.equal(body.uses_components.corpus_once.hub_added, false);
+  assert.equal(body.uses, published);
+  assert.ok(body.uses > 112111);
+  assert.equal(body.uses_legacy, 62051);
+  assert.equal(body.uses_durable, 5888);
+  assert.equal(body.uses_total_source, USES_TOTAL_SOURCE);
+  assert.equal(body.cache.uses_floor_applied, false);
+  assert.equal(body.uses_read, undefined);
+  assert.equal(body.cache.floor_epoch, USES_TOTAL_SOURCE);
+  assert.ok(!urls.some((url) => url.includes("azielcorpuslibrary.net")));
+  assert.equal(await kv.durableGet("total"), "5888", "published sum is not written back");
+  assert.equal(await legacy.get("total"), "62051");
+  assert.equal((await floor.raise("full", 0)).floor, 112111);
+  assert.equal((await floor.raise(statsFloorStorageKey("full", body), 0)).floor, published);
+  await incrementUse({ USES: kv }, { host: "c.example", method: "POST", path: "/mcp" });
+  assert.equal(await kv.durableGet("total"), "5889");
+  clearStatsMemo();
+  const res2 = await handler(new Request("https://x.example/v1/uses"), env, { waitUntil() {} });
+  const climbed = await res2.json();
+  assert.equal(res2.status, 200);
+  assert.equal(climbed.uses, published + 1);
+  assert.equal(climbed.uses_legacy, 62051);
+  assert.equal(climbed.uses_durable, 5889);
+  assert.equal(climbed.uses_components.site_live_viewers, viewers);
+  assert.equal(climbed.cache.uses_floor_applied, false);
+  assert.equal(await kv.durableGet("total"), "5889", "the climb is not copied into the DO total");
+  assert.notEqual(await kv.durableGet("total"), String(climbed.uses));
+  clearStatsMemo();
+  const statsRes = await handler(new Request("https://x.example/v1/stats"), env, { waitUntil() {} });
+  const stats = await statsRes.json();
+  assert.equal(statsRes.status, 200);
+  assert.equal(stats.uses, published + 1);
+  assert.equal(stats.alias_of, "/v1/uses");
+  assert.equal(stats.uses_formula, USES_FORMULA);
+  assert.equal(stats.cache.uses_floor_applied, false);
+  assert.equal(await kv.durableGet("total"), "5889");
 }
 
 // --- 4. MCP still answers after N lattice rows ----------------------------------
