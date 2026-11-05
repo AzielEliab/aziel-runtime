@@ -1389,4 +1389,110 @@ assert.match(llms, new RegExp(`Glama Install Server release ${glamaReleaseRe}\\b
 assert.match(llms, /Install \/ Try on Glama: https:\/\/glama\.ai\/mcp\/servers\/AzielEliab\/aziel-runtime/);
 assert.match(home, /rel="alternate" type="text\/plain" href="https:\/\/aziel-runtime\.example\/help\.txt"/);
 
+function visibleHtml(html) {
+  return String(html)
+    .replace(/<script[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?<\/style>/gi, "")
+    .replace(/^[\s\S]*<body[^>]*>/i, "")
+    .replace(/<\/body>[\s\S]*$/i, "");
+}
+
+assert.match(robots, /Growth-ON\. Allow: \//);
+assert.match(robots, /Allow: \/aziel/);
+assert.match(robots, /Allow: \/software/);
+assert.match(robots, /User-agent: \*\nAllow: \//);
+assert.match(sitemap, /\/software</);
+assert.match(sitemap, /\/aziel</);
+assert.match(llms, /Paths \(not hash-only\)/);
+assert.match(llms, /https:\/\/aziel-runtime\.example\/aziel/);
+assert.match(llms, /https:\/\/aziel-runtime\.example\/software/);
+assert.match(llms, /Handles, same public doors as https:\/\/www\.azieleliab\.com\/doors/);
+assert.match(llms, /https:\/\/timetounsealthebook\.net\/aziel/);
+assert.match(llms, /He Didn't Jump is a handle\. It is not a Live Node/);
+assert.match(llms, /Cap-7: not an ICANN name\. Paid satellite stays HELD/);
+assert.match(llms, /decryption_complete stays false/);
+assert.match(llms, /Not LIVE until Dual CLEAR, Aziel merge OK, and Cos/);
+assert.equal(await (await get("/ai.txt")).text(), llms);
+assert.equal(cite.cap7_is_icann, false);
+assert.equal(cite.paid_satellite, "HELD");
+assert.equal(cite.decryption_complete, false);
+assert.equal(cite.pattern_live, false);
+assert.equal(cite.pattern_live_gate, "Dual CLEAR + Aziel merge OK + Cos");
+assert.equal(cite.growth, "ON");
+assert.equal(cite.crawl, "Allow");
+assert.equal(cite.paths_not_hash_only, true);
+assert.equal(cite.unseal.live, false);
+assert.equal(cite.unseal.live_node, false);
+assert.equal(cite.unseal.cos_tip, "5b3c878e");
+assert.equal(cite.unseal.decryption_complete, false);
+assert.ok(cite.tab_paths.includes("https://aziel-runtime.example/aziel"));
+assert.ok(cite.tab_paths.includes("https://aziel-runtime.example/software"));
+assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://www.hedidntjump.com/"));
+assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://timetounsealthebook.net/aziel"));
+assert.match(whoIs, /## Aziel handles/);
+assert.match(whoIs, /https:\/\/timetounsealthebook\.net\/aziel/);
+assert.match(whoIs, /decryption_complete: false/);
+assert.doesNotMatch(whoIs, /1 Chronicles|15:20/);
+
+const azielRes = await get("/aziel");
+assert.equal(azielRes.status, 200);
+mime(azielRes, /^text\/html; charset=utf-8/);
+const azielHtml = await azielRes.text();
+assert.match(azielHtml, /<title>Aziel handles — Aziel Runtime<\/title>/);
+assert.match(azielHtml, /rel="canonical" href="https:\/\/aziel-runtime\.example\/aziel"/);
+assert.match(azielHtml, /<h2>Handles<\/h2>/);
+assert.match(azielHtml, /href="https:\/\/www\.azieleliab\.com\/">azieleliab\.com<\/a>/);
+assert.match(azielHtml, /href="https:\/\/x\.com\/AzielEliab">X @AzielEliab<\/a>/);
+assert.match(azielHtml, /href="https:\/\/timetounsealthebook\.net\/aziel">TimeToUnsealTheBook<\/a>/);
+assert.match(azielHtml, /id="aziel-runtime-site-footer"/);
+assert.match(azielHtml, /Part of the Aziel Eliab ecosystem/);
+assert.match(azielHtml, /Growth-ON\. Allow/);
+assert.doesNotMatch(visibleHtml(azielHtml), /1 Chronicles|15:20/);
+assert.doesNotMatch(azielHtml, /identity-lock/);
+const azielJson = await (await get("/aziel?format=json")).json();
+assert.equal(azielJson.path, "/aziel");
+assert.equal(azielJson.cap7_is_icann, false);
+assert.equal(azielJson.paid_satellite, "HELD");
+assert.equal(azielJson.decryption_complete, false);
+assert.equal(azielJson.pattern_live, false);
+assert.equal(azielJson.he_didnt_jump_is_live_node, false);
+assert.equal(azielJson.unseal.cos_tip, "5b3c878e");
+
+const softwarePretty = await get("/software");
+assert.equal(softwarePretty.status, 200);
+mime(softwarePretty, /^text\/html/);
+const softwarePrettyHtml = await softwarePretty.text();
+assert.match(softwarePrettyHtml, /rel="canonical" href="https:\/\/aziel-runtime\.example\/software"/);
+assert.match(softwarePrettyHtml, /This page is \/software/);
+assert.match(softwarePrettyHtml, /id="aziel-runtime-site-footer"/);
+assert.equal((await get("/v1/software")).headers.get("content-type").startsWith("application/json"), true);
+
+const htmlPages = [
+  ["/", home],
+  ["/about", aboutHtml],
+  ["/software", softwarePrettyHtml],
+  ["/aziel", azielHtml],
+  ["/workspace", await (await get("/workspace")).text()],
+  ["/aznews", await (await get("/aznews")).text()],
+  ["/agents", await (await get("/agents")).text()],
+  ["/operator", await (await get("/operator")).text()],
+  ["/p/foldlock", card],
+  [
+    "/platforms",
+    await (
+      await handler(new Request(origin + "/platforms", { headers: { accept: "text/html" } }), {})
+    ).text(),
+  ],
+  ["/ark/signin", await (await get("/ark/signin")).text()],
+];
+for (const [path, html] of htmlPages) {
+  assert.match(html, /id="aziel-runtime-site-footer"/, path);
+  assert.match(html, /Part of the Aziel Eliab ecosystem/, path);
+  assert.match(html, /href="\/llms\.txt"/, path);
+  assert.match(html, /href="\/aziel"/, path);
+  assert.match(html, /Growth-ON\. Allow/, path);
+  assert.doesNotMatch(visibleHtml(html), /1 Chronicles|15:20/, path);
+  assert.doesNotMatch(html, /class="identity-lock"|<p class="identity-lock"/, path);
+}
+
 console.log("ok seo hub: robots, sitemap-index, llms/cite MIME, Person JSON-LD, catalog crawl links, HTML shells, definition-first abstract, GitHub About lock, help.txt addenda");
