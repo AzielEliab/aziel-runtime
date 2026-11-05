@@ -405,7 +405,7 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/ai.txt\` | Alias of \`/llms.txt\`. |
 | GET | \`/robots.txt\` | Allow / for Google and major AI bots. No GPTBot Disallow. |
 | GET | \`/sitemap.xml\` | Catalog urlset. |
-| GET | \`/sitemap-index.xml\` | Catalog + azieleliab.com + Digital Library + godlock.uk + He Didn't Jump sister archive + live product Worker sitemaps. |
+| GET | \`/sitemap-index.xml\` | Catalog + azieleliab.com + Digital Library + godlock.uk + He Didn't Jump sister archive + The Furnace Isn't Free + TimeToUnsealTheBook + live product Worker sitemaps. |
 | GET | \`/v1/health\` | Liveness. Optional \`uses_total\` when USES KV is bound. Does not increment. |
 | GET | \`/v1/uses\` | API use counters + recent ring log. Does not increment. No PII. The ring records repo version 2.0.0-rc1 (prerelease kept) and git_sha when GIT_SHA or GITHUB_SHA is set. by_op also records mcp.<tool> and fraggate.call.<slug> / fraggate.describe.<slug> when those tokens are safe. Softwares has no slug. |
 | GET | \`/v1/stats\` | Alias of \`/v1/uses\`. |

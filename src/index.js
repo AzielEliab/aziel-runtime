@@ -28,7 +28,7 @@
  * GET  /sigil.png             rose-star brand mark
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
- * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + live product Worker sitemaps
+ * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + furnace + unseal + live product Worker sitemaps
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /.well-known/llms.txt  alias of /llms.txt
@@ -2010,7 +2010,7 @@ function llmsTxt(origin, env = {}) {
     "VibeLock counted Worker (vibelock-download-tracker.vibelock.workers.dev) already Allows /. The host vibelock.vibelock.workers.dev is a different Worker and previously served Cloudflare content-signal text — that repo should match the template.",
   );
   lines.push(
-    `Sitemap index (corpus + godlock.uk + hedidntjump sister archive + live product sitemaps): ${base}/sitemap-index.xml`,
+    `Sitemap index (corpus + godlock.uk + hedidntjump sister archive + furnace + unseal + live product sitemaps): ${base}/sitemap-index.xml`,
   );
   lines.push("");
   return lines.join("\n");
@@ -3028,7 +3028,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_aziel_handles",
         summary:
-          "Aziel handles tab. Same public doors as azieleliab.com/doors. He Didn't Jump is a handle, not a Live Node. Cap-7 is not ICANN. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
+          "Aziel handles tab. Same public doors as azieleliab.com/doors. Official Aziel sites: The Furnace Isn't Free (https://www.furnaceisntfree.com/ and https://furnaceisntfree.com/aziel/) and TimeToUnsealTheBook (https://www.timetounsealthebook.net). He Didn't Jump and TimeToUnsealTheBook are handles, not Live Nodes. The Furnace Isn't Free is not a Live Node. Cap-7 is not ICANN. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
         tags: ["catalog"],
         responses: { "200": { description: "HTML, or JSON when format=json" } },
       },
@@ -3207,7 +3207,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_sitemap_index",
         summary:
-          "Sitemap index: this catalog sitemap plus live Aziel Digital Library, godlock.uk, He Didn't Jump sister archive, and product Worker sitemaps.",
+          "Sitemap index: this catalog sitemap plus live Aziel Digital Library, godlock.uk, He Didn't Jump sister archive, The Furnace Isn't Free, TimeToUnsealTheBook, and product Worker sitemaps.",
         tags: ["catalog"],
         responses: { "200": { description: "sitemapindex.xml" } },
       },
