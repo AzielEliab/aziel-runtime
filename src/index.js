@@ -421,6 +421,15 @@ import {
   injectSiteFooter,
 } from "./fleet-seo.js";
 import {
+  FURNACE_AZIEL,
+  FURNACE_HOME,
+  FURNACE_NAME,
+  UNSEAL_AZIEL,
+  UNSEAL_AZIEL_HTTP,
+  UNSEAL_HOME,
+  UNSEAL_NAME,
+} from "./official-sites.js";
+import {
   HUMAN_UI_CSS,
   fragGateDoorHtml,
   hasLiveDoor,
@@ -3028,7 +3037,7 @@ function staticPaths(origin, env = {}) {
       get: {
         operationId: "catalog_aziel_handles",
         summary:
-          "Aziel handles tab. Same public doors as azieleliab.com/doors. Official Aziel sites: The Furnace Isn't Free (https://www.furnaceisntfree.com/ and https://furnaceisntfree.com/aziel/) and TimeToUnsealTheBook (https://www.timetounsealthebook.net). He Didn't Jump and TimeToUnsealTheBook are handles, not Live Nodes. The Furnace Isn't Free is not a Live Node. Cap-7 is not ICANN. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
+          `Aziel handles tab. Same public doors as azieleliab.com/doors. Official Aziel sites: ${FURNACE_NAME} (${FURNACE_HOME} and ${FURNACE_AZIEL}) and ${UNSEAL_NAME} (${UNSEAL_HOME} and ${UNSEAL_AZIEL}, HTTP ${UNSEAL_AZIEL_HTTP}). He Didn't Jump and ${UNSEAL_NAME} are handles, not Live Nodes. ${FURNACE_NAME} is not a Live Node. Cap-7 is not ICANN. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.`,
         tags: ["catalog"],
         responses: { "200": { description: "HTML, or JSON when format=json" } },
       },

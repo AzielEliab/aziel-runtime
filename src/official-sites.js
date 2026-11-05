@@ -13,11 +13,16 @@ export const FURNACE_SITEMAP = "https://www.furnaceisntfree.com/sitemap.xml";
 export const FURNACE_CITE = "https://www.furnaceisntfree.com/cite.json";
 export const FURNACE_LLMS = "https://www.furnaceisntfree.com/llms.txt";
 
-/** www origin is HTTP 200. /aziel on this host is HTTP 307, so it is not a public door. */
+/** www origin is HTTP 200. /aziel on www and the apex canonical are HTTP 200. Not a Live Node. */
 export const UNSEAL_NAME = "TimeToUnsealTheBook";
 export const UNSEAL_HOME = "https://www.timetounsealthebook.net";
+/** Live canonical. Apex and www both return HTTP 200. Listed because that path returns HTTP 200. */
+export const UNSEAL_AZIEL = "https://timetounsealthebook.net/aziel";
+export const UNSEAL_AZIEL_HTTP = 200;
 export const UNSEAL_SITEMAP = "https://www.timetounsealthebook.net/sitemap.xml";
 export const UNSEAL_LLMS = "https://www.timetounsealthebook.net/llms.txt";
+export const UNSEAL_AZIEL_STATUS_NOTE =
+  "www origin is HTTP 200. /aziel on this host is HTTP 200.";
 
 /** This Worker's public Softwares origin. Execution surface, not a second identity. */
 export const RUNTIME_WORKER_HOME = "https://aziel-runtime.vibelock.workers.dev/";
@@ -42,8 +47,8 @@ export function officialAzielSitePages() {
       id: "unseal",
       name: UNSEAL_NAME,
       home: UNSEAL_HOME,
-      aziel: null,
-      aziel_http: 307,
+      aziel: UNSEAL_AZIEL,
+      aziel_http: UNSEAL_AZIEL_HTTP,
       llms: UNSEAL_LLMS,
       sitemap: UNSEAL_SITEMAP,
       software_tab: false,
@@ -51,7 +56,7 @@ export function officialAzielSitePages() {
       live: false,
       live_node: false,
       official: true,
-      note: "www origin is HTTP 200. /aziel on this host is HTTP 307, so it is not a public door.",
+      note: UNSEAL_AZIEL_STATUS_NOTE,
     },
   ];
 }
@@ -86,8 +91,8 @@ export function officialAzielSitesHubFields() {
     furnace_live: false,
     timetounsealthebook: UNSEAL_HOME,
     timetounsealthebook_name: UNSEAL_NAME,
-    timetounsealthebook_aziel: null,
-    timetounsealthebook_aziel_http: 307,
+    timetounsealthebook_aziel: UNSEAL_AZIEL,
+    timetounsealthebook_aziel_http: UNSEAL_AZIEL_HTTP,
     timetounsealthebook_sitemap: UNSEAL_SITEMAP,
     timetounsealthebook_llms: UNSEAL_LLMS,
     timetounsealthebook_software_tab: false,

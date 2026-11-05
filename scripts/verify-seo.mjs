@@ -225,7 +225,8 @@ assert.match(sitemap, /www\.hedidntjump\.com\/cite\.json/);
 assert.match(sitemap, /https:\/\/www\.furnaceisntfree\.com\//);
 assert.match(sitemap, /https:\/\/furnaceisntfree\.com\/aziel\//);
 assert.match(sitemap, /https:\/\/www\.timetounsealthebook\.net</);
-assert.doesNotMatch(sitemap, /timetounsealthebook\.net\/aziel/);
+assert.match(sitemap, /https:\/\/timetounsealthebook\.net\/aziel</);
+assert.doesNotMatch(sitemap, /timetounsealthebook\.net\/aziel\//);
 assert.match(sitemap, /\/cite\.json/);
 assert.match(sitemap, /\/person\.jsonld/);
 assert.match(sitemap, /\/who-is</);
@@ -1419,8 +1420,12 @@ assert.match(llms, /https:\/\/www\.timetounsealthebook\.net/);
 assert.match(llms, /https:\/\/www\.furnaceisntfree\.com\//);
 assert.match(llms, /https:\/\/furnaceisntfree\.com\/aziel\//);
 assert.match(llms, /https:\/\/aziel-runtime\.vibelock\.workers\.dev\//);
-assert.match(llms, /The \/aziel path on that host is HTTP 307, not a 200 door/);
-assert.doesNotMatch(llms, /href="https:\/\/(?:www\.)?timetounsealthebook\.net\/aziel/);
+assert.match(llms, /https:\/\/timetounsealthebook\.net\/aziel/);
+assert.match(llms, /The \/aziel path on that host is HTTP 200\./);
+assert.match(llms, /TimeToUnsealTheBook \/aziel on that host is HTTP 200\./);
+assert.match(llms, /\/aziel is HTTP 200\./);
+assert.doesNotMatch(llms, /HTTP 307/);
+assert.doesNotMatch(llms, /not a 200 door/);
 assert.match(llms, /He Didn't Jump is a handle\. It is not a Live Node/);
 assert.match(llms, /The Furnace Isn't Free is an official Aziel site and a handle, not a Live Node/);
 assert.match(llms, /Cap-7: not an ICANN name\. Paid satellite stays HELD/);
@@ -1445,9 +1450,17 @@ assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://www.hedidnt
 assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://www.furnaceisntfree.com/"));
 assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://furnaceisntfree.com/aziel/"));
 assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://www.timetounsealthebook.net"));
+assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://timetounsealthebook.net/aziel"));
 assert.ok(cite.aziel_handle_list.some((row) => row.href === "https://aziel-runtime.vibelock.workers.dev/"));
-assert.equal(cite.unseal.aziel, null);
-assert.equal(cite.unseal.aziel_http, 307);
+assert.equal(cite.unseal.aziel, "https://timetounsealthebook.net/aziel");
+assert.equal(cite.unseal.aziel_http, 200);
+assert.equal(cite.timetounsealthebook_aziel, "https://timetounsealthebook.net/aziel");
+assert.equal(cite.timetounsealthebook_aziel_http, 200);
+assert.equal(cite.official_aziel_sites.find((site) => site.id === "unseal").aziel_http, 200);
+assert.equal(cite.official_aziel_sites.find((site) => site.id === "unseal").aziel, "https://timetounsealthebook.net/aziel");
+assert.equal(cite.official_aziel_sites.find((site) => site.id === "unseal").live, false);
+assert.equal(cite.official_aziel_sites.find((site) => site.id === "unseal").live_node, false);
+assert.ok(cite.person.sites.some((site) => site.id === "unseal" && site.aziel === "https://timetounsealthebook.net/aziel" && site.coverage.includes("HTTP 200") && site.live_node === false));
 assert.equal(cite.unseal.origin, "https://www.timetounsealthebook.net");
 assert.equal(cite.unseal.live_node, false);
 assert.equal(cite.furnace_live, false);
@@ -1456,6 +1469,10 @@ assert.equal(cite.furnace_site.live, false);
 assert.equal(cite.timetounsealthebook_live, false);
 assert.match(whoIs, /## Aziel handles/);
 assert.match(whoIs, /https:\/\/www\.timetounsealthebook\.net/);
+assert.match(whoIs, /https:\/\/timetounsealthebook\.net\/aziel/);
+assert.match(whoIs, /\/aziel is HTTP 200/);
+assert.doesNotMatch(whoIs, /HTTP 307/);
+assert.doesNotMatch(whoIs, /not a 200 door/);
 assert.match(whoIs, /https:\/\/www\.furnaceisntfree\.com\//);
 assert.match(whoIs, /https:\/\/furnaceisntfree\.com\/aziel\//);
 assert.match(whoIs, /decryption_complete: false/);
@@ -1473,7 +1490,10 @@ assert.match(azielHtml, /href="https:\/\/x\.com\/AzielEliab">X @AzielEliab<\/a>/
 assert.match(azielHtml, /href="https:\/\/www\.furnaceisntfree\.com\/">The Furnace Isn't Free<\/a>/);
 assert.match(azielHtml, /href="https:\/\/furnaceisntfree\.com\/aziel\/">The Furnace Isn't Free · Aziel<\/a>/);
 assert.match(azielHtml, /href="https:\/\/www\.timetounsealthebook\.net">TimeToUnsealTheBook<\/a>/);
-assert.doesNotMatch(azielHtml, /href="https:\/\/(?:www\.)?timetounsealthebook\.net\/aziel\/?"/);
+assert.match(azielHtml, /href="https:\/\/timetounsealthebook\.net\/aziel">TimeToUnsealTheBook · Aziel<\/a>/);
+assert.match(azielHtml, /The \/aziel path on that host is HTTP 200\./);
+assert.doesNotMatch(azielHtml, /HTTP 307/);
+assert.doesNotMatch(azielHtml, /not a 200 door/);
 assert.match(azielHtml, /id="aziel-runtime-site-footer"/);
 assert.match(azielHtml, /Part of the Aziel Eliab ecosystem/);
 assert.match(azielHtml, /Growth-ON\. Allow/);
@@ -1487,6 +1507,10 @@ assert.equal(azielJson.decryption_complete, false);
 assert.equal(azielJson.pattern_live, false);
 assert.equal(azielJson.he_didnt_jump_is_live_node, false);
 assert.equal(azielJson.unseal.cos_tip, "5b3c878e");
+assert.equal(azielJson.unseal.aziel, "https://timetounsealthebook.net/aziel");
+assert.equal(azielJson.unseal.aziel_http, 200);
+assert.equal(azielJson.unseal.live, false);
+assert.equal(azielJson.timetounsealthebook_aziel_http, 200);
 
 const softwarePretty = await get("/software");
 assert.equal(softwarePretty.status, 200);
@@ -1525,6 +1549,7 @@ const sisterDoors = [
   "https://www.furnaceisntfree.com/",
   "https://furnaceisntfree.com/aziel/",
   "https://www.timetounsealthebook.net",
+  "https://timetounsealthebook.net/aziel",
 ];
 for (const [path, html] of htmlPages) {
   assert.match(html, /id="aziel-runtime-site-footer"/, path);
@@ -1535,7 +1560,9 @@ for (const [path, html] of htmlPages) {
   for (const url of sisterDoors) {
     assert.ok(html.includes(`href="${url}"`), `${path} links ${url}`);
   }
-  assert.doesNotMatch(html, /href="https:\/\/(?:www\.)?timetounsealthebook\.net\/aziel\/?"/, path);
+  assert.match(html, /href="https:\/\/timetounsealthebook\.net\/aziel"/, path);
+  assert.doesNotMatch(html, /HTTP 307/, path);
+  assert.doesNotMatch(html, /not a 200 door/, path);
   assert.doesNotMatch(visibleHtml(html), /1 Chronicles|15:20/, path);
   assert.doesNotMatch(html, /class="identity-lock"|<p class="identity-lock"/, path);
 }
