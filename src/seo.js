@@ -37,6 +37,10 @@ import {
   officialAzielSitesHubFields,
 } from "./official-sites.js";
 import {
+  searchAssociationField,
+  searchAssociationRobotsLines,
+} from "./search-association.js";
+import {
   TRADES_RUNTIME_CITE,
   TRADES_RUNTIME_DOWNLOAD,
   TRADES_RUNTIME_GITHUB,
@@ -680,6 +684,7 @@ export function robotsTxt(origin, products) {
   const lines = [
     "# Aziel Eliab Runtime — open crawl for Google and AI search.",
     "# Author: Aziel Eliab. Also known as Aziel Elroi Eliab (alternateName only).",
+    ...searchAssociationRobotsLines(),
     `# Person sameAs: hubs + GitHub + Glama + ${X_URL} (${X_HANDLE}).`,
     "# Content-Signal opens search + AI input + AI train. No Disallow for GPTBot.",
     "# Growth-ON. Allow: /",
@@ -941,6 +946,7 @@ export function entityGraphCiteField(origin) {
       ...(tool.suite_help ? { suite_help: true, software_tab: false, parent_slug: tool.parent } : {}),
     })),
     ecosystem: ECOSYSTEM_LINKS.map((link) => ({ ...link })),
+    search_association: searchAssociationField(origin),
     person_jsonld: `${base}/person.jsonld`,
     who_is: `${base}/who-is`,
     who_is_txt: `${base}/who-is-aziel-eliab.txt`,
@@ -985,6 +991,7 @@ export function catalogHubFields(origin) {
     stats: social,
     social_status: social,
     socials: personSocialsField(),
+    search_association: searchAssociationField(origin),
     twitter: X_URL,
     twitter_handle: X_HANDLE,
     crawl: {

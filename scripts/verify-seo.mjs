@@ -204,6 +204,10 @@ assert.match(robots, /www\.furnaceisntfree\.com\/sitemap\.xml/);
 assert.match(robots, /www\.timetounsealthebook\.net\/sitemap\.xml/);
 assert.match(robots, /x\.com\/AzielEliab/);
 assert.match(robots, /@AzielEliab/);
+assert.match(robots, /Search association \(machine\): Aziel Eliab \/ AzielEliab \/ azieleliab \/ Aziel Elroi Eliab \/ Elias Artista/);
+assert.match(robots, /www\.azieleliab\.com\/#aziel/);
+assert.match(robots, /No IndexNow ping\. No DNS change\. No Search Console submission\./);
+assert.doesNotMatch(robots, /api\.indexnow\.org|search\.google\.com\/search-console/);
 assert.doesNotMatch(robots, /vibelock-download-tracker\.vibelock\.workers\.dev\/sitemap\.xml/);
 
 const siteRes = await get("/sitemap.xml");
@@ -357,6 +361,99 @@ const personDoc = await personRes.json();
 assert.equal(personDoc["@id"], AUTHOR_ID);
 assert.equal(personDoc["@type"], "Person");
 assert.equal(personDoc.name, AUTHOR_NAME);
+assert.ok(personDoc.alternateName.includes("AzielEliab"));
+assert.ok(personDoc.alternateName.includes("azieleliab"));
+assert.ok(personDoc.alternateName.includes("Aziel Elroi Eliab"));
+assert.ok(personDoc.alternateName.includes("Elias Artista"));
+assert.equal(personDoc.machine.search_association.person_id, AUTHOR_ID);
+assert.equal(personDoc.machine.search_association.indexnow, false);
+assert.equal(personDoc.machine.search_association.dns, false);
+assert.equal(personDoc.machine.search_association.search_console, false);
+assert.equal(personDoc.machine.search_association.cap7_is_icann, false);
+assert.equal(personDoc.machine.search_association.paid_satellite, "HELD");
+assert.equal(personDoc.machine.search_association.decryption_complete, false);
+assert.equal(personDoc.machine.search_association.pattern_live, false);
+assert.equal(personDoc.machine.search_association.remain_off, "untouched");
+assert.equal(personDoc.machine.search_association.visible_html_chrome, false);
+assert.equal(personDoc.machine.search_association.sitemap_membership_changed, false);
+assert.deepEqual(personDoc.machine.search_association.name_forms, [
+  "Aziel Eliab",
+  "AzielEliab",
+  "azieleliab",
+  "Aziel Elroi Eliab",
+  "Elias Artista",
+]);
+
+const identityRes = await get("/runtime/identity.jsonld");
+assert.equal(identityRes.status, 200);
+mime(identityRes, /^application\/ld\+json; charset=utf-8$/);
+const identity = await identityRes.json();
+const identityAlias = await (await get("/identity.jsonld")).json();
+const wellKnown = await (await get("/.well-known/person.jsonld")).json();
+assert.deepEqual(identityAlias, identity);
+assert.deepEqual(wellKnown, identity);
+assert.equal(identity["@type"], "Person");
+assert.equal(identity["@id"], "https://www.azieleliab.com/#aziel");
+assert.equal(identity.name, "Aziel Eliab");
+assert.equal(identity.url, "https://www.azieleliab.com/");
+assert.equal(identity.tip_hold.git_sha, "16b543b5961f03813076e38ff19d883d46845c48");
+assert.equal(identity.tip_hold.version_id, "21b64dc5-6f0f-4f60-9009-5d4da59a1683");
+assert.equal(identity.tip_hold.invented, false);
+assert.equal(identity.tip_hold.git_sha.startsWith("16b543b5"), true);
+assert.equal(identity.tip_hold.version_id.startsWith("21b64dc5"), true);
+assert.equal(identity.indexnow, false);
+assert.equal(identity.dns, false);
+assert.equal(identity.search_console, false);
+assert.equal(identity.cap7_is_icann, false);
+assert.equal(identity.paid_satellite, "HELD");
+assert.equal(identity.decryption_complete, false);
+assert.equal(identity.pattern_live, false);
+assert.equal(identity.remain_off, "untouched");
+assert.equal(identity.visible_html_chrome, false);
+for (const url of [
+  "https://www.azieleliab.com/",
+  "https://www.azielcorpuslibrary.net/",
+  "https://godlock.uk/",
+  "https://www.furnaceisntfree.com/",
+  "https://furnaceisntfree.com/aziel/",
+  "https://www.timetounsealthebook.net",
+  "https://timetounsealthebook.net/aziel",
+  "https://www.hedidntjump.com/",
+  "https://aziel-runtime.vibelock.workers.dev/",
+  "https://www.azieleliab.com/runtime/",
+  "https://www.azielcorpuslibrary.net/runtime/",
+  "https://godlock.uk/runtime/",
+  "https://aziel-runtime.vibelock.workers.dev/runtime/",
+  `${origin}/runtime/`,
+]) {
+  assert.ok(identity.sameAs.includes(url), url);
+}
+const graphRes = await get("/runtime/graph.jsonld");
+assert.equal(graphRes.status, 200);
+mime(graphRes, /^application\/ld\+json; charset=utf-8$/);
+const graphDoc = await graphRes.json();
+const graphAlias = await (await get("/graph.jsonld")).json();
+assert.deepEqual(graphAlias, graphDoc);
+assert.equal(graphDoc.tip_hold.git_sha, identity.tip_hold.git_sha);
+assert.equal(graphDoc.tip_hold.version_id, identity.tip_hold.version_id);
+assert.equal(graphDoc.tip_hold.invented, false);
+const graphPerson = graphDoc["@graph"].find((node) => node["@type"] === "Person");
+assert.equal(graphPerson["@id"], "https://www.azieleliab.com/#aziel");
+assert.deepEqual(graphPerson.sameAs, identity.sameAs);
+assert.ok(graphDoc["@graph"].some((node) => node["@id"] === "https://www.azieleliab.com/runtime#runtime" && node.author["@id"] === identity["@id"]));
+const selfRes = await get("/runtime/");
+assert.equal(selfRes.status, 200);
+mime(selfRes, /^application\/ld\+json; charset=utf-8$/);
+const selfDoc = await selfRes.json();
+assert.equal(selfDoc["@id"], `${origin}/runtime/`);
+assert.equal(selfDoc.about["@id"], identity["@id"]);
+assert.equal(selfDoc.tip_hold.git_sha, identity.tip_hold.git_sha);
+assert.equal(await (await get("/runtime")).json().then((doc) => doc["@id"]), `${origin}/runtime/`);
+assert.match(sitemap, /\/runtime\/identity\.jsonld/);
+assert.match(sitemap, /\/runtime\/graph\.jsonld/);
+assert.match(sitemap, /\/\.well-known\/person\.jsonld/);
+assert.doesNotMatch(JSON.stringify(identity), /1 Chronicles|15:20|identity-lock/);
+assert.doesNotMatch(JSON.stringify(graphDoc), /1 Chronicles|15:20|identity-lock/);
 assert.ok(personDoc.jobTitle.includes("researcher"));
 assert.ok(personDoc.jobTitle.includes("digital rights activist"));
 assert.ok(personDoc.jobTitle.includes("software developer/designer"));
@@ -493,6 +590,9 @@ assert.match(whoIs, /## Why Aziel Eliab/);
 assert.doesNotMatch(whoIs, /locked brief|locked FAQ|## Model rules/i);
 assert.match(whoIs, /## Identity \(machine data\)/);
 assert.match(whoIs, /Aziel Eliab publishes receipt-first, local-first software and public MASTER records/);
+assert.match(whoIs, /## Search association \(machine\)/);
+assert.match(whoIs, /Name forms \(same person\): Aziel Eliab \/ AzielEliab \/ azieleliab \/ Aziel Elroi Eliab \/ Elias Artista/);
+assert.match(whoIs, /No IndexNow ping\. No DNS change\. No Search Console submission\./);
 assert.match(whoIs, /## socials/);
 assert.match(whoIs, /@AzielEliab/);
 assert.match(whoIs, /https:\/\/x\.com\/AzielEliab/);
@@ -519,6 +619,9 @@ assert.match(whoIs, /public engineering only/);
 assert.doesNotMatch(whoIs, /10\.5281\/zenodo\.\d{5,}/);
 
 assert.match(llms, /## Person \/ who-is \(machine\)/);
+assert.match(llms, /## Search association \(machine\)/);
+assert.match(llms, /Name forms \(same person\): Aziel Eliab \/ AzielEliab \/ azieleliab \/ Aziel Elroi Eliab \/ Elias Artista/);
+assert.match(llms, /No IndexNow ping\. No DNS change\. No Search Console submission\./);
 assert.match(llms, /Person hub \+ Softwares \+ research landing/);
 assert.match(llms, /Digital Library MASTER/);
 assert.match(llms, /GodLock challenge\/score/);
@@ -579,6 +682,36 @@ assert.equal(cite.identity, AUTHOR_NAME);
 assert.equal(cite.author_id, AUTHOR_ID);
 assert.equal(cite.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(cite.alternateName, AUTHOR_ALTERNATE_NAME);
+assert.equal(cite.search_association.person_id, AUTHOR_ID);
+assert.equal(cite.search_association.spec, "AZINDEX-SEARCH-ASSOCIATION-1.0");
+assert.deepEqual(cite.search_association.name_forms, [
+  "Aziel Eliab",
+  "AzielEliab",
+  "azieleliab",
+  "Aziel Elroi Eliab",
+  "Elias Artista",
+]);
+assert.equal(cite.search_association.indexnow, false);
+assert.equal(cite.search_association.dns, false);
+assert.equal(cite.search_association.search_console, false);
+assert.equal(cite.search_association.cap7_is_icann, false);
+assert.equal(cite.search_association.paid_satellite, "HELD");
+assert.equal(cite.search_association.decryption_complete, false);
+assert.equal(cite.search_association.pattern_live, false);
+assert.equal(cite.search_association.remain_off, "untouched");
+assert.equal(cite.search_association.sitemap_membership_changed, false);
+assert.equal(cite.person.search_association.person_id, AUTHOR_ID);
+assert.equal(cite.entity_graph.search_association.person_id, AUTHOR_ID);
+for (const loc of cite.search_association.sitemap_sisters) {
+  assert.match(indexXml, new RegExp(loc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), loc);
+}
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "azieleliab" && site.url === "https://www.azieleliab.com/"));
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "library" && site.url === "https://www.azielcorpuslibrary.net/"));
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "godlock" && site.url === "https://godlock.uk/"));
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "furnace" && site.url === "https://www.furnaceisntfree.com/" && site.live_node === false));
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "unseal" && site.url === "https://www.timetounsealthebook.net" && site.live === false));
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "hedidntjump" && site.url === "https://www.hedidntjump.com/" && site.software_tab === false));
+assert.ok(cite.search_association.surfaces.some((site) => site.id === "softwares" && site.url === "https://aziel-runtime.vibelock.workers.dev/" && site.software === `${origin}/v1/software`));
 assert.match(cite.how_to_cite, /Eliab, Aziel/);
 assert.match(cite.uses, /\/v1\/uses/);
 assert.match(cite.library_how_to_cite, /Aziel Digital Library/);
@@ -802,6 +935,8 @@ mime(catalogRes, /application\/json; charset=utf-8/);
 const catalog = await catalogRes.json();
 assert.equal(catalog.author, AUTHOR_NAME);
 assert.equal(catalog.author_id, AUTHOR_ID);
+assert.equal(catalog.search_association.person_id, AUTHOR_ID);
+assert.equal(catalog.search_association.pattern_live, false);
 assert.equal(catalog.aka, AUTHOR_ALTERNATE_NAME);
 assert.equal(catalog.library_name, "Aziel Digital Library");
 assert.equal(catalog.primary_host, RUNTIME_GLAMA);
@@ -902,6 +1037,20 @@ assert.doesNotMatch(home, /rel="canonical" href="https:\/\/www\.azieleliab\.com/
   assert.equal(person.name, AUTHOR_NAME);
   assert.deepEqual(person.alternateName, [AUTHOR_ALTERNATE_NAME]);
   assert.equal(person.url, "https://www.azieleliab.com/");
+  const searchNode = graph.find((n) => n["@id"] === `${origin}/#search-association`);
+  assert.ok(searchNode, "homepage JSON-LD search association");
+  assert.equal(searchNode["@type"], "WebPage");
+  assert.equal(searchNode.about["@id"], AUTHOR_ID);
+  assert.deepEqual(searchNode.alternateName, ["AzielEliab", "azieleliab", "Aziel Elroi Eliab", "Elias Artista"]);
+  assert.ok(searchNode.significantLink.includes("https://www.azieleliab.com/"));
+  assert.ok(searchNode.significantLink.includes("https://www.azielcorpuslibrary.net/"));
+  assert.ok(searchNode.significantLink.includes("https://godlock.uk/"));
+  assert.ok(searchNode.significantLink.includes("https://www.furnaceisntfree.com/"));
+  assert.ok(searchNode.significantLink.includes("https://www.timetounsealthebook.net"));
+  assert.ok(searchNode.significantLink.includes("https://www.hedidntjump.com/"));
+  assert.ok(searchNode.significantLink.includes("https://aziel-runtime.vibelock.workers.dev/"));
+  assert.doesNotMatch(visibleHtml(home), /Elias Artista/);
+  assert.doesNotMatch(visibleHtml(home), /identity-lock/);
   assert.equal(person.relatedLink, RUNTIME_GLAMA);
   assert.ok(person.jobTitle.includes("researcher"));
   assert.ok(person.jobTitle.includes("digital rights activist"));
@@ -1109,6 +1258,10 @@ assert.match(softwareJsonStill.headers.get("content-type") || "", /application\/
 const softwareJsonBody = await softwareJsonStill.json();
 assert.equal(softwareJsonBody.identity, AUTHOR_NAME);
 assert.equal(softwareJsonBody.author_id, AUTHOR_ID);
+assert.equal(softwareJsonBody.search_association.person_id, AUTHOR_ID);
+assert.equal(softwareJsonBody.search_association.pattern_live, false);
+assert.equal(softwareJsonBody.search_association.cap7_is_icann, false);
+assert.ok(softwareJsonBody.search_association.surfaces.some((site) => site.id === "softwares" && site.software_html === `${origin}/software`));
 assert.equal(softwareJsonBody.mesh_get_never_enables, true);
 assert.ok(softwareJsonBody.hubs_crawl);
 assert.equal(softwareJsonBody.azcoherence.slug, "azcoherence");
