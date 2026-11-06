@@ -173,6 +173,12 @@ New names only; no existing code changed or recycled. All are `ok: false`.
 | `ANCHOR-STORE-UNBOUND` / `ANCHOR-NO-ROW` / `ANCHOR-WALK-TOO-LONG` / `ANCHOR-BAD-QUERY` | AZRT-ANCHOR-1.0 | `/v1/anchor/row` cannot check |
 | `ANCHOR-PENDING` | AZRT-ANCHOR-COVERAGE-1.0 | A refusal head is not in the outside anchor log yet. The refusal still stands. Verify flags the row. Not a witness signature. |
 | `SCHEMA-DRIFT` | AZRT-SCHEMA-PIN-1.0 | Caller or session pinned a `tools/list` schema hash that no longer matches (409, nothing ran) |
+| `BUILD-ATTEST-MISMATCH` | AZRT-BUILD-ATTEST-1.0 | Running artifact digest differs from the witnessed build attestation (409, nothing ran). Not live. |
+| `BUILD-ATTEST-NOT-CHECKED` | AZRT-BUILD-ATTEST-1.0 | Strict mode and no witnessed attestation (409). Without strict mode the same state is `ok: null`, never a pass. Not live. |
+| `KEY-SECOND-MINT` | AZRT-SECOND-MINT-1.0 | Loaded receipt key id differs from the witnessed key. Signing is refused. The refusal row is hash-linked, not signed. Not live. |
+| `STALE-WRITER-FENCED` | AZRT-WRITER-FENCE-1.0 | Presented writer epoch is older than the current fence (409, nothing ran). Not live. |
+| `SESSION-STOPPED` | AZRT-WRITER-FENCE-1.0 | The runtime stopped the session or chain. External effects are not undone (409). Not live. |
+| `SELF-AUDIT-REFUSED` | AZRT-HARNESS-SEAL-1.0 | A script or agent client tried to mint `issuer_kind=harness` (nothing appended). Not live. |
 | `EXPECT-SPEC-INVALID` / `EXPECT-VERDICT-INVALID` | AZRT-EXPECT-SPEC-1.0 | Malformed `expect` on open / `verdict` on close (400) |
 
 Every refusal above and every existing refuse code on `tools/call` / `POST /v1/fraggate/call` additionally returns `refusal_receipt` (AZRT-REFUSAL-RECEIPT-1.0). The code and envelope fields are unchanged.

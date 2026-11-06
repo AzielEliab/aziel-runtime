@@ -48,7 +48,7 @@ export const AUTH_ROLLUP_CODES = Object.freeze(Object.keys(AUTH_ROLLUP_REASONS).
 
 /** Fixed door labels. Session doors are split by action so stale/revoke/pause/resume refusals show. */
 export const AUTH_ROLLUP_DOORS = Object.freeze([
-  "mcp", "session-open", "session-exec", "session-stale", "session-revoke", "session-pause", "session-resume", "session-close", "session",
+  "mcp", "session-open", "session-exec", "session-stale", "session-revoke", "session-stop", "session-pause", "session-resume", "session-close", "session",
   "fraggate", "mesh", "chainlock", "memory", "tether", "workspace", "other",
 ]);
 
@@ -59,7 +59,7 @@ export function rollupDoor(pathname) {
   const m = /^\/v1\/session\/[^/]+\/([a-z]+)$/.exec(p);
   if (m) {
     const a = m[1];
-    if (["exec", "stale", "revoke", "pause", "resume", "close"].includes(a)) return "session-" + a;
+    if (["exec", "stale", "revoke", "stop", "pause", "resume", "close"].includes(a)) return "session-" + a;
     return "session";
   }
   if (p === "/v1/session" || p.startsWith("/v1/session/")) return "session";

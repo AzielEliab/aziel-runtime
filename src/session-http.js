@@ -68,7 +68,7 @@ async function copyJson(res, json, { consent = false, issuerKey = null } = {}) {
   // RIB-015: the issuer key is returned once, on a fresh open only; only its hash is sealed.
   if (issuerKey && res.status === 200 && body && body.ok === true && !body.already) {
     body.issuer_key = issuerKey;
-    body.issuer_key_note = "Shown once and never stored. Send it as X-Azrt-Issuer-Key to append stale or revoke stamps or to pause or resume; anyone else gets CL-NOT-ISSUER.";
+    body.issuer_key_note = "Shown once and never stored. Send it as X-Azrt-Issuer-Key to append stale, revoke, or stop stamps or to pause or resume; anyone else gets CL-NOT-ISSUER.";
   }
   return json(body, res.status);
 }
@@ -186,7 +186,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  GET /v1/session/{id}/tip  POST /v1/session/{id}/tip  POST /v1/session/{id}/party  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  GET /v1/session/{id}/tip  POST /v1/session/{id}/tip  POST /v1/session/{id}/party  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  POST /v1/session/{id}/stop  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -333,6 +333,29 @@ export async function handleSessionRequest(request, env, deps) {
       { consent: true },
     );
   }
+  if (action === "stop" && request.method === "POST") {
+    // RIB-050: runtime stop. Token-gated and issuer-only. Does not undo an external effect.
+    let sb = {};
+    try {
+      const text = await request.text();
+      sb = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    return copyJson(
+      await stubFetch(env, id, "stop", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          reason: sb && sb.reason,
+          ...(Array.isArray(sb && sb.side_effects) ? { side_effects: sb.side_effects } : {}),
+          issuer_key: request.headers.get("x-azrt-issuer-key") || null,
+        }),
+      }),
+      json,
+      { consent: true },
+    );
+  }
   if (action === "revoke" && request.method === "POST") {
     // RIB-015: revocation. Token-gated (isSessionMutatePath) AND issuer-only (X-Azrt-Issuer-Key). Append-only and
     // permanent; refused SESSION-PAUSED while paused so a paused session can always resume.
@@ -428,6 +451,7 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
       // RIB-043: DecisionGATE decision + goal for gated execs (checked and sealed by the session).
       ...(body.decision && typeof body.decision === "object" ? { decision: body.decision } : {}),
       ...(body.goal != null || body.goal_id != null ? { goal: String(body.goal ?? body.goal_id) } : {}),
+      ...(body.writer_epoch != null ? { writer_epoch: body.writer_epoch } : {}),
     }),
   });
   if (!intentRes.ok) {
