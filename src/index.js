@@ -397,6 +397,13 @@ import {
   X_HANDLE,
   X_URL,
 } from "./person-index.js";
+import {
+  runtimeGraphJsonLd,
+  runtimeIdentityJsonLd,
+  runtimeSelfJsonLd,
+  searchAssociationField,
+  searchAssociationJsonLd,
+} from "./search-association.js";
 import { launchHashtagChipsHtml } from "./launch-parts.js";
 import {
   aboutPageHtml,
@@ -1688,6 +1695,12 @@ function sitemapXml(origin) {
     { loc: base + "/v1/bundle", priority: "0.95", changefreq: "daily" },
     { loc: base + "/cite.json", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/person.jsonld", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/runtime/identity.jsonld", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/identity.jsonld", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/runtime/graph.jsonld", priority: "0.9", changefreq: "weekly" },
+    { loc: base + "/graph.jsonld", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/runtime/", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/.well-known/person.jsonld", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/who-is", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/who-is-aziel-eliab.txt", priority: "0.85", changefreq: "weekly" },
     ...socialsSitemapUrls().map((loc) => ({ loc, priority: "0.55", changefreq: "weekly", lastmod: null })),
@@ -2045,6 +2058,7 @@ function citeJson(origin, env = {}) {
     alternateName: AUTHOR_ALTERNATE_NAME,
     identity: AUTHOR_NAME,
     author_id: AUTHOR_ID,
+    search_association: searchAssociationField(origin),
     author_github: AUTHOR_GITHUB,
     catalog: base + "/",
     runtime: base + "/",
@@ -2182,6 +2196,7 @@ function jsonLd(origin, env = {}) {
     url: base + "/",
     description: rewriteLiveCallingDisplay(RUNTIME_ABSTRACT, calling),
     publisher: { "@id": person["@id"] },
+    about: { "@id": person["@id"] },
     inLanguage: "en",
   };
   const webApi = {
@@ -2261,6 +2276,7 @@ function jsonLd(origin, env = {}) {
     "@context": "https://schema.org",
     "@graph": [
       person,
+      searchAssociationJsonLd(origin),
       software,
       ...namedToolsJsonLd(),
       website,
@@ -2295,6 +2311,9 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
 <link rel="alternate" type="text/plain" href="${base}/help/softwares.txt" title="help/softwares.txt">
 <link rel="alternate" type="application/json" href="${base}/cite.json" title="cite.json">
 <link rel="alternate" type="application/ld+json" href="${base}/person.jsonld" title="person.jsonld">
+<link rel="alternate" type="application/ld+json" href="${base}/runtime/identity.jsonld" title="runtime identity">
+<link rel="alternate" type="application/ld+json" href="${base}/runtime/graph.jsonld" title="runtime graph">
+<link rel="alternate" type="application/ld+json" href="${base}/.well-known/person.jsonld" title="well-known person">
 <link rel="alternate" type="text/plain" href="${base}/who-is" title="who-is">
 <link rel="alternate" type="text/plain" href="${base}/who-is-aziel-eliab.txt" title="who-is-aziel-eliab.txt">
 <meta property="og:type" content="website">
@@ -3083,6 +3102,49 @@ function staticPaths(origin, env = {}) {
         summary: "Alias of /who-is.",
         tags: ["catalog"],
         responses: { "200": { description: "text/plain who-is" } },
+      },
+    },
+    "/runtime/identity.jsonld": {
+      get: {
+        operationId: "catalog_runtime_identity",
+        summary:
+          "Machine Person JSON-LD. @id https://www.azieleliab.com/#aziel. sameAs is the official sister lattice plus /runtime/ self. Tip hold matches live Softwares. No new tip. No IndexNow, DNS, or Search Console. No visible HTML.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/ld+json Person" } },
+      },
+    },
+    "/identity.jsonld": {
+      get: {
+        operationId: "catalog_runtime_identity_hub",
+        summary:
+          "Same Person as /runtime/identity.jsonld. Hub /runtime/identity.jsonld strips one prefix onto this path.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/ld+json Person" } },
+      },
+    },
+    "/runtime/graph.jsonld": {
+      get: {
+        operationId: "catalog_runtime_graph",
+        summary:
+          "Machine @graph for the same Person @id and sister lattice. Tip hold matches live Softwares. No visible HTML.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/ld+json graph" } },
+      },
+    },
+    "/graph.jsonld": {
+      get: {
+        operationId: "catalog_runtime_graph_hub",
+        summary: "Same graph as /runtime/graph.jsonld. Hub /runtime/graph.jsonld strips one prefix onto this path.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/ld+json graph" } },
+      },
+    },
+    "/.well-known/person.jsonld": {
+      get: {
+        operationId: "catalog_well_known_person",
+        summary: "Alias of /runtime/identity.jsonld. Person @id https://www.azieleliab.com/#aziel.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/ld+json Person" } },
       },
     },
     "/shelves": {
@@ -4459,6 +4521,47 @@ async function handleRequest(request, env, ctx) {
       if (helpBody && (request.method === "GET" || request.method === "HEAD")) {
         return asHead(request, text(helpBody, extra(url.pathname)));
       }
+    }
+
+    if (
+      (url.pathname === "/runtime/identity.jsonld" ||
+        url.pathname === "/identity.jsonld" ||
+        url.pathname === "/.well-known/person.jsonld") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      return asHead(
+        request,
+        json(runtimeIdentityJsonLd(origin), 200, {
+          ...extra(url.pathname),
+          "Content-Type": "application/ld+json; charset=utf-8",
+        }),
+      );
+    }
+
+    if (
+      (url.pathname === "/runtime/graph.jsonld" || url.pathname === "/graph.jsonld") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      return asHead(
+        request,
+        json(runtimeGraphJsonLd(origin), 200, {
+          ...extra(url.pathname),
+          "Content-Type": "application/ld+json; charset=utf-8",
+        }),
+      );
+    }
+
+    if (
+      (url.pathname === "/runtime" || url.pathname === "/runtime/") &&
+      (request.method === "GET" || request.method === "HEAD")
+    ) {
+      return asHead(
+        request,
+        json(runtimeSelfJsonLd(origin), 200, {
+          ...extra("/runtime/"),
+          "Content-Type": "application/ld+json; charset=utf-8",
+        }),
+      );
     }
 
     if (url.pathname === "/person.jsonld" && (request.method === "GET" || request.method === "HEAD")) {

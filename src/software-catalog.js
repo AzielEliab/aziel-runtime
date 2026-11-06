@@ -42,6 +42,7 @@ import { socialStatusField } from "./social-status.js";
 import { websiteDesignsField, websiteDesignsOnCorpusCard } from "./website-designs.js";
 import { softwareDescription, softwareOneLine } from "./software-copy.js";
 import { platformsCite } from "./platforms.js";
+import { searchAssociationField } from "./search-association.js";
 import { softwaresDecision } from "./auto-update/adopt.js";
 
 /**
@@ -639,6 +640,7 @@ export function softwareCatalog(origin, products, extra = {}) {
     author: "Aziel Eliab",
     identity: "Aziel Eliab",
     author_id: AUTHOR_ID,
+    search_association: searchAssociationField(base),
     version: extra.runtimeVersion || extra.version || null,
     suite_calling_name: extra.calling_name || "Aziel Runtime",
     suite_calling_slug: extra.calling_slug || "aziel-runtime",

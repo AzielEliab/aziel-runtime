@@ -30,6 +30,10 @@ import {
 } from "./official-sites.js";
 import { SOFTWARE_COPY } from "./software-copy.js";
 import {
+  searchAssociationField,
+  searchAssociationLlmsBlock,
+} from "./search-association.js";
+import {
   ARK_NAME,
   ARK_ONE_LINE,
   ARK_WORKER_HOME,
@@ -123,6 +127,7 @@ export const PERSON_ALTERNATE_NAME = Object.freeze([
   "The Revealer of The Sealed",
   "Revealer of The Sealed",
   "AzielEliab",
+  "azieleliab",
   "AzielElroiEliab",
 ]);
 
@@ -603,6 +608,7 @@ export function personIndexJsonLd(origin, calling = null) {
       home: false,
       this_worker: worker,
       sites: personSitesForOrigin(origin, calling),
+      search_association: searchAssociationField(origin),
       note: PERSON_WORK_RULE,
       ...whatAzielEliabDoesMachineField(origin, calling),
     },
@@ -651,6 +657,8 @@ export function whoIsTxt(origin, calling = null) {
   for (const url of personSameAsForOrigin(origin)) {
     lines.push(`- ${url}`);
   }
+  lines.push("");
+  lines.push(searchAssociationLlmsBlock(origin).trimEnd());
   lines.push("");
   lines.push("## socials");
   lines.push("");
@@ -730,6 +738,7 @@ export function personCiteField(origin) {
     godlock_is_product: true,
     growth_on: true,
     sameAs: personSameAsForOrigin(origin),
+    search_association: searchAssociationField(origin),
     socials: personSocialsField(),
     twitter: X_URL,
     twitter_handle: X_HANDLE,
@@ -772,6 +781,8 @@ export function personLlmsBlock(origin) {
   lines.push(`Hub who-is: https://www.azieleliab.com/who-is`);
   lines.push(`sameAs: ${personSameAsForOrigin(origin).join(" · ")}`);
   lines.push(`socials: ${X_HANDLE} ${X_URL} · ${PERSON_GITHUB} · ${PERSON_GLAMA} · hubs azieleliab.com / azielcorpuslibrary.net / godlock.uk`);
+  lines.push("");
+  lines.push(searchAssociationLlmsBlock(origin).trimEnd());
   lines.push("");
   lines.push("## Softwares (what Aziel Eliab makes)");
   lines.push("");
