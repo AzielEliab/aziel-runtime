@@ -51,6 +51,7 @@ import {
   wireShareSeq,
   SHARE_SEQ_MAX,
   MAX_FORWARD_GAP,
+  PREAUTH_CAP,
   shelfCiteSlots,
   TRACK2_ORDER,
   verifyBootstrapPeerList,
@@ -737,6 +738,85 @@ await convergeFork("parallel");
     await rateNode.stop();
     await rm(rateRoot, { recursive: true, force: true });
   }
+}
+
+{
+  const gate = createTrack2({
+    identity: await createIdentity(),
+    fixture: true,
+    tipHash: "ab".repeat(32),
+    dataDir: "",
+    peerRecvPerMin: 30,
+    preAuthPerMin: 1,
+  });
+  const mate = await node("cd".repeat(32));
+  await gate.arm(["lan"]);
+  await mate.arm(["lan"]);
+  gate.allowSession(mate.state.identity.handle);
+  mate.allowSession(gate.state.identity.handle);
+  assert.equal((await gate.exchange(mate)).ok, true);
+  const paired = await openPeerSession(gate, mate, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+  assert.equal(paired.ok, true);
+  const mateRow = mate.state.sessions.get(paired.remote_session_id);
+  const gateRow = gate.state.sessions.get(paired.local.session_id);
+  const first = await mate.send(mateRow.session_id, "signed-first");
+  const forgedAddr = { ...first.envelope, session_sig: "not-a-signature" };
+  const near = await gate.recv(forgedAddr, { source: "198.51.100.5" });
+  assert.equal(near.code, "AZP-BAD-SIG");
+  const nearAgain = await gate.recv(forgedAddr, { source: "198.51.100.5" });
+  assert.equal(nearAgain.code, "FED-MESH-PREAUTH-RATE");
+  const otherAddr = await gate.recv(forgedAddr, { source: "198.51.100.14" });
+  assert.equal(otherAddr.code, "AZP-BAD-SIG");
+  assert.notEqual(otherAddr.code, "FED-MESH-PREAUTH-RATE");
+  for (let i = 0; i < PREAUTH_CAP; i += 1) {
+    const filled = await gate.recv(forgedAddr, { source: `203.0.113.${i}` });
+    assert.equal(filled.code, "AZP-BAD-SIG");
+  }
+  assert.equal(gate.state.preAuth.size, PREAUTH_CAP);
+  const still = await gate.recv(first.envelope, { source: "198.51.100.5" });
+  assert.equal(still.ok, true, still.code);
+  assert.equal(still.plaintext, "signed-first");
+  assert.equal(gateRow.replaySeq, 1);
+  const nodeKey = mate.state.identity.public_key;
+  assert.equal(gate.state.peerRate.get(nodeKey).count, 1);
+}
+
+{
+  const gate = createTrack2({
+    identity: await createIdentity(),
+    fixture: true,
+    tipHash: "ef".repeat(32),
+    dataDir: "",
+    peerRecvPerMin: 30,
+    preAuthPerMin: 60,
+  });
+  const mate = await node("12".repeat(32));
+  await gate.arm(["lan"]);
+  await mate.arm(["lan"]);
+  gate.allowSession(mate.state.identity.handle);
+  mate.allowSession(gate.state.identity.handle);
+  assert.equal((await gate.exchange(mate)).ok, true);
+  const paired = await openPeerSession(gate, mate, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+  assert.equal(paired.ok, true);
+  const mateRow = mate.state.sessions.get(paired.remote_session_id);
+  const gateRow = gate.state.sessions.get(paired.local.session_id);
+  const first = await mate.send(mateRow.session_id, "captured");
+  assert.equal((await gate.recv(first.envelope, { source: "192.0.2.10" })).ok, true);
+  const nodeKey = mate.state.identity.public_key;
+  assert.equal(gate.state.peerRate.get(nodeKey).count, 1);
+  for (let i = 0; i < 29; i += 1) {
+    const replayed = await gate.recv(first.envelope, { source: "192.0.2.10" });
+    assert.equal(replayed.code, "FED-MESH-REPLAY");
+    assert.equal(replayed.verified_charged, false);
+    assert.equal(gate.state.peerRate.get(nodeKey).count, 1);
+    assert.equal(gateRow.replaySeq, 1);
+  }
+  const newer = await mate.send(mateRow.session_id, "after-replays");
+  const delivered = await gate.recv(newer.envelope, { source: "192.0.2.10" });
+  assert.equal(delivered.ok, true, delivered.code);
+  assert.equal(delivered.plaintext, "after-replays");
+  assert.equal(gate.state.peerRate.get(nodeKey).count, 2);
+  assert.equal(gateRow.replaySeq, 2);
 }
 
 const forkNode = await node("44".repeat(32));

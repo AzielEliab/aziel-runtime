@@ -35,7 +35,7 @@ import { peerFetch } from "./local-tls.js";
 import { canonicalStatement, hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
-import { FED_SPEC, ROSTER_CAP, ZERO_HASH } from "./spec.js";
+import { FED_SPEC, MAX_CIPHERTEXT_BYTES, ROSTER_CAP, ZERO_HASH } from "./spec.js";
 
 export const TRACK2_SPEC = "D2D-CARRIERS-1.0";
 export const TRACK2_AUTHOR = "Aziel Eliab";
@@ -117,9 +117,9 @@ export const MAX_FORWARD_GAP = 64;
 /** Verified peer ingress. One counter per roster node key. The roster stops at ROSTER_CAP. */
 export const PEER_RECV_PER_MIN = 30;
 export const PEER_RATE_WINDOW_MS = 60_000;
-/** Unverified bytes. Fixed slots by transport source. Does not touch a verified peer's counter. */
+/** Unverified failures only. Exact remote address, bounded LRU. A verified signature never spends this. */
 export const PREAUTH_PER_MIN = 60;
-export const PREAUTH_SLOTS = 8;
+export const PREAUTH_CAP = 64;
 
 /** JSON numbers only. Booleans and numeric strings must not become a seq. */
 export function wireShareSeq(value) {
@@ -158,13 +158,6 @@ function orderingFields(row, extra = {}) {
 function randomId(prefix) {
   const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
   return prefix ? `${prefix}${hex}` : hex;
-}
-
-function slotIndex(text, size) {
-  let n = 0;
-  const value = String(text || "unknown");
-  for (let i = 0; i < value.length; i += 1) n = (Math.imul(n, 33) + value.charCodeAt(i)) >>> 0;
-  return n % size;
 }
 
 async function rekeyOfferRank(offer) {
@@ -656,7 +649,8 @@ export function createTrack2(opts = {}) {
     },
     seq: 0,
     peerRate: new Map(),
-    preAuth: Array.from({ length: PREAUTH_SLOTS }, () => ({ start: 0, count: 0 })),
+    preAuth: new Map(),
+    preAuthTick: 0,
     peerRecvPerMin: Number.isInteger(opts.peerRecvPerMin) && opts.peerRecvPerMin >= 1 ? opts.peerRecvPerMin : PEER_RECV_PER_MIN,
     preAuthPerMin: Number.isInteger(opts.preAuthPerMin) && opts.preAuthPerMin >= 1 ? opts.preAuthPerMin : PREAUTH_PER_MIN,
     local_socket_verified: false,
@@ -1572,22 +1566,48 @@ export function createTrack2(opts = {}) {
       });
     },
     takePreAuth(source, now = Date.now()) {
-      const slot = state.preAuth[slotIndex(source || "unknown", PREAUTH_SLOTS)];
-      if (!slot.start || now - slot.start >= PEER_RATE_WINDOW_MS) {
+      const key = String(source || "unknown");
+      state.preAuthTick += 1;
+      let slot = state.preAuth.get(key);
+      if (!slot) {
+        if (state.preAuth.size >= PREAUTH_CAP) {
+          let oldestKey = null;
+          let oldest = Infinity;
+          for (const [addr, row] of state.preAuth) {
+            if (row.last < oldest) {
+              oldest = row.last;
+              oldestKey = addr;
+            }
+          }
+          if (oldestKey != null) state.preAuth.delete(oldestKey);
+        }
+        slot = { start: now, count: 0, last: state.preAuthTick };
+        state.preAuth.set(key, slot);
+      }
+      slot.last = state.preAuthTick;
+      state.preAuth.delete(key);
+      state.preAuth.set(key, slot);
+      if (now - slot.start >= PEER_RATE_WINDOW_MS) {
         slot.start = now;
         slot.count = 0;
       }
       slot.count += 1;
       if (slot.count > state.preAuthPerMin) {
-        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the pre-auth cap for this source. No roster slot was charged.", {
+        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the pre-auth cap for this address. No roster slot was charged.", {
           replay_advanced: false,
           verified_charged: false,
           preauth_limit: state.preAuthPerMin,
-          preauth_slots: PREAUTH_SLOTS,
+          preauth_cap: PREAUTH_CAP,
+          preauth_key: "remote-address",
           retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
         });
       }
-      return ok({ preauth_ok: true, verified_charged: false, preauth_count: slot.count });
+      return ok({ preauth_ok: true, verified_charged: false, preauth_count: slot.count, preauth_key: "remote-address" });
+    },
+    failUnverified(source, code, message, extra = {}) {
+      const rated = this.takePreAuth(source);
+      if (!rated.ok) return rated;
+      return fail(code, message, { verified_charged: false, replay_advanced: extra.replay_advanced === true, ...extra });
     },
     takeVerifiedPeer(nodePublicKey, now = Date.now()) {
       const key = String(nodePublicKey || "");
@@ -1636,17 +1656,30 @@ export function createTrack2(opts = {}) {
       });
     },
     async recv(envelope, opts = {}) {
+      const source = opts.source || "in-process";
       if (!envelope || envelope.kind !== "peer-share" || envelope.plane !== TRACK2_PLANE) {
-        return fail("FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.", { verified_charged: false });
+        return this.failUnverified(source, "FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.");
       }
-      const pre = this.takePreAuth(opts.source || "in-process");
-      if (!pre.ok) return pre;
       if (envelope.plaintext || envelope.body || envelope.payload) {
-        return fail("MESH-NO-BYTES", "A share carries ciphertext only.");
+        return this.failUnverified(source, "MESH-NO-BYTES", "A share carries ciphertext only.");
+      }
+      const ciphertext = envelope.ciphertext;
+      const sessionSig = envelope.session_sig;
+      const nonceText = envelope.nonce;
+      if (typeof ciphertext !== "string" || ciphertext.length < 1 || ciphertext.length > MAX_CIPHERTEXT_BYTES || typeof sessionSig !== "string" || sessionSig.length < 1 || sessionSig.length > 128 || typeof nonceText !== "string" || nonceText.length < 1 || nonceText.length > 64) {
+        return this.failUnverified(source, "FED-MESH-BAD-INPUT", "Share is malformed or too large to verify. The signature was not checked.", { replay_advanced: false });
+      }
+      if (wireShareSeq(envelope.seq) == null) {
+        return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq must be an integer from 1 to 1000000. Strings and booleans are not seqs.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields({ replaySeq: 0, epoch: 1 }),
+        });
       }
       const retired = state.retiredSessions.get(envelope.to_session);
       if (retired) {
-        return fail("FED-MESH-EPOCH-RETIRED", "That session epoch was rotated. An old share cannot enter the new epoch.", {
+        return this.failUnverified(source, "FED-MESH-EPOCH-RETIRED", "That session epoch was rotated. An old share cannot enter the new epoch.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
@@ -1657,9 +1690,9 @@ export function createTrack2(opts = {}) {
         });
       }
       const row = [...state.sessions.values()].find((item) => item.session_id === envelope.to_session && item.open === true);
-      if (!row) return fail("MESH-NO-ROUTE", "No open session for that share.");
+      if (!row) return this.failUnverified(source, "MESH-NO-ROUTE", "No open session for that share.");
       if (state.isolated.has(envelope.handle)) {
-        return fail("FED-MESH-POISON", "That peer is isolated.", { handle: envelope.handle, mesh_fenced_to_loopback: false });
+        return this.failUnverified(source, "FED-MESH-POISON", "That peer is isolated.", { handle: envelope.handle, mesh_fenced_to_loopback: false });
       }
       let signed = false;
       try {
@@ -1676,39 +1709,32 @@ export function createTrack2(opts = {}) {
           route_class: envelope.route_class,
         }, envelope.session_sig);
       } catch {
-        return fail("FED-MESH-BAD-SEQ", "Share seq is not a canonical integer. The watermark did not move.", {
+        return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq is not a canonical integer. The watermark did not move.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
-          replay_expires: false,
-          out_of_order_delivery: false,
-          ordered_delivery: "highest-seq-closes-lower",
-          replay_watermark: Number.isSafeInteger(row.replaySeq) ? row.replaySeq : 0,
+          ...orderingFields(row),
         });
       }
       if (!signed || envelope.session_public_key !== row.peer_session_public_key) {
-        return fail("AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
+        return this.failUnverified(source, "AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
-          verified_charged: false,
         });
       }
       const roster = state.roster.get(row.peer_handle);
       if (!roster || roster.verified !== true || !roster.public_key) {
-        return fail("AZP-BAD-SIG", "The session peer is not a verified roster node. No peer slot was charged.", {
+        return this.failUnverified(source, "AZP-BAD-SIG", "The session peer is not a verified roster node. No peer slot was charged.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
-          verified_charged: false,
         });
       }
-      const rated = this.takeVerifiedPeer(roster.public_key);
-      if (!rated.ok) return rated;
       const seq = wireShareSeq(envelope.seq);
       const nonce = typeof envelope.nonce === "string" ? envelope.nonce : "";
       if (seq == null || !nonce) {
-        return fail("FED-MESH-BAD-SEQ", "Share seq must be an integer from 1 to 1000000. Strings and booleans are not seqs.", {
+        return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq must be an integer from 1 to 1000000. Strings and booleans are not seqs.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
@@ -1718,7 +1744,7 @@ export function createTrack2(opts = {}) {
       if (!Number.isSafeInteger(row.replaySeq)) row.replaySeq = 0;
       if (row.exhausted === true || row.replaySeq >= SHARE_SEQ_MAX) {
         row.exhausted = true;
-        return fail("FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. The watermark did not move.", {
+        return this.failUnverified(source, "FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. The watermark did not move.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
@@ -1729,25 +1755,29 @@ export function createTrack2(opts = {}) {
       // That still closes lower in-flight seqs inside the window. It cannot
       // jump from a fresh session to the cap.
       if (seq > row.replaySeq + MAX_FORWARD_GAP) {
-        return fail("FED-MESH-SEQ-GAP", "Share seq jumps farther than the forward gap. The watermark did not move.", {
+        return this.failUnverified(source, "FED-MESH-SEQ-GAP", "Share seq jumps farther than the forward gap. The watermark did not move.", {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
           ...orderingFields(row, { rekey_required: false }),
         });
       }
+      // A replay is a failed delivery. It spends the pre-auth path, not this peer's verified budget.
+      if (seq <= row.replaySeq) {
+        return this.failUnverified(source, "FED-MESH-REPLAY", "That share seq was already accepted or was closed by a higher seq.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          replay_advanced: false,
+          ...orderingFields(row),
+        });
+      }
+      const rated = this.takeVerifiedPeer(roster.public_key);
+      if (!rated.ok) return rated;
       // Claim this seq before decrypt so two overlapping recv calls cannot
       // both deliver. A higher seq inside the gap closes every lower seq,
       // including one still decrypting. This is not an out-of-order buffer
       // and it does not expire.
-      if (seq <= row.replaySeq) {
-        return fail("FED-MESH-REPLAY", "That share seq was already accepted or was closed by a higher seq.", {
-          plaintext: null,
-          integrity: false,
-          replay: true,
-          ...orderingFields(row),
-        });
-      }
       row.replaySeq = seq;
       if (seq >= SHARE_SEQ_MAX) row.exhausted = true;
       row.replayNonce = nonce;

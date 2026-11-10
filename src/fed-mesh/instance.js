@@ -18,7 +18,7 @@ import { createKeystore, exportPublicIdentity, identityFromUnlocked, unlockKeyst
 import { classifyPeerUrl, natPunchRequest, survivalMethods } from "./bearers.js";
 import { actHash, openAct, sealAct, signAct } from "./client.js";
 import { createIdentity } from "./identity.js";
-import { FED_SPEC, ZERO_HASH } from "./spec.js";
+import { FED_SPEC, MAX_ENVELOPE_BYTES, ZERO_HASH } from "./spec.js";
 import { mintLocalCert } from "./local-tls.js";
 import { createTrack2 } from "./track2.js";
 
@@ -636,6 +636,24 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     const chunks = [];
     for await (const chunk of req) chunks.push(chunk);
     const raw = Buffer.concat(chunks).toString("utf8");
+    const url = new URL(req.url || "/", "http://127.0.0.1");
+    const peerPostEarly = req.method === "POST" && (url.pathname.startsWith("/v1/fed-mesh/") || url.pathname.startsWith("/local/"));
+    if (peerPostEarly && raw.length > MAX_ENVELOPE_BYTES) {
+      const rated = node.track2.takePreAuth((req.socket && req.socket.remoteAddress) || "unknown");
+      if (!rated.ok) {
+        res.writeHead(429, { "content-type": "application/json", "retry-after": String(rated.retry_after_s || 60) });
+        res.end(JSON.stringify(rated));
+        return;
+      }
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({
+        ok: false,
+        code: "FED-MESH-BAD-INPUT",
+        verified_charged: false,
+        message: "Share is too large to verify. The signature was not checked.",
+      }));
+      return;
+    }
     let body = {};
     if (raw) {
       try {
@@ -644,7 +662,6 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         body = {};
       }
     }
-    const url = new URL(req.url || "/", "http://127.0.0.1");
     const peerPost = req.method === "POST" && (url.pathname.startsWith("/v1/fed-mesh/") || url.pathname.startsWith("/local/"));
     const ratedInRecv = url.pathname === "/v1/fed-mesh/peer";
     const adminPost = url.pathname.endsWith("/allow") || url.pathname.endsWith("/deliver");
