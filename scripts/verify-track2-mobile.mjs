@@ -5,6 +5,7 @@
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -64,7 +65,16 @@ assert.equal(loop.ok, true);
 assert.equal(loop.bearer_mode, "loopback");
 assert.equal(loop.route_class, "direct");
 assert.equal(classifyPeerUrl("http://127.0.0.1:8781/v1/fed-mesh/direct", { role: "direct" }).mode, "loopback");
-const lan = joinRoute("http://192.168.1.10:8781/mobile/");
+const clearLan = joinRoute("http://192.168.1.10:8781/mobile/");
+assert.equal(clearLan.ok, false);
+assert.equal(clearLan.code, "FED-MESH-TLS-REQUIRED");
+const named = joinRoute("https://fd.example.com/mobile/");
+assert.equal(named.ok, false);
+assert.equal(named.code, "FED-MESH-NO-ROUTE");
+const localName = joinRoute("https://not-a-lan.local/mobile/");
+assert.equal(localName.ok, false);
+assert.equal(localName.code, "FED-MESH-NO-ROUTE");
+const lan = joinRoute("https://192.168.1.10:8781/mobile/");
 assert.equal(lan.ok, true);
 assert.equal(lan.bearer_mode, "direct-lan");
 assert.equal(classifyPeerUrl("http://192.168.1.10:8781/v1/fed-mesh/direct", { role: "direct" }).mode, "direct-lan");
@@ -231,7 +241,9 @@ try {
 
   const sent = await phone.send(node.base, "lan-join");
   assert.equal(sent.ok, true, sent.message || sent.code);
-  assert.equal(sent.plaintext, "lan-join");
+  assert.equal(sent.plaintext, undefined);
+  assert.equal(sent.plaintext_returned, false);
+  assert.equal(sent.plaintext_sha256, createHash("sha256").update("lan-join").digest("hex"));
   assert.equal(sent.alt_internet_live, true);
   assert.equal(sent.wifi_peer_exchange_demonstrated, false);
   assert.equal(sent.second_device, false);

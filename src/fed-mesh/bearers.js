@@ -14,6 +14,7 @@ import {
   REFUSE,
 } from "../cold-multi-shelf.js";
 import { AZNET_NAME, aznetLayerCite } from "./aznet-layers.js";
+import { expandIpv6 } from "../production.js";
 import { FED_SPEC } from "./spec.js";
 import { CAP7_PLANE_BOUNDARY, CAP7_PUBLIC_WORKER_LIVE, CAP7_WORKER_FLAGS } from "../engines/miragegrid/cap7-public.js";
 
@@ -465,7 +466,17 @@ function ipv4Parts(host) {
 function bareHost(hostname) {
   return String(hostname || "")
     .replace(/^\[|\]$/g, "")
+    .split("%")[0]
     .toLowerCase();
+}
+
+function isLanV4(parts) {
+  if (!parts) return false;
+  if (parts[0] === 10) return true;
+  if (parts[0] === 192 && parts[1] === 168) return true;
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
+  if (parts[0] === 169 && parts[1] === 254) return true;
+  return false;
 }
 
 export function isLoopbackHost(hostname) {
@@ -475,19 +486,27 @@ export function isLoopbackHost(hostname) {
   return Boolean(v4 && v4[0] === 127);
 }
 
+/**
+ * LAN means an address literal in RFC1918, IPv4 link-local, IPv6 ULA, or
+ * IPv6 link-local. Names, including .local and prefixes fc/fd, are not LAN.
+ * This does not resolve DNS.
+ */
 export function isLanHost(hostname) {
   const host = bareHost(hostname);
   if (!host || isLoopbackHost(host)) return false;
-  if (host.endsWith(".local")) return true;
-  const v4 = ipv4Parts(host);
-  if (v4) {
-    if (v4[0] === 10) return true;
-    if (v4[0] === 192 && v4[1] === 168) return true;
-    if (v4[0] === 172 && v4[1] >= 16 && v4[1] <= 31) return true;
-    if (v4[0] === 169 && v4[1] === 254) return true;
-    return false;
+  if (ipv4Parts(host)) return isLanV4(ipv4Parts(host));
+  if (host.includes(".")) return false;
+  const groups = expandIpv6(host);
+  if (!groups) return false;
+  if (groups.slice(0, 5).every((part) => part === "0000") && groups[5] === "ffff") {
+    const hi = parseInt(groups[6], 16);
+    const lo = parseInt(groups[7], 16);
+    return isLanV4([hi >> 8, hi & 255, lo >> 8, lo & 255]);
   }
-  return host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:");
+  const first = parseInt(groups[0], 16);
+  if ((first & 0xfe00) === 0xfc00) return true;
+  if ((first & 0xffc0) === 0xfe80) return true;
+  return false;
 }
 
 export function urlRequestsPunch(raw) {

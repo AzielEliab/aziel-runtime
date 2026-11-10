@@ -24,6 +24,8 @@ export const RATE_MESH_MUTATE_PER_MIN = 30;
 export const RATE_MEMORY_MUTATE_PER_MIN = 60;
 /** AGENT-SUBNET-1.0: GET /v1/mesh/agents (status), /directory, /challenge per client IP. */
 export const RATE_AGENT_READ_PER_MIN = 60;
+/** Test and operator overrides cannot raise a bucket above this. Above it, the published default is used. */
+export const RATE_OVERRIDE_MAX = 1_000_000;
 
 export const TOKEN_HEADER = "X-Aziel-Runtime-Token";
 export const VERSION_HEADER = "X-Aziel-Runtime-Version";
@@ -395,7 +397,8 @@ export function rateLimitForKind(env, kind) {
   const bag = env && env.__aziel_rate_limits && typeof env.__aziel_rate_limits === "object" ? env.__aziel_rate_limits : {};
   const pick = (key, fallback) => {
     const n = Number(bag[key]);
-    return Number.isFinite(n) && n >= 1 ? Math.floor(n) : fallback;
+    if (!Number.isFinite(n) || n < 1 || n > RATE_OVERRIDE_MAX) return fallback;
+    return Math.floor(n);
   };
   if (kind === "open") return pick("open", RATE_OPEN_PER_MIN);
   if (kind === "exec") return pick("exec", RATE_EXEC_PER_MIN);
@@ -453,10 +456,47 @@ const RATE_SCOPES = {
   agent_read: "agent_read",
 };
 
+/**
+ * Rate-limit identity.
+ * CF-Connecting-IP, when it is an IP literal, is the key. Forwarded headers
+ * do not move that bucket.
+ * When CF-Connecting-IP is absent, the only extra key is X-Azrt-Client-IP
+ * and only if it is an IP literal. Public ingress strips that header before
+ * this runs. X-Forwarded-For and x-azrt-visitor-ip-h are not rate keys.
+ * This does not prove that a deployed Cloudflare edge overwrites a
+ * client-supplied CF-Connecting-IP. The counter is per isolate unless RATE
+ * is bound.
+ */
+export function rateIngress(request) {
+  const headers = request && request.headers;
+  const cf = headers && (headers.get("CF-Connecting-IP") || headers.get("cf-connecting-ip"));
+  const present = cf && String(cf).trim();
+  if (present && isIpLiteral(present)) {
+    return { ip: String(present).trim(), source: "cf-connecting-ip" };
+  }
+  if (!present) {
+    const leg = headers && (headers.get(LEG_CLIENT_IP_HEADER) || headers.get("x-azrt-client-ip"));
+    if (leg && isIpLiteral(leg)) return { ip: String(leg).trim(), source: "leg-client-ip" };
+  }
+  return {
+    ip: "ingress-unidentified",
+    source: present ? "cf-connecting-ip-unparsed" : "no-platform-client-ip",
+  };
+}
+
+export function ingressLimitFields(request) {
+  const row = rateIngress(request);
+  return {
+    ingress_source: row.source,
+    forwarded_headers_trusted: false,
+    cf_overwrite_proven: false,
+  };
+}
+
 /** Agent-subnet kinds key the visitor's IPv6 /64 (and the IPv4 inside ::ffff:), AZBot round 3. */
 const IP64_KINDS = new Set(["mesh_mutate", "agent_read"]);
 export function limiterIp(request, kind) {
-  const ip = clientIp(request);
+  const ip = rateIngress(request).ip;
   return IP64_KINDS.has(kind) ? edgeIpKey(ip) : ip;
 }
 
@@ -465,7 +505,14 @@ export function rateLimitDecision(env, request, kind, now = Date.now()) {
   const limit = rateLimitForKind(env, kind);
   if (limit >= 1 && RATE_SCOPES[kind]) {
     const slot = takeRateSlot(env, kind, rateKeyOf(ip), limit, now);
-    return { ...slot, scope: RATE_SCOPES[kind], ip, rate_key: rateKeyOf(ip), enforcement: slot.enforcement || "isolate" };
+    return {
+      ...slot,
+      scope: RATE_SCOPES[kind],
+      ip,
+      rate_key: rateKeyOf(ip),
+      enforcement: slot.enforcement || "isolate",
+      ...ingressLimitFields(request),
+    };
   }
   return { ok: true, scope: kind, ip, limit: 0, remaining: 0, count: 0, retry_after: 0, window_seconds: 60, enforcement: "isolate" };
 }

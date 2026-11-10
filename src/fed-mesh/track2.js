@@ -31,6 +31,7 @@ import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
 import { negotiateBearer, negotiateRouteClass } from "../transport/routing.js";
 import { classifyPeerUrl, isLanHost, isLoopbackHost, natPunchRequest } from "./bearers.js";
+import { peerFetch } from "./local-tls.js";
 import { hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
@@ -56,6 +57,7 @@ const BEACON_KEYS = new Set([
   "enc_public_key",
   "carrier",
   "direct_url",
+  "tls_sha256",
   "sig",
 ]);
 
@@ -241,8 +243,10 @@ async function signBeacon(state, carrier) {
     enc_public_key: state.identity.enc_public_key,
     carrier,
     direct_url: state.direct_url || undefined,
+    tls_sha256: /^[a-f0-9]{64}$/.test(String(state.tls_sha256 || "")) ? state.tls_sha256 : undefined,
   };
   if (!statement.direct_url) delete statement.direct_url;
+  if (!statement.tls_sha256) delete statement.tls_sha256;
   const sig = await signObject(state.identity.privateKey, statement);
   return { ...statement, sig };
 }
@@ -816,6 +820,7 @@ export function createTrack2(opts = {}) {
           tips,
           hits: (prior && prior.hits) || 1,
           direct_url: beacon.direct_url || null,
+          tls_sha256: /^[a-f0-9]{64}$/.test(String(beacon.tls_sha256 || "")) ? beacon.tls_sha256 : null,
           presence: "isolated",
           verified: true,
           mutual: false,
@@ -841,6 +846,7 @@ export function createTrack2(opts = {}) {
         tips,
         hits,
         direct_url: beacon.direct_url || null,
+        tls_sha256: /^[a-f0-9]{64}$/.test(String(beacon.tls_sha256 || "")) ? beacon.tls_sha256 : null,
         presence: "live",
         verified: true,
         mutual,
@@ -880,25 +886,21 @@ export function createTrack2(opts = {}) {
         back_ok: back.ok === true,
       });
     },
-    async discoverUrl(url) {
+    async discoverUrl(url, opts = {}) {
       let last = null;
       for (let round = 0; round < 2; round += 1) {
         const mine = await this.beacon("lan");
         if (!mine.ok) return mine;
-        let res;
-        try {
-          res = await fetch(url, {
-            method: "POST",
-            headers: { "content-type": "application/json", accept: "application/json" },
-            body: JSON.stringify(mine.beacon),
-          });
-        } catch (err) {
-          return fail("FED-MESH-NO-ROUTE", "Discovery peer did not answer. NAT punch is not a fallback.", {
-            detail: String(err && err.message ? err.message : err),
+        const res = await peerFetch(url, { method: "POST", json: mine.beacon, tlsPin: opts.tlsPin });
+        if (!res.transportOk) {
+          return fail(res.code || "FED-MESH-NO-ROUTE", res.message || "Discovery peer did not answer. NAT punch is not a fallback.", {
+            detail: res.message || "",
             hole_punch: false,
+            sent: res.sent === true,
+            tls_required: res.tls_required === true,
           });
         }
-        const body = await res.json().catch(() => ({}));
+        const body = res.json;
         if (!body || body.ok !== true || !body.beacon) return body && body.code ? body : fail("FED-MESH-NO-ROUTE", "Peer did not return a beacon.");
         last = await this.ingest(body.beacon);
         if (!last.ok) return last;
@@ -965,6 +967,7 @@ export function createTrack2(opts = {}) {
         peer_session_id: null,
         open: false,
         route,
+        seenShares: new Set(),
       });
       return ok({
         op: "peer_session_open",
@@ -1013,6 +1016,7 @@ export function createTrack2(opts = {}) {
         peer_session_id: offer.session_id,
         open: true,
         route: { route_class: offer.route_class, mode: offer.bearer_mode },
+        seenShares: new Set(),
       });
       await notifyPeerContact(state);
       return ok({
@@ -1158,6 +1162,16 @@ export function createTrack2(opts = {}) {
           integrity: false,
         });
       }
+      const mark = `${envelope.seq}:${envelope.nonce}`;
+      if (!row.seenShares) row.seenShares = new Set();
+      if (row.seenShares.has(mark)) {
+        return fail("FED-MESH-REPLAY", "That share was already accepted.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+        });
+      }
+      row.seenShares.add(mark);
       const text = await openCiphertext({
         encPrivateKey: row.encPrivate,
         fromHandle: envelope.session_id,
@@ -1214,7 +1228,7 @@ export function createTrack2(opts = {}) {
         azvpn: false,
       });
     },
-    async deliverToPeer(peerBase, plaintext) {
+    async deliverToPeer(peerBase, plaintext, opts = {}) {
       const base = String(peerBase || "").trim().replace(/\/+$/, "");
       if (!base) return fail("FED-MESH-BAD-INPUT", "peer_base is required.", { sent: false });
       let parsed;
@@ -1226,8 +1240,17 @@ export function createTrack2(opts = {}) {
       const host = parsed.hostname.replace(/^\[|\]$/g, "");
       const loopback = isLoopbackHost(host);
       const lan = isLanHost(host);
+      const tlsPin = String((opts && opts.tls_sha256) || "").trim().toLowerCase();
+      if (parsed.protocol === "http:" && !loopback) {
+        return fail("FED-MESH-TLS-REQUIRED", "A non-loopback peer requires TLS. Cleartext LAN is refused.", {
+          sent: false,
+          tls_required: true,
+          public_egress: false,
+          host,
+        });
+      }
       if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
-        return fail("FED-MESH-NO-ROUTE", "peer_base must be http or https on loopback or a LAN address.", { sent: false, public_egress: false });
+        return fail("FED-MESH-NO-ROUTE", "peer_base is http on loopback or https on a LAN literal.", { sent: false, public_egress: false });
       }
       if (!loopback && !lan) {
         return fail("FED-MESH-NO-ROUTE", "A public host is not this local peer path. No ICANN dial and no public egress.", {
@@ -1237,49 +1260,33 @@ export function createTrack2(opts = {}) {
           host,
         });
       }
+      if (parsed.protocol === "https:" && !/^[a-f0-9]{64}$/.test(tlsPin)) {
+        return fail("FED-MESH-TLS-PIN", "HTTPS peer dial needs the operator-supplied certificate sha256.", { sent: false });
+      }
       if (poisonText(plaintext)) {
         return fail("FED-MESH-POISON", "Poison refused before send. Not interpreted.", { sent: false, plaintext: null });
       }
       const text = String(plaintext ?? "");
-      const discovered = await this.discoverUrl(`${base}/v1/fed-mesh/discover`);
+      const dial = { tlsPin: parsed.protocol === "https:" ? tlsPin : "" };
+      const discovered = await this.discoverUrl(`${base}/v1/fed-mesh/discover`, dial);
       if (!discovered.ok) return discovered;
       const peer = [...state.roster.values()].find((row) => row.mutual === true && row.verified === true && row.presence !== "isolated");
       if (!peer) return fail("MESH-NO-ROUTE", "Discovery did not admit a mutual peer.", { sent: false });
-      let allowBody;
-      try {
-        const allowRes = await fetch(`${base}/v1/fed-mesh/allow`, {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ handle: identity.handle }),
-          signal: AbortSignal.timeout(4000),
-        });
-        allowBody = await allowRes.json();
-      } catch (err) {
-        return fail("FED-MESH-NO-ROUTE", "Peer did not accept the session allow.", {
+      if (parsed.protocol === "https:" && peer.tls_sha256 !== tlsPin) {
+        return fail("FED-MESH-TLS-PIN", "The signed beacon certificate pin does not match the operator pin.", {
           sent: false,
-          detail: String(err && err.message ? err.message : err),
+          integrity: false,
         });
       }
-      if (!allowBody || allowBody.ok !== true) return allowBody && allowBody.code ? allowBody : fail("MESH-PEER-NOT-ALLOWED", "Peer did not allow this handle.", { sent: false });
       const allowed = this.allowSession(peer.handle);
       if (!allowed.ok) return allowed;
       const offered = await this.offer(peer.handle, { directUrl: `${base}/v1/fed-mesh/direct` });
       if (!offered.ok) return offered;
-      let accepted;
-      try {
-        const acceptRes = await fetch(`${base}/v1/fed-mesh/peer-session`, {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify(offered.offer),
-          signal: AbortSignal.timeout(4000),
-        });
-        accepted = await acceptRes.json();
-      } catch (err) {
-        return fail("FED-MESH-NO-ROUTE", "Peer did not answer the session offer.", {
-          sent: false,
-          detail: String(err && err.message ? err.message : err),
-        });
+      const acceptRes = await peerFetch(`${base}/v1/fed-mesh/peer-session`, { method: "POST", json: offered.offer, tlsPin: dial.tlsPin });
+      if (!acceptRes.transportOk) {
+        return fail(acceptRes.code || "FED-MESH-NO-ROUTE", acceptRes.message || "Peer did not answer the session offer.", { sent: false });
       }
+      const accepted = acceptRes.json;
       if (!accepted || accepted.ok !== true || !accepted.offer) {
         return accepted && accepted.code ? accepted : fail("MESH-NO-ROUTE", "Peer did not counter-sign the session.", { sent: false });
       }
@@ -1290,36 +1297,32 @@ export function createTrack2(opts = {}) {
       const ciphertext = String(sent.envelope.ciphertext || "");
       const ciphertext_sha256 = await sha256Hex(ciphertext);
       const plaintext_sha256 = await sha256Hex(text);
-      let opened;
-      try {
-        const recvRes = await fetch(`${base}/v1/fed-mesh/peer`, {
-          method: "POST",
-          headers: { "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify(sent.envelope),
-          signal: AbortSignal.timeout(4000),
-        });
-        opened = await recvRes.json();
-      } catch (err) {
-        return fail("FED-MESH-NO-ROUTE", "Peer did not receive the sealed share.", {
+      const recvRes = await peerFetch(`${base}/v1/fed-mesh/peer`, { method: "POST", json: sent.envelope, tlsPin: dial.tlsPin });
+      if (!recvRes.transportOk) {
+        return fail(recvRes.code || "FED-MESH-NO-ROUTE", recvRes.message || "Peer did not receive the sealed share.", { sent: true, plaintext: null });
+      }
+      const opened = recvRes.json || {};
+      if (opened.plaintext != null || (recvRes.raw && recvRes.raw.includes(text))) {
+        return fail("MESH-NO-BYTES", "Peer transport returned plaintext. The receipt was refused.", {
           sent: true,
-          detail: String(err && err.message ? err.message : err),
+          integrity: false,
+          plaintext: null,
         });
       }
       const localId = readMachineId();
       const peerId = opened && typeof opened.machine_id === "string" ? opened.machine_id : "";
       const sameMachine = Boolean(localId && peerId && localId === peerId);
-      const integrity = opened
-        && opened.ok === true
-        && opened.plaintext === text
+      const integrity = opened.ok === true
         && opened.plaintext_sha256 === plaintext_sha256
-        && opened.ciphertext_sha256 === ciphertext_sha256;
+        && opened.ciphertext_sha256 === ciphertext_sha256
+        && opened.replay !== true;
       if (!integrity) {
-        return fail(opened && opened.code ? opened.code : "FED-MESH-TAMPER", opened && opened.message ? opened.message : "Peer bytes did not match the sealed share.", {
+        return fail(opened.code || "FED-MESH-TAMPER", opened.message || "Peer bytes did not match the sealed share.", {
           sent: true,
           integrity: false,
           plaintext: null,
           ciphertext_sha256,
-          peer_ciphertext_sha256: opened && opened.ciphertext_sha256,
+          peer_ciphertext_sha256: opened.ciphertext_sha256,
         });
       }
       if (state.fixture !== true) state.local_socket_verified = true;
@@ -1358,6 +1361,9 @@ export function createTrack2(opts = {}) {
         host,
         loopback,
         lan,
+        tls: parsed.protocol === "https:",
+        plaintext_returned: false,
+        pin_source: parsed.protocol === "https:" ? "operator" : null,
         scope: "local-process-verification",
         azvpn_is_packet_path: false,
         envelope: sent.envelope,

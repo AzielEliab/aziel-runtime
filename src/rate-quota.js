@@ -5,7 +5,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-import { RATE_WINDOW_MS, clientIp, limiterIp, rateLimitDecision, rateLimitForKind, takeRateSlot } from "./production.js";
+import { RATE_WINDOW_MS, ingressLimitFields, limiterIp, rateLimitDecision, rateLimitForKind, takeRateSlot } from "./production.js";
 
 export class RateQuota {
   constructor(ctx, env) {
@@ -188,5 +188,5 @@ export async function doorRateLimitDecision(env, request, kind, now = Date.now()
   }
   const { rateKeyOf } = await import("./production.js");
   const slot = await takeDistributedRateSlot(env, kind, rateKeyOf(ip), limit, now);
-  return { ...slot, scope: DOOR_SCOPES[kind], ip, rate_key: rateKeyOf(ip) };
+  return { ...slot, scope: DOOR_SCOPES[kind], ip, rate_key: rateKeyOf(ip), ...ingressLimitFields(request) };
 }

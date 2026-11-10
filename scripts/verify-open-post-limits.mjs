@@ -5,7 +5,7 @@
  */
 import assert from "node:assert/strict";
 import { memorySessionNamespace } from "../src/session-do.js";
-import { RATE_WINDOW_MS, rateLimitDecision } from "../src/production.js";
+import { RATE_MESH_MUTATE_PER_MIN, RATE_OVERRIDE_MAX, RATE_WINDOW_MS, rateLimitDecision, rateLimitForKind } from "../src/production.js";
 import { CODE_RATE_LIMIT, requestLimitKind } from "../src/request-limits.js";
 import { resetSotStore, sotLedgerView } from "../src/sot-sync.js";
 
@@ -64,6 +64,35 @@ assert.equal(held.ok, false);
 assert.equal(held.scope, "mesh_mutate");
 const reopened = rateLimitDecision(resetEnv, resetReq, "mesh_mutate", t0 + RATE_WINDOW_MS + 1);
 assert.equal(reopened.ok, true, "the sliding window drops expired hits");
+assert.equal(rateLimitForKind({ __aziel_rate_limits: { mesh_mutate: 1e12 } }, "mesh_mutate"), RATE_MESH_MUTATE_PER_MIN);
+assert.equal(rateLimitForKind({ __aziel_rate_limits: { mesh_mutate: Infinity } }, "mesh_mutate"), RATE_MESH_MUTATE_PER_MIN);
+assert.equal(rateLimitForKind({ __aziel_rate_limits: { mesh_mutate: 0 } }, "mesh_mutate"), RATE_MESH_MUTATE_PER_MIN);
+assert.equal(rateLimitForKind({ __aziel_rate_limits: { mesh_mutate: RATE_OVERRIDE_MAX } }, "mesh_mutate"), RATE_OVERRIDE_MAX);
+
+const absent = { __aziel_rate_limits: { mesh_mutate: 1 } };
+const firstForward = rateLimitDecision(absent, new Request(origin + "/v1/mesh/lie", { headers: { "X-Forwarded-For": "198.51.100.10" } }), "mesh_mutate");
+const rotatedForward = rateLimitDecision(absent, new Request(origin + "/v1/mesh/lie", { headers: { "X-Forwarded-For": "198.51.100.11" } }), "mesh_mutate");
+assert.equal(firstForward.ok, true);
+assert.equal(firstForward.ingress_source, "no-platform-client-ip");
+assert.equal(firstForward.forwarded_headers_trusted, false);
+assert.equal(firstForward.cf_overwrite_proven, false);
+assert.equal(firstForward.enforcement, "isolate");
+assert.equal(rotatedForward.ok, false, "a missing CF-Connecting-IP does not mint a bucket from X-Forwarded-For");
+const hashEnv = { __aziel_rate_limits: { mesh_mutate: 1 } };
+const hashA = rateLimitDecision(hashEnv, new Request(origin + "/v1/mesh/lie", { headers: { "x-azrt-visitor-ip-h": "ab".repeat(16) } }), "mesh_mutate");
+const hashB = rateLimitDecision(hashEnv, new Request(origin + "/v1/mesh/lie", { headers: { "x-azrt-visitor-ip-h": "cd".repeat(16) } }), "mesh_mutate");
+assert.equal(hashA.rate_key, hashB.rate_key);
+assert.equal(hashB.ok, false);
+const legEnv = { __aziel_rate_limits: { mesh_mutate: 1 } };
+const legA = rateLimitDecision(legEnv, new Request(origin + "/v1/mesh/lie", { headers: { "X-Azrt-Client-IP": "198.51.100.1" } }), "mesh_mutate");
+const legB = rateLimitDecision(legEnv, new Request(origin + "/v1/mesh/lie", { headers: { "X-Azrt-Client-IP": "198.51.100.2" } }), "mesh_mutate");
+assert.equal(legA.ok, true);
+assert.equal(legA.ingress_source, "leg-client-ip");
+assert.equal(legB.ok, true);
+assert.notEqual(legA.rate_key, legB.rate_key);
+const legSpoof = rateLimitDecision(legEnv, new Request(origin + "/v1/mesh/lie", { headers: { "CF-Connecting-IP": "203.0.113.9", "X-Azrt-Client-IP": "198.51.100.1" } }), "mesh_mutate");
+assert.equal(legSpoof.ingress_source, "cf-connecting-ip");
+assert.equal(legSpoof.ip, "203.0.113.9");
 
 resetSotStore();
 const meshEnv = baseEnv({ __aziel_rate_limits: { mesh_mutate: 2, memory_mutate: 2 } });
