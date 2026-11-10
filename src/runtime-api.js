@@ -412,8 +412,8 @@ ${survivalSkillMarkdown(base)}
 | GET | \`/v1/stats-rollups\` | Read-only sibling views/downloads snapshot (best-effort; never invents; omit on error). |
 | GET | \`/v1/mesh\` | QNM rollup: enabled?, bearers, nodes (human mesh users + cited human uses), live_nodes (human mesh users + site_live_viewers), software_nodes ({slug}-worker roster). Suite-presence ON by default. Never enables extra radios. Never pulls hub /count. \`survival_methods\`: L0 Worker edge LIVE; L1 multi-relay and direct/LAN live only when configured; Cap-7 factory exec LIVE on the Cap-7 plane (not ICANN, not a public egress IP); home-origin and cold shelves SLOT (doi null); Phoenix is local wait / re-seal. \`aznet_layers\`: L2 Cap-7 factory exec (no DNS publish), L3 SLOT registry, L4 offline stub that uses L0 when a relay is set. None replace L0. |
 | GET | \`/v1/mesh/status\` | Alias of \`/v1/mesh\`. |
-| POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required (rate-limited). |
-| POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. |
+| POST | \`/v1/mesh/enable\` | Optional extra bearer. Body \`{bearer}\` required. Empty enable is refused. F03 \`mesh_mutate\` (30/min per client). |
+| POST | \`/v1/mesh/disable\` | Refused (\`MESH-DISABLE-REFUSED\`). Public disable of suite-presence is refused. The refusal is still F03 \`mesh_mutate\`. |
 | POST | \`/v1/mesh/join\` | Register a durable hash-sealed session. Body \`{product, node_id?, label?, presence?, heartbeat_mode?}\`. product required. node_id 8–80 \`[a-z0-9._-]\`. presence live\\|locked\\|isolated. heartbeat_mode active\\|idle\\|asleep (default idle). Stay registered until leave or 14 days after the last beat. Miss 3 beats and the class is stale, not deleted. \`{slug}-worker\` still drops after 5 minutes. F03 \`mesh_mutate\` (30/min). Presence-only — not a login mesh. \`MESH-OFF\` when radios off. \`MESH-ROSTER-FULL\` at cap. |
 | POST | \`/v1/mesh/heartbeat\` | One beat. Restores live from stale. Body \`{node_id, presence?, heartbeat_mode?}\`. Does not delete a stale row. Grace expiry is \`MESH-UNKNOWN-NODE\`. F03 \`mesh_mutate\`. \`MESH-OFF\` when radios off. |
 | POST | \`/v1/mesh/leave\` | Drop presence. Body \`{node_id}\`. No implicit heal. |
@@ -424,7 +424,7 @@ ${survivalSkillMarkdown(base)}
 | POST | \`/v1/mesh/broadcast\` | SHA-256 hash receipt only. Never a publish path. |
 | GET | \`/v1/mesh/sot\` | SOT-SYNC-1.0 suite tip. Authority is GET /v1/software (suite version, git sha, Softwares count, card versions). version_id is the Cloudflare Worker version id when bound, otherwise null. Does not change Nodes or Live Nodes. |
 | GET | \`/v1/mesh/outlets\` | Outlet registry the mesh can address. Status ok / drifted / unreachable / unexposed. |
-| POST | \`/v1/mesh/sot-sync\` | Pull-plane sync. \`dry_run: true\` previews every outlet and the fields that would change. \`confirm: true\` applies, mints ACT-RECEIPT-1.0, and updates last_applied only where a write succeeded. Unreachable outlets keep last-known inventory. |
+| POST | \`/v1/mesh/sot-sync\` | Pull-plane sync. \`dry_run: true\` previews every outlet and the fields that would change. \`confirm: true\` applies, mints ACT-RECEIPT-1.0, and updates last_applied only where a write succeeded. Unreachable outlets keep last-known inventory. F03 \`mesh_mutate\` (30/min per client). Missing dry_run and confirm writes nothing. |
 | GET | \`/v1/mesh/relay\` | FED-MESH-1.0 Local-First Edge Mesh cite and relay health. L0 is this HTTPS relay. L1 peer bearers (direct/LAN URL, loopback, extra relays) are opt-in and do not replace it. Never enables. Never requires plaintext. NAT hole-punch is refused. AZnet does not replace the internet. |
 | GET, POST | \`/v1/mesh/hole-punch\` | Refused \`FED-MESH-NAT-REFUSE\`. This protocol does not punch holes through NAT. GET never enables. L0 stays the default. Not public ICANN DNS. Not radio PHY. AZnet does not replace the internet. |
 | GET | \`/v1/mesh/relay/bootstrap\` | Signed bootstrap lists this relay has accepted. One source. A node still needs an address it already has. |
@@ -2178,7 +2178,7 @@ export function runtimeStaticPaths() {
     "/v1/mesh/enable": {
       post: {
         operationId: "mesh_enable",
-        summary: "Declare an extra bearer. Empty {} refused. Rate-limited. Read-only suite-presence is already ON. Not a login mesh.",
+        summary: "Declare an extra bearer. Empty {} refused. F03 mesh_mutate 30/min per client (429 RATE_LIMIT). Read-only suite-presence is already ON. Not a login mesh.",
         tags: ["mesh"],
         requestBody: {
           required: true,
@@ -2192,16 +2192,16 @@ export function runtimeStaticPaths() {
             },
           },
         },
-        responses: { "200": { description: "Radios LIVE" }, "400": { description: "Need bearer, bad bearer, or rate limited" } },
+        responses: { "200": { description: "Radios LIVE" }, "400": { description: "Need bearer, bad bearer, or enable cooldown" }, "429": { description: "RATE_LIMIT mesh_mutate" } },
       },
     },
     "/v1/mesh/disable": {
       post: {
         operationId: "mesh_disable",
-        summary: "Refused (MESH-DISABLE-REFUSED). Read-only suite-presence stays ON. Public disable of suite-presence is refused.",
+        summary: "Refused (MESH-DISABLE-REFUSED). Read-only suite-presence stays ON. Public disable of suite-presence is refused. F03 mesh_mutate still applies.",
         tags: ["mesh"],
         requestBody: { required: false, content: { "application/json": { schema: { type: "object" } } } },
-        responses: { "400": { description: "MESH-DISABLE-REFUSED — suite-presence stays ON" } },
+        responses: { "400": { description: "MESH-DISABLE-REFUSED — suite-presence stays ON" }, "429": { description: "RATE_LIMIT mesh_mutate" } },
       },
     },
     "/v1/mesh/join": {
@@ -2679,7 +2679,7 @@ export function runtimeStaticPaths() {
       post: {
         operationId: "mesh_sot_sync",
         summary:
-          "Pull-plane sync. dry_run true returns the plan and writes nothing. confirm true applies, mints an ACT-RECEIPT-1.0 receipt, and updates last_applied only for outlets that were written. Unreachable outlets are not invented.",
+          "Pull-plane sync. dry_run true returns the plan and writes nothing. confirm true applies, mints an ACT-RECEIPT-1.0 receipt, and updates last_applied only for outlets that were written. Unreachable outlets are not invented. F03 mesh_mutate 30/min per client.",
         tags: ["mesh"],
         requestBody: {
           required: false,
@@ -2698,6 +2698,7 @@ export function runtimeStaticPaths() {
         responses: {
           "200": { description: "Dry run plan or applied tip" },
           "400": { description: "SOT-CONFIRM-REQUIRED, SOT-UNREACHABLE, or SOT-GATE-BLOCK" },
+          "429": { description: "RATE_LIMIT mesh_mutate. Nothing was written." },
         },
       },
     },

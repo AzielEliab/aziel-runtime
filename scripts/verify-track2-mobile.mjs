@@ -187,7 +187,9 @@ try {
   assert.equal(peer.mutual, true);
 
   const status = node.track2.status();
-  assert.equal(status.carriers.lan.live, true);
+  assert.equal(status.carriers.lan.live, false);
+  assert.equal(status.carriers.lan.status, "fixture");
+  assert.equal(status.carriers.lan.local_socket_verified, false);
   assert.equal(status.carriers.lan.fixture, true);
   assert.equal(status.carriers.lan.second_device, false);
   assert.equal(status.carriers.wifi.peer_exchange_demonstrated, false);

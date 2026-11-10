@@ -1783,6 +1783,10 @@ export async function meshVpnCite(payload, env) {
     auto: true,
     already: auto.already === true,
     connected: true,
+    network_connected: false,
+    bytes_leave_isolate: false,
+    azvpn_is_packet_path: false,
+    radio_phy: false,
     fake_connected: false,
     tunnel_id: auto.tunnel_id,
     session: auto.session || null,
@@ -1792,7 +1796,7 @@ export async function meshVpnCite(payload, env) {
       door: "fraggate",
       ops: ["describe", "open", "status", "list", "close", "send", "recv", "pull", "peers", "attach"],
     },
-    note: "Public VPN auto-bind. REAL concentrator is AZVPN (HTTPS/WS). WireGuard/OpenVPN/L3 stay SLOT. FragGate only. Callers did not name software=azvpn.",
+    note: "Public VPN auto-bind. REAL concentrator is AZVPN (HTTPS/WS) as an isolate inbox. That inbox is not the QNM packet path, not a LAN carrier, and not radio PHY. packet_path_live stays the Softwares membership flag. WireGuard/OpenVPN/L3 stay SLOT. FragGate only. Callers did not name software=azvpn.",
   });
 }
 

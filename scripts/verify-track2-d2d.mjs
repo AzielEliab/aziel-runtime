@@ -151,11 +151,12 @@ assert.equal(bob.status().peers.length, 1);
 
 const seen = await alice.exchange(bob);
 assert.equal(seen.ok, true);
-assert.equal(seen.local.live, true);
+assert.equal(seen.local.live, false);
 assert.equal(seen.local.fixture, true);
+assert.equal(seen.local.local_socket_verified, false);
 assert.equal(seen.local.second_device, false);
-assert.equal(seen.local.peer_exchange_demonstrated, true);
-assert.equal(seen.remote.live, true);
+assert.equal(seen.local.peer_exchange_demonstrated, false);
+assert.equal(seen.remote.live, false);
 assert.equal(seen.alt_internet_live, true);
 assert.equal(alice.status().not_public_live_nodes, true);
 assert.equal(alice.status().not_software_workers, true);
@@ -400,12 +401,15 @@ try {
   }
   const discovered = await left.track2.discoverUrl(`${right.base}/v1/fed-mesh/discover`);
   assert.equal(discovered.ok, true);
-  assert.equal(discovered.local.live, true);
+  assert.equal(discovered.local.live, false);
   assert.equal(discovered.local.fixture, true);
+  assert.equal(discovered.local.local_socket_verified, false);
   assert.equal(discovered.local.second_device, false);
   assert.equal(discovered.alt_internet_live, true);
   const rightStatus = right.track2.status();
-  assert.equal(rightStatus.carriers.lan.live, true);
+  assert.equal(rightStatus.carriers.lan.live, false);
+  assert.equal(rightStatus.carriers.lan.status, "fixture");
+  assert.equal(rightStatus.carriers.lan.local_socket_verified, false);
   assert.equal(rightStatus.peers.some((peer) => peer.handle === left.handle), true);
   assert.equal(left.track2.status().peers.some((peer) => peer.handle === right.handle), true);
   assert.equal(live.d2d_carriers.peers, undefined);

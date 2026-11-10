@@ -655,6 +655,10 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/arm" || url.pathname === "/local/arm")) {
       const names = body.order === true || body.order === "order" ? "order" : body.carriers || body.carrier || "";
       out = await node.track2.arm(names, "operator");
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/allow" || url.pathname === "/local/allow")) {
+      out = node.track2.allowSession(body.handle || body.peer);
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/deliver" || url.pathname === "/local/deliver")) {
+      out = await node.track2.deliverToPeer(body.peer_base || body.peer, body.plaintext);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer-session") {
       out = body && body.kind === "peer-session" ? await node.track2.accept(body) : await node.track2.offer(body.peer_handle || body.peer, body);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer") {

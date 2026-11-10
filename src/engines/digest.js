@@ -100,7 +100,7 @@ export const ENGINE_DIGESTS = {
   "zkattest": "bb3831ed980be81dce15fda1dbb471a7458c91feb907a410a86173003df1c84a",
   "mmconsensus": "9624f144b1eacfc11cf86fe45ed83acb6f65fa324629668510c55f1fcabe6fe7",
   "toolbench": "888385a251997a21f07368d71eff0bb56ed5f68871a6f84900ab62f28c8da33c",
-  "azvpn": "2d3d27cf49df95d5a041a55d4fd75d20c65ed167a5c170ef6f363ec15599b776",
+  "azvpn": "0141a07eec6efd2975537b320666271a9447b082afffb993d7304ea9bc2b217b",
 };
 
 export function trueEngineSlugs() {

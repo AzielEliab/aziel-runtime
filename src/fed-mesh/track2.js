@@ -7,6 +7,9 @@
  * Phase D: disk outbox and bounded A→B→C store-forward. In-process peers
  * are a fixture (second_device false). The three QNM named flags are live.
  * That fixture is not radio PHY and is not a second device.
+ * A mutual beacon is not a live carrier. deliverToPeer is local socket
+ * verification between two node processes. It does not deploy a public path
+ * and it does not mark Wi-Fi, Bluetooth, RF, or photon hardware-live.
  * Phase E: signed bootstrap list and shelf cite slots. Scaffold only.
  *
  * The public Worker cites this plane and does not run it.
@@ -19,14 +22,15 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
+import { readMachineId, track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
+import { watchQualifies } from "../alt-internet-fact.js";
 import { qnmNamedLive } from "../qnm-honesty.js";
 import { notifyCarrierContact, notifyPeerContact } from "../auto-update/adopt.js";
 import { D2D_MOBILE_CLIENT, D2D_STORE_FORWARD } from "../d2d-carriers.js";
 import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
 import { negotiateBearer, negotiateRouteClass } from "../transport/routing.js";
-import { classifyPeerUrl, natPunchRequest } from "./bearers.js";
+import { classifyPeerUrl, isLanHost, isLoopbackHost, natPunchRequest } from "./bearers.js";
 import { hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
@@ -101,6 +105,12 @@ function ok(extra = {}) {
 
 function poisonText(value) {
   return /\b(inject-payload|jailbreak-ignore|ignore previous instructions|dan mode|poison)\b/i.test(String(value || ""));
+}
+
+async function sha256Hex(text) {
+  const bytes = typeof text === "string" ? new TextEncoder().encode(text) : text;
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function carrierProbe(state, id) {
@@ -179,13 +189,18 @@ function discoveryFor(state, id) {
     };
   }
   if (mutual.length > 0) {
+    const socket = state.local_socket_verified === true && state.fixture !== true;
     return {
       id,
-      status: "LIVE",
+      status: state.fixture === true ? "fixture" : socket ? "local-socket" : "beacon",
       code: "MESH-OK",
       armed: true,
-      live: true,
-      peer_exchange_demonstrated: true,
+      live: false,
+      peer_exchange_demonstrated: false,
+      local_socket_verified: socket,
+      public_deployment: false,
+      hardware_live: false,
+      radio_phy: false,
       peers: mutual.length,
       fixture: state.fixture === true,
       second_device: false,
@@ -193,8 +208,10 @@ function discoveryFor(state, id) {
       hardware: hw.kind,
       mock: false,
       note: state.fixture
-        ? "Two local peers verified each other's beacon. Fixture mode: no second physical device. Not alt-internet LIVE."
-        : "Two local peers verified each other's LAN beacon. Not a second physical device unless the operator demonstrated one. Not alt-internet LIVE.",
+        ? "Fixture beacon exchange is not a live carrier. A simulated send does not substantiate packet delivery. second_device stays false."
+        : socket
+          ? "A sealed share crossed a local socket and the peer recomputed it. Local verification only. Not a public deployment, not radio hardware, and not a second device."
+          : "Mutual LAN beacons are presence and tip hash only. A beacon is not a substantiated packet carrier.",
     };
   }
   return {
@@ -546,6 +563,7 @@ export function createTrack2(opts = {}) {
       phoenix_lock: "wait-reseal",
     },
     seq: 0,
+    local_socket_verified: false,
   };
 
   function summary() {
@@ -556,7 +574,11 @@ export function createTrack2(opts = {}) {
       author: TRACK2_AUTHOR,
       handle: identity.handle,
       armed: [...state.armed],
-      lan_discovery: lan.live ? "LIVE" : lan.status,
+      lan_discovery: lan.status,
+      local_socket_verified: state.local_socket_verified === true,
+      machine_id: readMachineId(),
+      public_deployment: false,
+      radio_phy: false,
       lan_code: lan.code,
       peer_tunnel: [...state.sessions.values()].some((row) => row.open) ? "LIVE-when-session" : "down",
       peer_count: [...state.roster.values()].filter((row) => row.verified && row.presence !== "isolated").length,
@@ -569,7 +591,7 @@ export function createTrack2(opts = {}) {
       mobile_client: D2D_MOBILE_CLIENT,
       mobile_demonstrated: false,
       app_store_release: false,
-      in_process: true,
+      in_process: state.local_socket_verified !== true,
       needs_starting_address: true,
       live_multi_provider: false,
       cold_shelf_live: false,
@@ -1131,7 +1153,10 @@ export function createTrack2(opts = {}) {
         route_class: envelope.route_class,
       }, envelope.session_sig);
       if (!signed || envelope.session_public_key !== row.peer_session_public_key) {
-        return fail("AZP-BAD-SIG", "Session signature failed. The node key is not the session key.");
+        return fail("AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
+          plaintext: null,
+          integrity: false,
+        });
       }
       const text = await openCiphertext({
         encPrivateKey: row.encPrivate,
@@ -1142,7 +1167,16 @@ export function createTrack2(opts = {}) {
         eph_public_key: envelope.eph_public_key,
         ciphertext: envelope.ciphertext,
       });
-      if (text == null) return fail("FED-MESH-TAMPER", "Session ciphertext did not open.");
+      const ciphertext_sha256 = await sha256Hex(String(envelope.ciphertext || ""));
+      const ciphertext_bytes = new TextEncoder().encode(String(envelope.ciphertext || "")).byteLength;
+      if (text == null) {
+        return fail("FED-MESH-TAMPER", "Session ciphertext did not open.", {
+          ciphertext_sha256,
+          ciphertext_bytes,
+          plaintext: null,
+          integrity: false,
+        });
+      }
       if (poisonText(text)) {
         state.isolated.set(envelope.handle, { reason: "apg-poison" });
         const peer = state.roster.get(envelope.handle);
@@ -1159,16 +1193,175 @@ export function createTrack2(opts = {}) {
           plaintext: null,
         });
       }
+      const plaintext_sha256 = await sha256Hex(text);
       return ok({
         op: "peer_recv",
         from: envelope.handle,
         session_id: row.session_id,
         route_class: envelope.route_class,
         plaintext: text,
+        plaintext_sha256,
+        ciphertext_sha256,
+        ciphertext_bytes,
+        integrity: true,
+        machine_id: readMachineId(),
         peer_tunnel: "LIVE-when-session",
         live: true,
+        public_deployment: false,
+        hardware_live: false,
+        radio_phy: false,
         alt_internet_live: true,
         azvpn: false,
+      });
+    },
+    async deliverToPeer(peerBase, plaintext) {
+      const base = String(peerBase || "").trim().replace(/\/+$/, "");
+      if (!base) return fail("FED-MESH-BAD-INPUT", "peer_base is required.", { sent: false });
+      let parsed;
+      try {
+        parsed = new URL(base);
+      } catch {
+        return fail("FED-MESH-BAD-INPUT", "peer_base is not a URL.", { sent: false });
+      }
+      const host = parsed.hostname.replace(/^\[|\]$/g, "");
+      const loopback = isLoopbackHost(host);
+      const lan = isLanHost(host);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return fail("FED-MESH-NO-ROUTE", "peer_base must be http or https on loopback or a LAN address.", { sent: false, public_egress: false });
+      }
+      if (!loopback && !lan) {
+        return fail("FED-MESH-NO-ROUTE", "A public host is not this local peer path. No ICANN dial and no public egress.", {
+          sent: false,
+          public_egress: false,
+          cap7_public_egress: false,
+          host,
+        });
+      }
+      if (poisonText(plaintext)) {
+        return fail("FED-MESH-POISON", "Poison refused before send. Not interpreted.", { sent: false, plaintext: null });
+      }
+      const text = String(plaintext ?? "");
+      const discovered = await this.discoverUrl(`${base}/v1/fed-mesh/discover`);
+      if (!discovered.ok) return discovered;
+      const peer = [...state.roster.values()].find((row) => row.mutual === true && row.verified === true && row.presence !== "isolated");
+      if (!peer) return fail("MESH-NO-ROUTE", "Discovery did not admit a mutual peer.", { sent: false });
+      let allowBody;
+      try {
+        const allowRes = await fetch(`${base}/v1/fed-mesh/allow`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify({ handle: identity.handle }),
+          signal: AbortSignal.timeout(4000),
+        });
+        allowBody = await allowRes.json();
+      } catch (err) {
+        return fail("FED-MESH-NO-ROUTE", "Peer did not accept the session allow.", {
+          sent: false,
+          detail: String(err && err.message ? err.message : err),
+        });
+      }
+      if (!allowBody || allowBody.ok !== true) return allowBody && allowBody.code ? allowBody : fail("MESH-PEER-NOT-ALLOWED", "Peer did not allow this handle.", { sent: false });
+      const allowed = this.allowSession(peer.handle);
+      if (!allowed.ok) return allowed;
+      const offered = await this.offer(peer.handle, { directUrl: `${base}/v1/fed-mesh/direct` });
+      if (!offered.ok) return offered;
+      let accepted;
+      try {
+        const acceptRes = await fetch(`${base}/v1/fed-mesh/peer-session`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(offered.offer),
+          signal: AbortSignal.timeout(4000),
+        });
+        accepted = await acceptRes.json();
+      } catch (err) {
+        return fail("FED-MESH-NO-ROUTE", "Peer did not answer the session offer.", {
+          sent: false,
+          detail: String(err && err.message ? err.message : err),
+        });
+      }
+      if (!accepted || accepted.ok !== true || !accepted.offer) {
+        return accepted && accepted.code ? accepted : fail("MESH-NO-ROUTE", "Peer did not counter-sign the session.", { sent: false });
+      }
+      const done = await this.complete(accepted.offer);
+      if (!done.ok) return done;
+      const sent = await this.send(done.session_id, text);
+      if (!sent.ok) return sent;
+      const ciphertext = String(sent.envelope.ciphertext || "");
+      const ciphertext_sha256 = await sha256Hex(ciphertext);
+      const plaintext_sha256 = await sha256Hex(text);
+      let opened;
+      try {
+        const recvRes = await fetch(`${base}/v1/fed-mesh/peer`, {
+          method: "POST",
+          headers: { "content-type": "application/json", accept: "application/json" },
+          body: JSON.stringify(sent.envelope),
+          signal: AbortSignal.timeout(4000),
+        });
+        opened = await recvRes.json();
+      } catch (err) {
+        return fail("FED-MESH-NO-ROUTE", "Peer did not receive the sealed share.", {
+          sent: true,
+          detail: String(err && err.message ? err.message : err),
+        });
+      }
+      const localId = readMachineId();
+      const peerId = opened && typeof opened.machine_id === "string" ? opened.machine_id : "";
+      const sameMachine = Boolean(localId && peerId && localId === peerId);
+      const integrity = opened
+        && opened.ok === true
+        && opened.plaintext === text
+        && opened.plaintext_sha256 === plaintext_sha256
+        && opened.ciphertext_sha256 === ciphertext_sha256;
+      if (!integrity) {
+        return fail(opened && opened.code ? opened.code : "FED-MESH-TAMPER", opened && opened.message ? opened.message : "Peer bytes did not match the sealed share.", {
+          sent: true,
+          integrity: false,
+          plaintext: null,
+          ciphertext_sha256,
+          peer_ciphertext_sha256: opened && opened.ciphertext_sha256,
+        });
+      }
+      if (state.fixture !== true) state.local_socket_verified = true;
+      const qualified = watchQualifies({
+        mock: false,
+        left_machine: true,
+        arrived_other_machine: true,
+        same_machine_id: sameMachine ? true : false,
+        machine_id: localId || "",
+        peer_machine_id: peerId,
+      });
+      return ok({
+        op: "peer_deliver",
+        local_socket_verified: state.fixture !== true,
+        fixture: state.fixture === true,
+        public_deployment: false,
+        hardware_live: false,
+        radio_phy: false,
+        wifi_live: false,
+        bluetooth_live: false,
+        rf_live: false,
+        photon_live: false,
+        lan_public_live: false,
+        warn5_closed: false,
+        public_door: "FG-STUB",
+        second_device: qualified === true,
+        same_machine: sameMachine,
+        machine_id: localId,
+        peer_machine_id: peerId || null,
+        bytes: new TextEncoder().encode(text).byteLength,
+        plaintext_sha256,
+        ciphertext_sha256,
+        integrity: true,
+        bearer_mode: offered.bearer_mode,
+        route_class: offered.route_class,
+        host,
+        loopback,
+        lan,
+        scope: "local-process-verification",
+        azvpn_is_packet_path: false,
+        envelope: sent.envelope,
+        session_id: done.session_id,
       });
     },
     async phoenixLocal() {

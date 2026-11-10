@@ -94,6 +94,14 @@ export function publicVpnCite() {
     kinds: { ...TUNNEL_KIND_MATRIX },
     paper: PUBLIC_VPN_PAPER,
     note: PUBLIC_VPN_NOTE,
+    azvpn_is_packet_path: false,
+    packet_carrier: false,
+    lan_carrier: false,
+    radio_phy: false,
+    bytes_leave_isolate: false,
+    delivery: "isolate-inbox",
+    network_connected: false,
+    qnm_membership_packet_path_live: true,
   };
 }
 
