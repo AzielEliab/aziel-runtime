@@ -605,7 +605,7 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime", secure = false, peerRecvPerMin = null }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime", secure = false, peerRecvPerMin = null, preAuthPerMin = null }) {
   const node = await openInstance({ dataDir, relays, passphrase });
   const track2 = createTrack2({
     identity: node.identity,
@@ -613,6 +613,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     dataDir,
     fixture: fixture === true,
     peerRecvPerMin: peerRecvPerMin || undefined,
+    preAuthPerMin: preAuthPerMin || undefined,
     // AZRT-MESH-PEER-DENY-1.0: empty unless the local operator lists handles (option or FED_MESH_SESSION_ALLOW).
     sessionAllow: Array.isArray(sessionAllow)
       ? sessionAllow
@@ -648,7 +649,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     const ratedInRecv = url.pathname === "/v1/fed-mesh/peer";
     const adminPost = url.pathname.endsWith("/allow") || url.pathname.endsWith("/deliver");
     if (peerPost && !ratedInRecv && !adminPost) {
-      const rated = node.track2.takePeerIngress(body.handle || body.peer_handle || body.peer || body.from || "anonymous");
+      const rated = node.track2.takePreAuth(req.socket.remoteAddress || "unknown");
       if (!rated.ok) {
         res.writeHead(429, { "content-type": "application/json", "retry-after": String(rated.retry_after_s || 60) });
         res.end(JSON.stringify(rated));
@@ -732,7 +733,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer-session") {
       out = body && body.kind === "peer-session" ? await node.track2.accept(body) : await node.track2.offer(body.peer_handle || body.peer, body);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer") {
-      const opened = await node.track2.recv(body);
+      const opened = await node.track2.recv(body, { source: (req.socket && req.socket.remoteAddress) || "unknown" });
       const updateHost = node.track2.state && node.track2.state.autoUpdateHost;
       let updateReply = null;
       if (opened && opened.ok === true && updateHost && typeof updateHost.answerUpdate === "function" && typeof opened.plaintext === "string" && opened.session_id) {
@@ -760,7 +761,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       out = await node.onDirect(body);
     }
     const wire = url.pathname === "/v1/fed-mesh/deliver" || url.pathname === "/local/deliver" ? wireResult(out) : out;
-    const status = wire && wire.code === "FED-MESH-PEER-RATE" ? 429 : wire && wire.ok === false ? 400 : 200;
+    const status = wire && (wire.code === "FED-MESH-PEER-RATE" || wire.code === "FED-MESH-PREAUTH-RATE") ? 429 : wire && wire.ok === false ? 400 : 200;
     res.writeHead(status, { "content-type": "application/json", ...(status === 429 ? { "retry-after": String(wire.retry_after_s || 60) } : {}) });
     res.end(JSON.stringify(wire));
   };

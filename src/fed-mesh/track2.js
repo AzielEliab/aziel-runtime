@@ -35,7 +35,7 @@ import { peerFetch } from "./local-tls.js";
 import { canonicalStatement, hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
-import { FED_SPEC, ZERO_HASH } from "./spec.js";
+import { FED_SPEC, ROSTER_CAP, ZERO_HASH } from "./spec.js";
 
 export const TRACK2_SPEC = "D2D-CARRIERS-1.0";
 export const TRACK2_AUTHOR = "Aziel Eliab";
@@ -114,10 +114,12 @@ export const SHARE_SEQ_MAX = 1_000_000;
  * a fresh session, so one captured share cannot retire the epoch.
  */
 export const MAX_FORWARD_GAP = 64;
-/** Local peer ingress. Fixed slots, one window, no replay set. */
+/** Verified peer ingress. One counter per roster node key. The roster stops at ROSTER_CAP. */
 export const PEER_RECV_PER_MIN = 30;
-export const PEER_RATE_SLOTS = 32;
 export const PEER_RATE_WINDOW_MS = 60_000;
+/** Unverified bytes. Fixed slots by transport source. Does not touch a verified peer's counter. */
+export const PREAUTH_PER_MIN = 60;
+export const PREAUTH_SLOTS = 8;
 
 /** JSON numbers only. Booleans and numeric strings must not become a seq. */
 export function wireShareSeq(value) {
@@ -158,11 +160,11 @@ function randomId(prefix) {
   return prefix ? `${prefix}${hex}` : hex;
 }
 
-function peerRateIndex(handle) {
+function slotIndex(text, size) {
   let n = 0;
-  const text = String(handle || "anonymous");
-  for (let i = 0; i < text.length; i += 1) n = (Math.imul(n, 33) + text.charCodeAt(i)) >>> 0;
-  return n % PEER_RATE_SLOTS;
+  const value = String(text || "unknown");
+  for (let i = 0; i < value.length; i += 1) n = (Math.imul(n, 33) + value.charCodeAt(i)) >>> 0;
+  return n % size;
 }
 
 async function rekeyOfferRank(offer) {
@@ -653,8 +655,10 @@ export function createTrack2(opts = {}) {
       phoenix_lock: "wait-reseal",
     },
     seq: 0,
-    peerRate: Array.from({ length: PEER_RATE_SLOTS }, () => ({ start: 0, count: 0 })),
+    peerRate: new Map(),
+    preAuth: Array.from({ length: PREAUTH_SLOTS }, () => ({ start: 0, count: 0 })),
     peerRecvPerMin: Number.isInteger(opts.peerRecvPerMin) && opts.peerRecvPerMin >= 1 ? opts.peerRecvPerMin : PEER_RECV_PER_MIN,
+    preAuthPerMin: Number.isInteger(opts.preAuthPerMin) && opts.preAuthPerMin >= 1 ? opts.preAuthPerMin : PREAUTH_PER_MIN,
     local_socket_verified: false,
   };
 
@@ -892,6 +896,12 @@ export function createTrack2(opts = {}) {
         });
       }
       const prior = state.roster.get(beacon.handle);
+      if (!prior && state.roster.size >= ROSTER_CAP) {
+        return fail("FED-MESH-ROSTER-FULL", `This node holds ${ROSTER_CAP} peers. That cap is local. No rate slot was added.`, {
+          roster_cap: ROSTER_CAP,
+          verified_charged: false,
+        });
+      }
       const tips = prior && prior.prev === prev ? prior.tips.slice() : [];
       if (!tips.includes(tip)) tips.push(tip);
       const judged = judgeEquivocation({ prev, tips, node_id: beacon.handle, presence: "live" });
@@ -1561,30 +1571,76 @@ export function createTrack2(opts = {}) {
         azvpn: false,
       });
     },
-    takePeerIngress(handle, now = Date.now()) {
-      const slot = state.peerRate[peerRateIndex(handle)];
+    takePreAuth(source, now = Date.now()) {
+      const slot = state.preAuth[slotIndex(source || "unknown", PREAUTH_SLOTS)];
+      if (!slot.start || now - slot.start >= PEER_RATE_WINDOW_MS) {
+        slot.start = now;
+        slot.count = 0;
+      }
+      slot.count += 1;
+      if (slot.count > state.preAuthPerMin) {
+        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the pre-auth cap for this source. No roster slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+          preauth_limit: state.preAuthPerMin,
+          preauth_slots: PREAUTH_SLOTS,
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
+        });
+      }
+      return ok({ preauth_ok: true, verified_charged: false, preauth_count: slot.count });
+    },
+    takeVerifiedPeer(nodePublicKey, now = Date.now()) {
+      const key = String(nodePublicKey || "");
+      const known = [...state.roster.values()].find((row) => row.verified === true && row.public_key === key);
+      if (!known) {
+        return fail("AZP-BAD-SIG", "That share is not bound to a roster node key. No peer slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+        });
+      }
+      let slot = state.peerRate.get(key);
+      if (!slot) {
+        if (state.peerRate.size >= ROSTER_CAP) {
+          return fail("FED-MESH-PEER-RATE", "The roster rate table is full. The watermark did not move.", {
+            replay_advanced: false,
+            verified_charged: false,
+            roster_cap: ROSTER_CAP,
+            peer_rate_key: "roster-node-key",
+          });
+        }
+        slot = { start: 0, count: 0 };
+        state.peerRate.set(key, slot);
+      }
       if (!slot.start || now - slot.start >= PEER_RATE_WINDOW_MS) {
         slot.start = now;
         slot.count = 0;
       }
       slot.count += 1;
       if (slot.count > state.peerRecvPerMin) {
-        return fail("FED-MESH-PEER-RATE", "That peer is over the local ingress limit for this minute. The watermark did not move.", {
+        return fail("FED-MESH-PEER-RATE", "That roster node is over the local ingress limit for this minute. The watermark did not move.", {
           replay_advanced: false,
+          verified_charged: true,
           peer_rate_limit: state.peerRecvPerMin,
-          peer_rate_slots: PEER_RATE_SLOTS,
+          peer_rate_key: "roster-node-key",
+          roster_cap: ROSTER_CAP,
           peer_rate_window_ms: PEER_RATE_WINDOW_MS,
           retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
         });
       }
-      return ok({ peer_rate_ok: true, peer_rate_count: slot.count, peer_rate_slots: PEER_RATE_SLOTS });
+      return ok({
+        peer_rate_ok: true,
+        verified_charged: true,
+        peer_rate_count: slot.count,
+        peer_rate_key: "roster-node-key",
+        roster_cap: ROSTER_CAP,
+      });
     },
-    async recv(envelope) {
+    async recv(envelope, opts = {}) {
       if (!envelope || envelope.kind !== "peer-share" || envelope.plane !== TRACK2_PLANE) {
-        return fail("FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.");
+        return fail("FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.", { verified_charged: false });
       }
-      const rated = this.takePeerIngress(envelope.handle || envelope.session_id || "anonymous");
-      if (!rated.ok) return rated;
+      const pre = this.takePreAuth(opts.source || "in-process");
+      if (!pre.ok) return pre;
       if (envelope.plaintext || envelope.body || envelope.payload) {
         return fail("MESH-NO-BYTES", "A share carries ciphertext only.");
       }
@@ -1635,8 +1691,20 @@ export function createTrack2(opts = {}) {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
+          verified_charged: false,
         });
       }
+      const roster = state.roster.get(row.peer_handle);
+      if (!roster || roster.verified !== true || !roster.public_key) {
+        return fail("AZP-BAD-SIG", "The session peer is not a verified roster node. No peer slot was charged.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          verified_charged: false,
+        });
+      }
+      const rated = this.takeVerifiedPeer(roster.public_key);
+      if (!rated.ok) return rated;
       const seq = wireShareSeq(envelope.seq);
       const nonce = typeof envelope.nonce === "string" ? envelope.nonce : "";
       if (seq == null || !nonce) {

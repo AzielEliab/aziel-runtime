@@ -683,21 +683,56 @@ await convergeFork("parallel");
   const two = await other.send(from.session_id, "rate-2");
   assert.equal((await limited.recv(one.envelope)).ok, true);
   assert.equal((await limited.recv(two.envelope)).ok, true);
+  const beforeForge = peer.replaySeq;
+  const forged = { ...one.envelope, handle: from.handle, session_sig: "not-a-signature" };
+  for (let i = 0; i < 31; i += 1) {
+    const refused = await limited.recv(forged);
+    assert.equal(refused.code, "AZP-BAD-SIG");
+    assert.equal(refused.verified_charged, false);
+    assert.equal(peer.replaySeq, beforeForge);
+  }
+  const colliding = { ...forged, handle: "not-the-peer" };
+  const collide = await limited.recv(colliding);
+  assert.equal(collide.code, "AZP-BAD-SIG");
+  assert.equal(collide.verified_charged, false);
+  assert.equal(limited.state.peerRate.size, 1);
   const three = await other.send(from.session_id, "rate-3");
   const blocked = await limited.recv(three.envelope);
   assert.equal(blocked.code, "FED-MESH-PEER-RATE");
   assert.equal(blocked.replay_advanced, false);
   assert.equal(peer.replaySeq, 2);
-  assert.equal(other.state.peerRate.length, 32);
+  const third = await node("99".repeat(32));
+  await third.arm(["lan"]);
+  limited.allowSession(third.state.identity.handle);
+  third.allowSession(limited.state.identity.handle);
+  assert.equal((await limited.exchange(third)).ok, true);
+  const side = await openPeerSession(limited, third, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+  assert.equal(side.ok, true);
+  const sideFrom = third.state.sessions.get(side.remote_session_id);
+  const sideSent = await third.send(sideFrom.session_id, "other-peer");
+  const sideGot = await limited.recv(sideSent.envelope);
+  assert.equal(sideGot.ok, true, sideGot.code);
+  assert.equal(sideGot.plaintext, "other-peer");
+  assert.equal(limited.state.peerRate.size, 2);
   const rateRoot = await mkdtemp(join(tmpdir(), "track2-rate-"));
-  const rateNode = await startInstance({ dataDir: rateRoot, fixture: true, port: 0, peerRecvPerMin: 2 });
+  const rateNode = await startInstance({ dataDir: rateRoot, fixture: true, port: 0, preAuthPerMin: 2 });
   try {
+    const unauth = await fetch(`${rateNode.base}/v1/fed-mesh/peer`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ kind: "peer-share", plane: "track2-reachability", handle: "forged-handle", session_sig: "nope" }),
+    });
+    const unauthBody = await unauth.json();
+    assert.equal(unauth.status, 400);
+    assert.notEqual(unauthBody.code, "FED-MESH-PEER-RATE");
+    assert.equal(rateNode.track2.state.peerRate.size, 0);
     const posts = [];
-    for (let i = 0; i < 3; i += 1) {
+    for (let i = 0; i < 2; i += 1) {
       const res = await fetch(`${rateNode.base}/v1/fed-mesh/discover`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
       posts.push(res.status);
     }
-    assert.deepEqual(posts, [400, 400, 429]);
+    assert.deepEqual(posts, [400, 429]);
+    assert.equal(rateNode.track2.state.peerRate.size, 0);
   } finally {
     await rateNode.stop();
     await rm(rateRoot, { recursive: true, force: true });
