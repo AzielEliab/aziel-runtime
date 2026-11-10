@@ -38,6 +38,7 @@ child.on("exit", (code, signal) => {
   const blocked = hosts(blockLog);
   const expected = new Set(hosts(expectLog));
   const unexpected = [...new Set(blocked.filter((host) => !expected.has(host)))];
+  console.log(`hermetic fence: ${new Set(blocked).size} blocked host(s), ${unexpected.length} unexpected`);
   if (unexpected.length) {
     console.error(`hermetic fence: ${unexpected.length} unexpected outside host(s): ${unexpected.join(", ")}`);
     process.exit(1);

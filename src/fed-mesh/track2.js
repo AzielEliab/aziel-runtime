@@ -105,11 +105,63 @@ function ok(extra = {}) {
   };
 }
 
+/** Highest share seq in one session epoch. */
+export const SHARE_SEQ_MAX = 1_000_000;
+/**
+ * Largest step above the watermark one share may take.
+ * state.seq also moves for phoenix and other local bookkeeping, so the next
+ * share need not be watermark+1. A step this size cannot reach the cap from
+ * a fresh session, so one captured share cannot retire the epoch.
+ */
+export const MAX_FORWARD_GAP = 64;
+
 /** JSON numbers only. Booleans and numeric strings must not become a seq. */
 export function wireShareSeq(value) {
   if (typeof value !== "number" || !Number.isInteger(value)) return null;
-  if (!Number.isSafeInteger(value) || value < 1 || value > 1_000_000) return null;
+  if (!Number.isSafeInteger(value) || value < 1 || value > SHARE_SEQ_MAX) return null;
   return value;
+}
+
+function sessionEpoch(row) {
+  return Number.isSafeInteger(row && row.epoch) && row.epoch >= 1 ? row.epoch : 1;
+}
+
+function sessionWatermark(row) {
+  return Number.isSafeInteger(row && row.replaySeq) && row.replaySeq >= 0 ? row.replaySeq : 0;
+}
+
+function rekeyWindowOpen(row) {
+  return row.exhausted === true || sessionWatermark(row) >= SHARE_SEQ_MAX - MAX_FORWARD_GAP;
+}
+
+function orderingFields(row, extra = {}) {
+  const watermark = sessionWatermark(row);
+  return {
+    replay_expires: false,
+    out_of_order_delivery: false,
+    ordered_delivery: "highest-seq-closes-lower",
+    max_forward_gap: MAX_FORWARD_GAP,
+    epoch: sessionEpoch(row),
+    replay_watermark: watermark,
+    session_remaining: Math.max(0, SHARE_SEQ_MAX - watermark),
+    rekey_required: rekeyWindowOpen(row),
+    ...extra,
+  };
+}
+
+function randomId(prefix) {
+  const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return prefix ? `${prefix}${hex}` : hex;
+}
+
+function retireSession(state, row, successorId, successorEpoch) {
+  row.open = false;
+  row.retired = true;
+  row.exhausted = true;
+  row.successor_session_id = successorId;
+  row.successor_epoch = successorEpoch;
+  state.sessions.delete(row.session_id);
+  state.retiredSessions.set(row.session_id, row);
 }
 
 function poisonText(value) {
@@ -557,6 +609,7 @@ export function createTrack2(opts = {}) {
     armed: new Set(),
     roster: new Map(),
     sessions: new Map(),
+    retiredSessions: new Map(),
     isolated: new Map(),
     outbox: [],
     receipts: [],
@@ -960,6 +1013,7 @@ export function createTrack2(opts = {}) {
         session_public_key: signing.public_key,
         session_enc_public_key: enc.enc_public_key,
         peer_handle: handle,
+        epoch: 1,
         route_class: route.route_class,
         bearer_mode: route.mode,
       };
@@ -974,7 +1028,9 @@ export function createTrack2(opts = {}) {
         peer_session_id: null,
         open: false,
         route,
+        epoch: 1,
         replaySeq: 0,
+        exhausted: false,
       });
       return ok({
         op: "peer_session_open",
@@ -1009,6 +1065,7 @@ export function createTrack2(opts = {}) {
         session_enc_public_key: enc.enc_public_key,
         peer_handle: offer.handle,
         peer_session_id: offer.session_id,
+        epoch: 1,
         route_class: offer.route_class,
         bearer_mode: offer.bearer_mode,
       };
@@ -1023,7 +1080,9 @@ export function createTrack2(opts = {}) {
         peer_session_id: offer.session_id,
         open: true,
         route: { route_class: offer.route_class, mode: offer.bearer_mode },
+        epoch: 1,
         replaySeq: 0,
+        exhausted: false,
       });
       await notifyPeerContact(state);
       return ok({
@@ -1076,6 +1135,12 @@ export function createTrack2(opts = {}) {
         session_handle: row.session_handle,
         node_handle: identity.handle,
         session_identity_is_node_key: false,
+        epoch: sessionEpoch(row),
+        replay_watermark: sessionWatermark(row),
+        exhausted: row.exhausted === true,
+        rekey_required: rekeyWindowOpen(row),
+        session_remaining: Math.max(0, SHARE_SEQ_MAX - sessionWatermark(row)),
+        max_forward_gap: MAX_FORWARD_GAP,
         alt_internet_live: true,
         azvpn: false,
       });
@@ -1087,9 +1152,294 @@ export function createTrack2(opts = {}) {
       state.sessions.delete(sessionId);
       return ok({ op: "peer_session_close", session_id: sessionId, live: false, peer_tunnel: "down" });
     },
+    async rekeyOffer(sessionId) {
+      const row = state.sessions.get(sessionId);
+      if (!row || row.open !== true) return fail("MESH-NO-ROUTE", "Session is not open.", { rekey_required: false });
+      if (state.isolated.has(row.peer_handle)) return fail("FED-MESH-POISON", "That peer is isolated.", { handle: row.peer_handle });
+      if (!rekeyWindowOpen(row)) {
+        return fail("FED-MESH-REKEY-EARLY", "Rekey waits until this epoch is near the seq cap or already exhausted. The watermark did not move.", {
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: false }),
+        });
+      }
+      if (row.rekeyPending && row.rekeyPending.offer) {
+        return ok({
+          op: "peer_session_rekey",
+          offer: row.rekeyPending.offer,
+          replay: true,
+          epoch: row.rekeyPending.epoch,
+          prev_epoch: sessionEpoch(row),
+          prev_session_id: row.session_id,
+          session_id: row.rekeyPending.session_id,
+          replay_watermark: sessionWatermark(row),
+          rekey_required: true,
+        });
+      }
+      if (row.rekeyPending === "claiming") {
+        return fail("FED-MESH-REKEY-REPLAY", "A rekey for this epoch is already in progress.", { replay_advanced: false, rekey_required: true });
+      }
+      row.rekeyPending = "claiming";
+      const signing = await generateEd25519();
+      const enc = await generateX25519();
+      if (signing.public_key === identity.public_key || enc.enc_public_key === identity.enc_public_key || signing.handle === identity.handle || signing.public_key === row.session_public_key) {
+        row.rekeyPending = null;
+        return fail("AZP-BAD-KEY", "Rekey session key matched the node key or the old session key.");
+      }
+      const session_id = randomId("d2d_");
+      const rekey_nonce = randomId("");
+      const epoch = sessionEpoch(row) + 1;
+      const statement = {
+        v: TRACK2_SPEC,
+        kind: "peer-session-rekey",
+        plane: TRACK2_PLANE,
+        epoch,
+        prev_epoch: sessionEpoch(row),
+        session_id,
+        prev_session_id: row.session_id,
+        to_session: row.peer_session_id,
+        handle: identity.handle,
+        node_public_key: identity.public_key,
+        session_handle: signing.handle,
+        session_public_key: signing.public_key,
+        session_enc_public_key: enc.enc_public_key,
+        prev_session_public_key: row.session_public_key,
+        rekey_nonce,
+        route_class: row.route_class,
+        bearer_mode: row.bearer_mode,
+      };
+      const sig = await signObject(row.signPrivate, statement);
+      const offer = { ...statement, sig };
+      row.rekeyPending = { session_id, signing, enc, epoch, nonce: rekey_nonce, offer, completed: false };
+      return ok({
+        op: "peer_session_rekey",
+        offer,
+        replay: false,
+        epoch,
+        prev_epoch: sessionEpoch(row),
+        prev_session_id: row.session_id,
+        session_id,
+        replay_watermark: sessionWatermark(row),
+        rekey_required: true,
+      });
+    },
+    async rekeyAccept(offer) {
+      if (!offer || offer.kind !== "peer-session-rekey" || offer.plane !== TRACK2_PLANE) {
+        return fail("FED-MESH-BAD-INPUT", "Rekey plane is track2-reachability.");
+      }
+      const row = state.sessions.get(offer.to_session);
+      if (!row || row.open !== true) {
+        const retired = state.retiredSessions.get(offer.to_session);
+        if (retired && retired.rekeyNonce === offer.rekey_nonce && retired.rekeyCounter) {
+          return ok({
+            op: "peer_session_rekey",
+            offer: retired.rekeyCounter,
+            replay: true,
+            epoch: retired.successor_epoch,
+            prev_session_id: retired.session_id,
+            session_id: retired.successor_session_id,
+            replay_watermark: 0,
+            rekey_required: false,
+          });
+        }
+        return fail("FED-MESH-REKEY-REPLAY", "That rekey does not match an open epoch.", { replay_advanced: false, cross_epoch_replay: false });
+      }
+      if (row.rekeyNonce || row.rekeyBusy) {
+        if (row.rekeyNonce === offer.rekey_nonce && row.rekeyCounter) {
+          return ok({
+            op: "peer_session_rekey",
+            offer: row.rekeyCounter,
+            replay: true,
+            epoch: row.successor_epoch,
+            prev_session_id: row.session_id,
+            session_id: row.successor_session_id,
+            replay_watermark: 0,
+            rekey_required: false,
+          });
+        }
+        return fail("FED-MESH-REKEY-REPLAY", "This epoch already accepted a rekey. A second offer was not installed.", {
+          replay_advanced: false,
+          rekey_required: true,
+          epoch: sessionEpoch(row),
+        });
+      }
+      row.rekeyBusy = true;
+      const { sig, ...statement } = offer;
+      const verified = await verifyObject(row.peer_session_public_key, statement, sig);
+      if (!verified || offer.prev_session_public_key !== row.peer_session_public_key || offer.prev_session_id !== row.peer_session_id) {
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-SIG", "Rekey signature failed. The old session key did not sign this rotation.", { replay_advanced: false });
+      }
+      if (offer.handle !== row.peer_handle) {
+        row.rekeyBusy = false;
+        return fail("FED-MESH-BAD-HANDLE", "Rekey is from a different peer.");
+      }
+      const peer = state.roster.get(offer.handle);
+      if (!peer || peer.public_key !== offer.node_public_key) {
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-SIG", "Rekey node key does not match the roster.");
+      }
+      if (offer.epoch !== sessionEpoch(row) + 1 || offer.prev_epoch !== sessionEpoch(row)) {
+        row.rekeyBusy = false;
+        return fail("FED-MESH-EPOCH-RETIRED", "Rekey epoch does not follow this session.", { cross_epoch_replay: false, replay_advanced: false });
+      }
+      if (offer.session_public_key === row.session_public_key || offer.session_public_key === identity.public_key || offer.session_handle === identity.handle) {
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-KEY", "Rekey key matched a key this epoch already uses.");
+      }
+      row.rekeyNonce = offer.rekey_nonce;
+      const signing = await generateEd25519();
+      const enc = await generateX25519();
+      if (signing.public_key === identity.public_key || enc.enc_public_key === identity.enc_public_key || signing.handle === identity.handle || signing.public_key === row.session_public_key) {
+        row.rekeyNonce = null;
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-KEY", "Rekey session key matched the node key or the old session key.");
+      }
+      const session_id = randomId("d2d_");
+      const rekey_nonce = randomId("");
+      const epoch = sessionEpoch(row) + 1;
+      const counterStatement = {
+        v: TRACK2_SPEC,
+        kind: "peer-session-rekey",
+        plane: TRACK2_PLANE,
+        epoch,
+        prev_epoch: sessionEpoch(row),
+        session_id,
+        prev_session_id: row.session_id,
+        to_session: offer.session_id,
+        handle: identity.handle,
+        node_public_key: identity.public_key,
+        session_handle: signing.handle,
+        session_public_key: signing.public_key,
+        session_enc_public_key: enc.enc_public_key,
+        prev_session_public_key: row.session_public_key,
+        rekey_nonce,
+        peer_rekey_nonce: offer.rekey_nonce,
+        route_class: row.route_class,
+        bearer_mode: row.bearer_mode,
+      };
+      const counterSig = await signObject(row.signPrivate, counterStatement);
+      const counter = { ...counterStatement, sig: counterSig };
+      const next = {
+        ...counterStatement,
+        role: "responder",
+        signPrivate: signing.privateKey,
+        encPrivate: enc.privateKey,
+        peer_session_public_key: offer.session_public_key,
+        peer_session_enc_public_key: offer.session_enc_public_key,
+        peer_session_id: offer.session_id,
+        peer_handle: offer.handle,
+        open: true,
+        epoch,
+        replaySeq: 0,
+        exhausted: false,
+        prev_session_id: row.session_id,
+        route: { route_class: row.route_class, mode: row.bearer_mode },
+      };
+      state.sessions.set(session_id, next);
+      row.successor_session_id = session_id;
+      row.successor_epoch = epoch;
+      row.rekeyCounter = counter;
+      retireSession(state, row, session_id, epoch);
+      return ok({
+        op: "peer_session_rekey",
+        offer: counter,
+        replay: false,
+        epoch,
+        prev_epoch: epoch - 1,
+        prev_session_id: row.session_id,
+        session_id,
+        replay_watermark: 0,
+        rekey_required: false,
+      });
+    },
+    async rekeyComplete(counter) {
+      if (!counter || counter.kind !== "peer-session-rekey" || counter.plane !== TRACK2_PLANE) {
+        return fail("FED-MESH-BAD-INPUT", "Rekey plane is track2-reachability.");
+      }
+      const row = [...state.sessions.values()].find((item) => item.rekeyPending && item.rekeyPending !== "claiming" && item.rekeyPending.session_id === counter.to_session);
+      const retired = row ? null : [...state.retiredSessions.values()].find((item) => item.rekeyPending && item.rekeyPending !== "claiming" && item.rekeyPending.session_id === counter.to_session);
+      const owner = row || retired;
+      if (!owner || !owner.rekeyPending || owner.rekeyPending === "claiming") {
+        return fail("FED-MESH-REKEY-REPLAY", "That rekey does not match an offer from this node.", { replay_advanced: false });
+      }
+      const pending = owner.rekeyPending;
+      if (pending.completed) {
+        if (pending.peer_nonce === counter.rekey_nonce) {
+          return ok({
+            op: "peer_session_rekey",
+            replay: true,
+            epoch: pending.epoch,
+            prev_session_id: owner.session_id,
+            session_id: pending.session_id,
+            replay_watermark: 0,
+            rekey_required: false,
+          });
+        }
+        return fail("FED-MESH-REKEY-REPLAY", "This epoch was already rotated. A second rekey was not installed.", { replay_advanced: false, cross_epoch_replay: false });
+      }
+      if (pending.completing) {
+        return fail("FED-MESH-REKEY-REPLAY", "A rekey for this epoch is already in progress.", { replay_advanced: false });
+      }
+      pending.completing = true;
+      const { sig, ...statement } = counter;
+      const verified = await verifyObject(owner.peer_session_public_key, statement, sig);
+      if (!verified || counter.peer_rekey_nonce !== pending.nonce || counter.to_session !== pending.session_id || counter.prev_session_id !== owner.peer_session_id || counter.epoch !== pending.epoch || counter.prev_session_public_key !== owner.peer_session_public_key) {
+        pending.completing = false;
+        return fail("AZP-BAD-SIG", "Rekey counter-signature failed. The old session key did not sign this rotation.", { replay_advanced: false });
+      }
+      pending.completed = true;
+      pending.peer_nonce = counter.rekey_nonce;
+      const next = {
+        v: TRACK2_SPEC,
+        kind: "peer-session",
+        plane: TRACK2_PLANE,
+        session_id: pending.session_id,
+        handle: identity.handle,
+        node_public_key: identity.public_key,
+        session_handle: pending.signing.handle,
+        session_public_key: pending.signing.public_key,
+        session_enc_public_key: pending.enc.enc_public_key,
+        peer_handle: owner.peer_handle,
+        role: "initiator",
+        signPrivate: pending.signing.privateKey,
+        encPrivate: pending.enc.privateKey,
+        peer_session_public_key: counter.session_public_key,
+        peer_session_enc_public_key: counter.session_enc_public_key,
+        peer_session_id: counter.session_id,
+        open: true,
+        epoch: pending.epoch,
+        replaySeq: 0,
+        exhausted: false,
+        prev_session_id: owner.session_id,
+        route_class: owner.route_class,
+        bearer_mode: owner.bearer_mode,
+        route: owner.route,
+      };
+      state.sessions.set(next.session_id, next);
+      if (row) retireSession(state, owner, next.session_id, pending.epoch);
+      return ok({
+        op: "peer_session_rekey",
+        replay: false,
+        epoch: pending.epoch,
+        prev_epoch: pending.epoch - 1,
+        prev_session_id: owner.session_id,
+        session_id: next.session_id,
+        replay_watermark: 0,
+        rekey_required: false,
+      });
+    },
     async send(sessionId, plaintext) {
       const row = state.sessions.get(sessionId);
       if (!row || row.open !== true) return fail("MESH-NO-ROUTE", "Session is not open.", { peer_tunnel: "down" });
+      if (row.exhausted === true || sessionWatermark(row) >= SHARE_SEQ_MAX) {
+        row.exhausted = true;
+        return fail("FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. Nothing was sent.", {
+          sent: false,
+          plaintext: null,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: true }),
+        });
+      }
       if (poisonText(plaintext)) {
         return fail("FED-MESH-POISON", "Poison refused before send. Not interpreted.", { sent: false });
       }
@@ -1146,6 +1496,18 @@ export function createTrack2(opts = {}) {
       if (envelope.plaintext || envelope.body || envelope.payload) {
         return fail("MESH-NO-BYTES", "A share carries ciphertext only.");
       }
+      const retired = state.retiredSessions.get(envelope.to_session);
+      if (retired) {
+        return fail("FED-MESH-EPOCH-RETIRED", "That session epoch was rotated. An old share cannot enter the new epoch.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          cross_epoch_replay: false,
+          epoch: sessionEpoch(retired),
+          rekey_required: false,
+          replay_watermark: sessionWatermark(retired),
+        });
+      }
       const row = [...state.sessions.values()].find((item) => item.session_id === envelope.to_session && item.open === true);
       if (!row) return fail("MESH-NO-ROUTE", "No open session for that share.");
       if (state.isolated.has(envelope.handle)) {
@@ -1190,28 +1552,44 @@ export function createTrack2(opts = {}) {
           plaintext: null,
           integrity: false,
           replay_advanced: false,
-          replay_expires: false,
-          out_of_order_delivery: false,
-          ordered_delivery: "highest-seq-closes-lower",
-          replay_watermark: Number.isSafeInteger(row.replaySeq) ? row.replaySeq : 0,
+          ...orderingFields(row),
+        });
+      }
+      if (!Number.isSafeInteger(row.replaySeq)) row.replaySeq = 0;
+      if (row.exhausted === true || row.replaySeq >= SHARE_SEQ_MAX) {
+        row.exhausted = true;
+        return fail("FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. The watermark did not move.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: true }),
+        });
+      }
+      // A single share may move the watermark at most MAX_FORWARD_GAP.
+      // That still closes lower in-flight seqs inside the window. It cannot
+      // jump from a fresh session to the cap.
+      if (seq > row.replaySeq + MAX_FORWARD_GAP) {
+        return fail("FED-MESH-SEQ-GAP", "Share seq jumps farther than the forward gap. The watermark did not move.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: false }),
         });
       }
       // Claim this seq before decrypt so two overlapping recv calls cannot
-      // both deliver. A higher seq closes every lower seq, including one
-      // still decrypting. This is not an out-of-order buffer and it does not expire.
-      if (!Number.isSafeInteger(row.replaySeq)) row.replaySeq = 0;
+      // both deliver. A higher seq inside the gap closes every lower seq,
+      // including one still decrypting. This is not an out-of-order buffer
+      // and it does not expire.
       if (seq <= row.replaySeq) {
         return fail("FED-MESH-REPLAY", "That share seq was already accepted or was closed by a higher seq.", {
           plaintext: null,
           integrity: false,
           replay: true,
-          replay_expires: false,
-          out_of_order_delivery: false,
-          ordered_delivery: "highest-seq-closes-lower",
-          replay_watermark: row.replaySeq,
+          ...orderingFields(row),
         });
       }
       row.replaySeq = seq;
+      if (seq >= SHARE_SEQ_MAX) row.exhausted = true;
       row.replayNonce = nonce;
       if (typeof row.beforeDecrypt === "function") await row.beforeDecrypt(seq);
       if (row.replaySeq !== seq) {
@@ -1220,10 +1598,7 @@ export function createTrack2(opts = {}) {
           integrity: false,
           replay: true,
           superseded: true,
-          replay_expires: false,
-          out_of_order_delivery: false,
-          ordered_delivery: "highest-seq-closes-lower",
-          replay_watermark: row.replaySeq,
+          ...orderingFields(row),
         });
       }
       const text = await openCiphertext({
@@ -1244,10 +1619,7 @@ export function createTrack2(opts = {}) {
           plaintext: null,
           integrity: false,
           replay_advanced: true,
-          replay_expires: false,
-          out_of_order_delivery: false,
-          ordered_delivery: "highest-seq-closes-lower",
-          replay_watermark: row.replaySeq,
+          ...orderingFields(row),
         });
       }
       if (row.replaySeq !== seq) {
@@ -1256,10 +1628,7 @@ export function createTrack2(opts = {}) {
           integrity: false,
           replay: true,
           superseded: true,
-          replay_expires: false,
-          out_of_order_delivery: false,
-          ordered_delivery: "highest-seq-closes-lower",
-          replay_watermark: row.replaySeq,
+          ...orderingFields(row),
         });
       }
       if (poisonText(text)) {
@@ -1289,10 +1658,7 @@ export function createTrack2(opts = {}) {
         ciphertext_sha256,
         ciphertext_bytes,
         integrity: true,
-        replay_expires: false,
-        out_of_order_delivery: false,
-        ordered_delivery: "highest-seq-closes-lower",
-        replay_watermark: row.replaySeq,
+        ...orderingFields(row),
         machine_id: readMachineId(),
         peer_tunnel: "LIVE-when-session",
         live: true,
@@ -2018,6 +2384,28 @@ async function verifyOffer(state, offer) {
   const verified = await verifyObject(offer.node_public_key, statement, sig);
   if (!verified) return fail("AZP-BAD-SIG", "Session binding signature failed.");
   return ok({ offer });
+}
+
+export async function rekeyPeerSession(local, remote) {
+  const handle = remote.state.identity.handle;
+  const row = [...local.state.sessions.values()].find((item) => item.open === true && item.peer_handle === handle && rekeyWindowOpen(item));
+  if (!row) return fail("FED-MESH-REKEY-EARLY", "No near-exhausted or exhausted session with that peer can be rotated.");
+  const offered = await local.rekeyOffer(row.session_id);
+  if (!offered.ok) return offered;
+  const accepted = await remote.rekeyAccept(offered.offer);
+  if (!accepted.ok) return accepted;
+  const done = await local.rekeyComplete(accepted.offer);
+  if (!done.ok) return done;
+  return ok({
+    op: "peer_session_rekey",
+    local: done,
+    remote_session_id: accepted.session_id,
+    epoch: done.epoch,
+    prev_session_id: done.prev_session_id,
+    replay_watermark: 0,
+    rekey_required: false,
+    replay: false,
+  });
 }
 
 export async function openPeerSession(local, remote, routeOpts = {}) {

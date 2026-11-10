@@ -47,7 +47,10 @@ import {
   createTrack2,
   deliverThreeLocal,
   openPeerSession,
+  rekeyPeerSession,
   wireShareSeq,
+  SHARE_SEQ_MAX,
+  MAX_FORWARD_GAP,
   shelfCiteSlots,
   TRACK2_ORDER,
   verifyBootstrapPeerList,
@@ -390,8 +393,11 @@ const seqPair = await openPeerSession(seqLeft, seqRight, { directUrl: "http://19
 assert.equal(seqPair.ok, true);
 const seqInit = seqLeft.state.sessions.get(seqPair.local.session_id);
 const seqPeer = seqRight.state.sessions.get(seqPair.remote_session_id);
+const earlyRekey = await rekeyPeerSession(seqRight, seqLeft);
+assert.equal(earlyRekey.code, "FED-MESH-REKEY-EARLY");
+assert.equal(seqPeer.replaySeq, 0);
 const lowSeq = 2;
-const highSeq = 1_000_000;
+const highSeq = 4;
 let releaseLow;
 const lowGate = new Promise((resolve) => { releaseLow = resolve; });
 seqPeer.beforeDecrypt = async (seq) => { if (seq === lowSeq) await lowGate; };
@@ -419,6 +425,21 @@ const firstRecv = await seqRight.recv(firstEnv);
 assert.equal(firstRecv.ok, true);
 assert.equal(firstRecv.out_of_order_delivery, false);
 assert.equal(firstRecv.ordered_delivery, "highest-seq-closes-lower");
+const jumpShare = await sealPlaintext({
+  fromHandle: seqInit.session_id,
+  toHandle: seqInit.peer_session_id,
+  seq: SHARE_SEQ_MAX,
+  recipientEncPublicKey: seqInit.peer_session_enc_public_key,
+  plaintext: "jump-to-cap",
+});
+const jumpEnv = { ...firstEnv, seq: SHARE_SEQ_MAX, nonce: jumpShare.nonce, eph_public_key: jumpShare.eph_public_key, ciphertext: jumpShare.ciphertext };
+jumpEnv.session_sig = await signObject(seqInit.signPrivate, shareStatement(jumpEnv));
+const jumpRecv = await seqRight.recv(jumpEnv);
+assert.equal(jumpRecv.code, "FED-MESH-SEQ-GAP");
+assert.equal(jumpRecv.replay_advanced, false);
+assert.equal(jumpRecv.rekey_required, false);
+assert.equal(seqPeer.replaySeq, 1);
+assert.equal(MAX_FORWARD_GAP < SHARE_SEQ_MAX, true);
 const lowShare = await sealPlaintext({
   fromHandle: seqInit.session_id,
   toHandle: seqInit.peer_session_id,
@@ -449,15 +470,100 @@ assert.equal(lowResult.code, "FED-MESH-REPLAY");
 assert.equal(lowResult.superseded, true);
 assert.equal(lowResult.plaintext, null);
 assert.equal(seqPeer.replaySeq, highSeq);
-const past = { ...highEnv, seq: 1_000_001 };
-past.session_sig = await signObject(seqInit.signPrivate, shareStatement(past));
-const exhausted = await seqRight.recv(past);
-assert.equal(exhausted.code, "FED-MESH-BAD-SEQ");
-assert.equal(exhausted.replay_advanced, false);
-assert.equal(seqPeer.replaySeq, highSeq);
 const closedLow = await seqRight.recv(lowEnv);
 assert.equal(closedLow.code, "FED-MESH-REPLAY");
 assert.equal(seqPeer.replaySeq, highSeq);
+seqPeer.replaySeq = SHARE_SEQ_MAX - 1;
+const capShare = await sealPlaintext({
+  fromHandle: seqInit.session_id,
+  toHandle: seqInit.peer_session_id,
+  seq: SHARE_SEQ_MAX,
+  recipientEncPublicKey: seqInit.peer_session_enc_public_key,
+  plaintext: "cap-share",
+});
+const capEnv = { ...firstEnv, seq: SHARE_SEQ_MAX, nonce: capShare.nonce, eph_public_key: capShare.eph_public_key, ciphertext: capShare.ciphertext };
+capEnv.session_sig = await signObject(seqInit.signPrivate, shareStatement(capEnv));
+const capRecv = await seqRight.recv(capEnv);
+assert.equal(capRecv.ok, true);
+assert.equal(capRecv.plaintext, "cap-share");
+assert.equal(capRecv.rekey_required, true);
+assert.equal(seqPeer.replaySeq, SHARE_SEQ_MAX);
+assert.equal(seqPeer.exhausted, true);
+const exhausted = await seqRight.recv(capEnv);
+assert.equal(exhausted.code, "FED-MESH-SESSION-EXHAUSTED");
+assert.equal(exhausted.rekey_required, true);
+assert.equal(exhausted.replay_advanced, false);
+assert.equal(seqPeer.replaySeq, SHARE_SEQ_MAX);
+const beforeSeq = seqLeft.state.seq;
+seqInit.replaySeq = SHARE_SEQ_MAX;
+seqInit.exhausted = true;
+const blockedSend = await seqLeft.send(seqInit.session_id, "after-cap");
+assert.equal(blockedSend.code, "FED-MESH-SESSION-EXHAUSTED");
+assert.equal(blockedSend.rekey_required, true);
+assert.equal(seqLeft.state.seq, beforeSeq);
+const rightBefore = seqRight.state.sessions.size;
+const leftBefore = seqLeft.state.sessions.size;
+const offered = await seqRight.rekeyOffer(seqPeer.session_id);
+assert.equal(offered.ok, true);
+assert.equal(offered.epoch, 2);
+const accepted = await seqLeft.rekeyAccept(offered.offer);
+assert.equal(accepted.ok, true);
+const done = await seqRight.rekeyComplete(accepted.offer);
+assert.equal(done.ok, true);
+assert.equal(done.epoch, 2);
+assert.equal(done.replay_watermark, 0);
+const replayed = await seqLeft.rekeyAccept(offered.offer);
+assert.equal(replayed.replay, true);
+assert.equal(replayed.session_id, accepted.session_id);
+assert.equal(seqLeft.state.sessions.size, leftBefore);
+assert.equal(seqRight.state.sessions.size, rightBefore);
+const forged = { ...offered.offer, rekey_nonce: "ab".repeat(16) };
+const { sig: _oldSig, ...forgedStatement } = forged;
+forged.sig = await signObject(seqPeer.signPrivate, forgedStatement);
+const forgedAccept = await seqLeft.rekeyAccept(forged);
+assert.equal(forgedAccept.code, "FED-MESH-REKEY-REPLAY");
+assert.equal(seqLeft.state.sessions.size, leftBefore);
+const oldShare = await seqRight.recv(capEnv);
+assert.equal(oldShare.code, "FED-MESH-EPOCH-RETIRED");
+assert.equal(oldShare.cross_epoch_replay, false);
+assert.equal(oldShare.replay_advanced, false);
+const fresh = seqRight.state.sessions.get(done.session_id);
+const freshPeer = seqLeft.state.sessions.get(accepted.session_id);
+assert.equal(fresh.replaySeq, 0);
+assert.equal(fresh.epoch, 2);
+assert.notEqual(fresh.session_id, seqPeer.session_id);
+assert.notEqual(fresh.session_public_key, seqPeer.session_public_key);
+const freshShare = await sealPlaintext({
+  fromHandle: fresh.session_id,
+  toHandle: fresh.peer_session_id,
+  seq: 1,
+  recipientEncPublicKey: fresh.peer_session_enc_public_key,
+  plaintext: "epoch-two",
+});
+const freshEnv = {
+  ...firstEnv,
+  session_id: fresh.session_id,
+  to_session: fresh.peer_session_id,
+  session_public_key: fresh.session_public_key,
+  handle: seqRight.state.identity.handle,
+  seq: 1,
+  nonce: freshShare.nonce,
+  eph_public_key: freshShare.eph_public_key,
+  ciphertext: freshShare.ciphertext,
+};
+freshEnv.session_sig = await signObject(fresh.signPrivate, shareStatement(freshEnv));
+const freshRecv = await seqLeft.recv(freshEnv);
+assert.equal(freshRecv.ok, true);
+assert.equal(freshRecv.plaintext, "epoch-two");
+assert.equal(freshPeer.replaySeq, 1);
+const crossed = { ...freshEnv, session_public_key: seqPeer.session_public_key, seq: 2 };
+crossed.session_sig = await signObject(seqPeer.signPrivate, shareStatement(crossed));
+const crossedRecv = await seqLeft.recv(crossed);
+assert.equal(crossedRecv.code, "AZP-BAD-SIG");
+assert.equal(freshPeer.replaySeq, 1);
+const earlyAgain = await seqRight.rekeyOffer(fresh.session_id);
+assert.equal(earlyAgain.code, "FED-MESH-REKEY-EARLY");
+assert.equal(seqRight.state.sessions.size, rightBefore);
 
 const forkNode = await node("44".repeat(32));
 await forkNode.arm(["lan"]);
