@@ -140,8 +140,8 @@ assert.equal(called.engine.engine_digest, ENGINE_DIGESTS.spectrallock);
 assert.match(called.ledger_tip.hash, /^[a-f0-9]{64}$/);
 assert.equal(looksLikeFraggateExecutionReceipt(called), true);
 
-if (process.env.AZIEL_RUNTIME_MCP_SKIP_LIVE === "1") {
-  console.log("verify-remote-transport: skip live smoke (AZIEL_RUNTIME_MCP_SKIP_LIVE=1)");
+if (process.env.AZIEL_RUNTIME_MCP_SKIP_LIVE === "1" || process.env.AZIEL_HERMETIC === "1") {
+  console.log("verify-remote-transport: live public Worker is not called (hermetic or AZIEL_RUNTIME_MCP_SKIP_LIVE)");
 } else {
   let online = false;
   try {

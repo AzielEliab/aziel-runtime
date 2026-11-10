@@ -12,7 +12,7 @@ npm install
 npm test
 ```
 
-`package.json` `test` runs engine digest hashing, then the `scripts/verify-*.mjs` probes in order. No Cloudflare credentials. No `wrangler deploy`. Optional live probe: `npm run probe:live` (hits production; not required for CI).
+`npm test` is the hermetic entry (`scripts/run-hermetic.mjs`). It runs the same `scripts/verify-*.mjs` chain as `npm run test:suite`, with an absolute network fence so a child that changes directory still loads the fence. Outbound calls that are not this machine fail the run. A test that means to prove a refusal records that host first. No Cloudflare credentials. No `wrangler deploy`. Optional live probe: `npm run probe:live` (hits production; not part of `npm test`).
 
 Local mesh handle (same Ed25519 identity as [`docs/designs/FED-MESH-1.0.md`](../designs/FED-MESH-1.0.md) section 2):
 

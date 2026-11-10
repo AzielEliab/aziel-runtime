@@ -443,6 +443,9 @@ function extractTitle(buf) {
 }
 
 export async function advisoryFetch(url, fetcher) {
+  if (process.env.AZIEL_HERMETIC === "1" && typeof fetcher !== "function") {
+    return { fetched: false, visited: false, note: "Hermetic run does not dial. No visit is claimed." };
+  }
   const run = typeof fetcher === "function" ? fetcher : typeof fetch === "function" ? fetch : null;
   if (!run) {
     return { fetched: false, visited: false, note: "No fetch binding. Metadata only. No visit claimed." };

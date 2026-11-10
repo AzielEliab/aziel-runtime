@@ -16,9 +16,10 @@ assert.equal(VERSION_HISTORY.filter((row) => row.status === "current").length, 1
 
 const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
 assert.equal(pkg.version, "2.0.0-rc1");
-assert.match(pkg.scripts.test, /verify-2\.0-rc1\.mjs/);
-assert.match(pkg.scripts.test, /verify-mcp-tdqs\.mjs/);
-assert.match(pkg.scripts.test, /verify-redline\.mjs/);
+assert.equal(pkg.scripts.test, "node scripts/run-hermetic.mjs");
+assert.match(pkg.scripts["test:suite"], /verify-2\.0-rc1\.mjs/);
+assert.match(pkg.scripts["test:suite"], /verify-mcp-tdqs\.mjs/);
+assert.match(pkg.scripts["test:suite"], /verify-redline\.mjs/);
 assert.equal(pkg.scripts["clean-room:2.0"], "bash scripts/clean-room-2.0.sh");
 assert.equal(pkg.scripts["adversarial:external"], "bash scripts/external-adversarial-2.0.sh");
 

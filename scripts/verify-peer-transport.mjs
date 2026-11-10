@@ -134,4 +134,14 @@ assert.equal(bound.shared_across_isolates, true);
 assert.equal(bound.global_quota, false);
 assert.equal(bound.cf_overwrite_proven, false);
 
+if (process.env.AZIEL_HERMETIC === "1") {
+  const { noteHermeticBlock } = await import("./isolate-net.mjs");
+  noteHermeticBlock("example.invalid");
+  let caught = null;
+  try { await fetch("https://example.invalid/nope"); }
+  catch (err) { caught = err; }
+  assert.ok(caught && String(caught.message).includes("ISOLATED_NET_BLOCKED"), "declared refusal must be blocked before a socket");
+  assert.equal(caught.code, "ISOLATED_NET_BLOCKED");
+}
+
 console.log("ok peer-transport: pin before HTTP bytes, canonical dial, isolate fallback is not a global quota");

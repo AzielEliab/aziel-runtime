@@ -780,6 +780,9 @@ async function resolveSot(origin, env, fetchImpl, payload) {
 function fetchOf(env, payload) {
   if (env && typeof env.sotFetch === "function") return env.sotFetch;
   if (payload && typeof payload.fetchImpl === "function") return payload.fetchImpl;
+  if (process.env.AZIEL_HERMETIC === "1") {
+    return async () => new Response("", { status: 503, headers: { "x-aziel-hermetic": "1" } });
+  }
   return globalThis.fetch;
 }
 

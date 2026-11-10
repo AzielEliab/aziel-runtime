@@ -82,6 +82,7 @@ ok(hit.reachable === true && hit.live === false && saw.method === "HEAD" && saw.
 ok((await probeInternetReach({ fetchImpl: async () => { throw new Error("offline"); } })).code === "UPDATE-INTERNET-UNREACHABLE", "probe failure is unreachable");
 ok((await probeInternetReach({ fetchImpl: null })).code === "UPDATE-NO-REACH-PROBE", "missing fetch refuses");
 const liveProbe = await probeInternetReach({ timeoutMs: 1500 });
+if (process.env.AZIEL_HERMETIC === "1") ok(liveProbe.code === "UPDATE-INTERNET-UNREACHABLE" && liveProbe.hermetic === true && liveProbe.reachable === false, "hermetic probe does not dial GitHub");
 ok(typeof liveProbe.reachable === "boolean" && liveProbe.live === false, "live probe returns a boolean");
 
 const pre = await fetchStableRelease({

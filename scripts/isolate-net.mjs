@@ -9,6 +9,17 @@ import dns from "node:dns";
 import os from "node:os";
 
 const logPath = process.env.AZIEL_NET_BLOCK_LOG || "/tmp/aziel-net-block.log";
+const expectPath = process.env.AZIEL_NET_EXPECT_LOG || "";
+
+export function noteHermeticBlock(host) {
+  if (!expectPath) return;
+  appendFileSync(expectPath, `${String(host || "").trim()}\n`);
+}
+
+if (globalThis.__azielIsolateNet === true) {
+  /* Another URL of this module already installed the fence. */
+} else {
+globalThis.__azielIsolateNet = true;
 
 function ownAddresses() {
   const set = new Set(["127.0.0.1", "::1", "0.0.0.0", "::", "localhost"]);
@@ -75,4 +86,22 @@ if (originalPromiseLookup) {
     }
     return originalPromiseLookup(hostname, options);
   };
+}
+
+const originalFetch = globalThis.fetch;
+if (typeof originalFetch === "function") {
+  globalThis.fetch = async function isolatedFetch(input, init) {
+    const raw = typeof input === "string" ? input : (input && typeof input.url === "string" ? input.url : "");
+    let host = "";
+    try { host = new URL(raw, "http://127.0.0.1").hostname; } catch { host = ""; }
+    if (host && !allowed(host)) {
+      remember(host);
+      const error = new Error(`ISOLATED_NET_BLOCKED ${host}`);
+      error.code = "ISOLATED_NET_BLOCKED";
+      throw error;
+    }
+    return originalFetch.call(globalThis, input, init);
+  };
+  globalThis.__azielHermeticFetch = globalThis.fetch;
+}
 }

@@ -105,6 +105,13 @@ function ok(extra = {}) {
   };
 }
 
+/** JSON numbers only. Booleans and numeric strings must not become a seq. */
+export function wireShareSeq(value) {
+  if (typeof value !== "number" || !Number.isInteger(value)) return null;
+  if (!Number.isSafeInteger(value) || value < 1 || value > 1_000_000) return null;
+  return value;
+}
+
 function poisonText(value) {
   return /\b(inject-payload|jailbreak-ignore|ignore previous instructions|dan mode|poison)\b/i.test(String(value || ""));
 }
@@ -1144,18 +1151,31 @@ export function createTrack2(opts = {}) {
       if (state.isolated.has(envelope.handle)) {
         return fail("FED-MESH-POISON", "That peer is isolated.", { handle: envelope.handle, mesh_fenced_to_loopback: false });
       }
-      const signed = await verifyObject(envelope.session_public_key, {
-        v: envelope.v,
-        kind: envelope.kind,
-        plane: envelope.plane,
-        session_id: envelope.session_id,
-        to_session: envelope.to_session,
-        seq: envelope.seq,
-        nonce: envelope.nonce,
-        eph_public_key: envelope.eph_public_key,
-        ciphertext: envelope.ciphertext,
-        route_class: envelope.route_class,
-      }, envelope.session_sig);
+      let signed = false;
+      try {
+        signed = await verifyObject(envelope.session_public_key, {
+          v: envelope.v,
+          kind: envelope.kind,
+          plane: envelope.plane,
+          session_id: envelope.session_id,
+          to_session: envelope.to_session,
+          seq: envelope.seq,
+          nonce: envelope.nonce,
+          eph_public_key: envelope.eph_public_key,
+          ciphertext: envelope.ciphertext,
+          route_class: envelope.route_class,
+        }, envelope.session_sig);
+      } catch {
+        return fail("FED-MESH-BAD-SEQ", "Share seq is not a canonical integer. The watermark did not move.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          replay_expires: false,
+          out_of_order_delivery: false,
+          ordered_delivery: "highest-seq-closes-lower",
+          replay_watermark: Number.isSafeInteger(row.replaySeq) ? row.replaySeq : 0,
+        });
+      }
       if (!signed || envelope.session_public_key !== row.peer_session_public_key) {
         return fail("AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
           plaintext: null,
@@ -1163,31 +1183,49 @@ export function createTrack2(opts = {}) {
           replay_advanced: false,
         });
       }
-      const seq = Number(envelope.seq);
-      const nonce = String(envelope.nonce || "");
-      if (!Number.isSafeInteger(seq) || seq < 1 || seq > 1_000_000 || !nonce) {
-        return fail("FED-MESH-REPLAY", "Share seq is outside the session window.", {
+      const seq = wireShareSeq(envelope.seq);
+      const nonce = typeof envelope.nonce === "string" ? envelope.nonce : "";
+      if (seq == null || !nonce) {
+        return fail("FED-MESH-BAD-SEQ", "Share seq must be an integer from 1 to 1000000. Strings and booleans are not seqs.", {
           plaintext: null,
           integrity: false,
-          replay: true,
+          replay_advanced: false,
           replay_expires: false,
+          out_of_order_delivery: false,
+          ordered_delivery: "highest-seq-closes-lower",
+          replay_watermark: Number.isSafeInteger(row.replaySeq) ? row.replaySeq : 0,
         });
       }
-      // Claim this seq before any await so two overlapping recv calls cannot
-      // both deliver. The watermark is one integer. Gaps below it are closed
-      // and never expire, so an old seq cannot reenter.
+      // Claim this seq before decrypt so two overlapping recv calls cannot
+      // both deliver. A higher seq closes every lower seq, including one
+      // still decrypting. This is not an out-of-order buffer and it does not expire.
       if (!Number.isSafeInteger(row.replaySeq)) row.replaySeq = 0;
       if (seq <= row.replaySeq) {
-        return fail("FED-MESH-REPLAY", "That share seq was already accepted.", {
+        return fail("FED-MESH-REPLAY", "That share seq was already accepted or was closed by a higher seq.", {
           plaintext: null,
           integrity: false,
           replay: true,
           replay_expires: false,
+          out_of_order_delivery: false,
+          ordered_delivery: "highest-seq-closes-lower",
           replay_watermark: row.replaySeq,
         });
       }
       row.replaySeq = seq;
       row.replayNonce = nonce;
+      if (typeof row.beforeDecrypt === "function") await row.beforeDecrypt(seq);
+      if (row.replaySeq !== seq) {
+        return fail("FED-MESH-REPLAY", "A higher seq closed this share before delivery.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          superseded: true,
+          replay_expires: false,
+          out_of_order_delivery: false,
+          ordered_delivery: "highest-seq-closes-lower",
+          replay_watermark: row.replaySeq,
+        });
+      }
       const text = await openCiphertext({
         encPrivateKey: row.encPrivate,
         fromHandle: envelope.session_id,
@@ -1200,11 +1238,28 @@ export function createTrack2(opts = {}) {
       const ciphertext_sha256 = await sha256Hex(String(envelope.ciphertext || ""));
       const ciphertext_bytes = new TextEncoder().encode(String(envelope.ciphertext || "")).byteLength;
       if (text == null) {
-        return fail("FED-MESH-TAMPER", "Session ciphertext did not open.", {
+        return fail("FED-MESH-TAMPER", "Session ciphertext did not open. That seq stays consumed.", {
           ciphertext_sha256,
           ciphertext_bytes,
           plaintext: null,
           integrity: false,
+          replay_advanced: true,
+          replay_expires: false,
+          out_of_order_delivery: false,
+          ordered_delivery: "highest-seq-closes-lower",
+          replay_watermark: row.replaySeq,
+        });
+      }
+      if (row.replaySeq !== seq) {
+        return fail("FED-MESH-REPLAY", "A higher seq closed this share before delivery.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          superseded: true,
+          replay_expires: false,
+          out_of_order_delivery: false,
+          ordered_delivery: "highest-seq-closes-lower",
+          replay_watermark: row.replaySeq,
         });
       }
       if (poisonText(text)) {
@@ -1235,6 +1290,8 @@ export function createTrack2(opts = {}) {
         ciphertext_bytes,
         integrity: true,
         replay_expires: false,
+        out_of_order_delivery: false,
+        ordered_delivery: "highest-seq-closes-lower",
         replay_watermark: row.replaySeq,
         machine_id: readMachineId(),
         peer_tunnel: "LIVE-when-session",

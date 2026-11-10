@@ -106,6 +106,7 @@ export async function createNodeUpdateHost({ dataDir, product = "aziel-runtime",
         : (slugOrManifest && typeof slugOrManifest === "object" ? slugOrManifest : null);
       const name = typeof slugOrManifest === "string" ? slugOrManifest : (manifest && manifest.product) || host.product;
       const url = urls[name];
+      if (process.env.AZIEL_HERMETIC === "1" && typeof host.fetchImpl !== "function") return null;
       const fetchFn = typeof host.fetchImpl === "function" ? host.fetchImpl : globalThis.fetch;
       if (!url || typeof fetchFn !== "function") return null;
       const res = await fetchFn(url, { headers: { "user-agent": "aziel-runtime" } });
