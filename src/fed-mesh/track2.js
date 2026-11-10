@@ -967,7 +967,7 @@ export function createTrack2(opts = {}) {
         peer_session_id: null,
         open: false,
         route,
-        seenShares: new Set(),
+        replaySeq: 0,
       });
       return ok({
         op: "peer_session_open",
@@ -1016,7 +1016,7 @@ export function createTrack2(opts = {}) {
         peer_session_id: offer.session_id,
         open: true,
         route: { route_class: offer.route_class, mode: offer.bearer_mode },
-        seenShares: new Set(),
+        replaySeq: 0,
       });
       await notifyPeerContact(state);
       return ok({
@@ -1160,18 +1160,34 @@ export function createTrack2(opts = {}) {
         return fail("AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
           plaintext: null,
           integrity: false,
+          replay_advanced: false,
         });
       }
-      const mark = `${envelope.seq}:${envelope.nonce}`;
-      if (!row.seenShares) row.seenShares = new Set();
-      if (row.seenShares.has(mark)) {
-        return fail("FED-MESH-REPLAY", "That share was already accepted.", {
+      const seq = Number(envelope.seq);
+      const nonce = String(envelope.nonce || "");
+      if (!Number.isSafeInteger(seq) || seq < 1 || seq > 1_000_000 || !nonce) {
+        return fail("FED-MESH-REPLAY", "Share seq is outside the session window.", {
           plaintext: null,
           integrity: false,
           replay: true,
+          replay_expires: false,
         });
       }
-      row.seenShares.add(mark);
+      // Claim this seq before any await so two overlapping recv calls cannot
+      // both deliver. The watermark is one integer. Gaps below it are closed
+      // and never expire, so an old seq cannot reenter.
+      if (!Number.isSafeInteger(row.replaySeq)) row.replaySeq = 0;
+      if (seq <= row.replaySeq) {
+        return fail("FED-MESH-REPLAY", "That share seq was already accepted.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          replay_expires: false,
+          replay_watermark: row.replaySeq,
+        });
+      }
+      row.replaySeq = seq;
+      row.replayNonce = nonce;
       const text = await openCiphertext({
         encPrivateKey: row.encPrivate,
         fromHandle: envelope.session_id,
@@ -1218,6 +1234,8 @@ export function createTrack2(opts = {}) {
         ciphertext_sha256,
         ciphertext_bytes,
         integrity: true,
+        replay_expires: false,
+        replay_watermark: row.replaySeq,
         machine_id: readMachineId(),
         peer_tunnel: "LIVE-when-session",
         live: true,
@@ -1242,6 +1260,13 @@ export function createTrack2(opts = {}) {
       const lan = isLanHost(host);
       const tlsPin = String((opts && opts.tls_sha256) || "").trim().toLowerCase();
       if (parsed.protocol === "http:" && !loopback) {
+        if (!lan) {
+          return fail("FED-MESH-NO-ROUTE", "That host is not a canonical loopback or LAN literal. Names are not resolved.", {
+            sent: false,
+            public_egress: false,
+            host,
+          });
+        }
         return fail("FED-MESH-TLS-REQUIRED", "A non-loopback peer requires TLS. Cleartext LAN is refused.", {
           sent: false,
           tls_required: true,

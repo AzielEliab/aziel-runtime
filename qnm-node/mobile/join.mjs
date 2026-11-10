@@ -22,6 +22,7 @@ export const JOIN_CARRIER = "lan";
 export const ZERO_HASH = "0".repeat(64);
 
 import { isLanHost, isLoopbackHost } from "../../src/fed-mesh/bearers.js";
+import { peerFetch } from "../../src/fed-mesh/local-tls.js";
 
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const HANDLE_LEN = 11;
@@ -275,35 +276,27 @@ export function joinRoute(raw) {
 }
 
 async function postJson(url, body) {
-  let res;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    return fail("FED-MESH-NO-ROUTE", "The local node did not answer. NAT punch is not a fallback.", {
-      detail: String(err && err.message ? err.message : err),
+  const res = await peerFetch(url, { method: "POST", json: body, tlsPin: "" });
+  if (!res.transportOk) {
+    return fail(res.code || "FED-MESH-NO-ROUTE", res.message || "The local node did not answer. NAT punch is not a fallback.", {
+      sent: res.sent === true,
+      application_bytes: res.application_bytes || 0,
       hole_punch: false,
     });
   }
-  const parsed = await res.json().catch(() => ({}));
-  return parsed && typeof parsed === "object" ? parsed : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
+  return res.json && typeof res.json === "object" ? res.json : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
 }
 
 async function getJson(url) {
-  let res;
-  try {
-    res = await fetch(url, { headers: { accept: "application/json" } });
-  } catch (err) {
-    return fail("FED-MESH-NO-ROUTE", "The local node did not answer. NAT punch is not a fallback.", {
-      detail: String(err && err.message ? err.message : err),
+  const res = await peerFetch(url, { method: "GET", tlsPin: "" });
+  if (!res.transportOk) {
+    return fail(res.code || "FED-MESH-NO-ROUTE", res.message || "The local node did not answer. NAT punch is not a fallback.", {
+      sent: res.sent === true,
+      application_bytes: res.application_bytes || 0,
       hole_punch: false,
     });
   }
-  const parsed = await res.json().catch(() => ({}));
-  return parsed && typeof parsed === "object" ? parsed : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
+  return res.json && typeof res.json === "object" ? res.json : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
 }
 
 function sessionId() {

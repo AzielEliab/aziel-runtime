@@ -55,7 +55,7 @@ export const PEER_BEARER_MODES = Object.freeze([
     radio_phy: false,
     worker_hardware: false,
     get_never_enables: true,
-    note: "127.0.0.1, localhost, or ::1. Tests and a local node. The Worker never fetches 127.0.0.1.",
+    note: "Canonical 127.0.0.1/8 or ::1. The name localhost is not a dial class and is not resolved. The Worker never fetches 127.0.0.1.",
   }),
 ]);
 
@@ -458,6 +458,9 @@ function badInput(message) {
 function ipv4Parts(host) {
   const match = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/.exec(host);
   if (!match) return null;
+  // Leading zeros are not canonical. 10.0.0.01 and 0177.0.0.1 are different
+  // addresses in different parsers, so they are not classified.
+  if (match.slice(1).some((part) => part.length > 1 && part.startsWith("0"))) return null;
   const parts = match.slice(1).map((part) => Number(part));
   if (parts.some((n) => !Number.isInteger(n) || n > 255)) return null;
   return parts;
@@ -479,11 +482,48 @@ function isLanV4(parts) {
   return false;
 }
 
-export function isLoopbackHost(hostname) {
+function mappedV4(groups) {
+  if (!groups || groups.length !== 8) return null;
+  if (!(groups.slice(0, 5).every((part) => part === "0000") && groups[5] === "ffff")) return null;
+  const hi = parseInt(groups[6], 16);
+  const lo = parseInt(groups[7], 16);
+  return [hi >> 8, hi & 255, lo >> 8, lo & 255];
+}
+
+/**
+ * Actual dial destination. Names are refused and are not resolved.
+ * Only canonical literals are classified. IPv4-mapped IPv6 uses the embedded IPv4.
+ */
+export function dialDestination(hostname) {
   const host = bareHost(hostname);
-  if (host === "localhost" || host === "::1" || host === "0:0:0:0:0:0:0:1") return true;
+  if (!host) return { kind: "refuse", reason: "empty" };
+  if (host === "localhost" || host.endsWith(".localhost") || host.endsWith(".local")) {
+    return { kind: "refuse", reason: "name" };
+  }
   const v4 = ipv4Parts(host);
-  return Boolean(v4 && v4[0] === 127);
+  if (v4) {
+    if (v4[0] === 127) return { kind: "loopback", canonical: v4.join(".") };
+    if (isLanV4(v4)) return { kind: "lan", canonical: v4.join(".") };
+    return { kind: "refuse", reason: "public-v4" };
+  }
+  if (!host.includes(":")) return { kind: "refuse", reason: "name" };
+  const groups = expandIpv6(host);
+  if (!groups) return { kind: "refuse", reason: "not-literal" };
+  const embedded = mappedV4(groups);
+  if (embedded) {
+    if (embedded[0] === 127) return { kind: "loopback", canonical: embedded.join("."), mapped: true };
+    if (isLanV4(embedded)) return { kind: "lan", canonical: embedded.join("."), mapped: true };
+    return { kind: "refuse", reason: "public-v4-mapped" };
+  }
+  if (groups.every((part, i) => part === (i === 7 ? "0001" : "0000"))) return { kind: "loopback", canonical: "::1" };
+  const first = parseInt(groups[0], 16);
+  if ((first & 0xfe00) === 0xfc00) return { kind: "lan", canonical: host };
+  if ((first & 0xffc0) === 0xfe80) return { kind: "lan", canonical: host };
+  return { kind: "refuse", reason: "public-v6" };
+}
+
+export function isLoopbackHost(hostname) {
+  return dialDestination(hostname).kind === "loopback";
 }
 
 /**
@@ -492,21 +532,7 @@ export function isLoopbackHost(hostname) {
  * This does not resolve DNS.
  */
 export function isLanHost(hostname) {
-  const host = bareHost(hostname);
-  if (!host || isLoopbackHost(host)) return false;
-  if (ipv4Parts(host)) return isLanV4(ipv4Parts(host));
-  if (host.includes(".")) return false;
-  const groups = expandIpv6(host);
-  if (!groups) return false;
-  if (groups.slice(0, 5).every((part) => part === "0000") && groups[5] === "ffff") {
-    const hi = parseInt(groups[6], 16);
-    const lo = parseInt(groups[7], 16);
-    return isLanV4([hi >> 8, hi & 255, lo >> 8, lo & 255]);
-  }
-  const first = parseInt(groups[0], 16);
-  if ((first & 0xfe00) === 0xfc00) return true;
-  if ((first & 0xffc0) === 0xfe80) return true;
-  return false;
+  return dialDestination(hostname).kind === "lan";
 }
 
 export function urlRequestsPunch(raw) {

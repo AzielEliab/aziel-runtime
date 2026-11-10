@@ -217,7 +217,27 @@ assert.equal(replay.plaintext, null);
 assert.equal(replay.integrity, false);
 assert.equal(got.ok, true);
 assert.equal(got.plaintext, "sealed-share");
+assert.equal(got.replay_expires, false);
 assert.equal(got.route_class, "direct");
+const raced = await alice.send(opened.local.session_id, "race-share");
+const pair = await Promise.all([bob.recv(raced.envelope), bob.recv(raced.envelope)]);
+assert.equal(pair.filter((row) => row.ok === true).length, 1);
+assert.equal(pair.filter((row) => row.code === "FED-MESH-REPLAY").length, 1);
+assert.equal(pair.find((row) => row.code === "FED-MESH-REPLAY").plaintext, null);
+const flippedShare = raced.envelope.ciphertext.slice(0, -1) + (raced.envelope.ciphertext.endsWith("a") ? "b" : "a");
+const corrupt = await bob.recv({ ...raced.envelope, ciphertext: flippedShare, seq: raced.envelope.seq + 1 });
+assert.equal(corrupt.code, "AZP-BAD-SIG");
+assert.equal(corrupt.replay_advanced, false);
+const again = await alice.send(opened.local.session_id, "after-corrupt");
+const recovered = await bob.recv(again.envelope);
+assert.equal(recovered.ok, true);
+assert.equal(recovered.plaintext, "after-corrupt");
+const oldest = await bob.recv(sent.envelope);
+assert.equal(oldest.code, "FED-MESH-REPLAY");
+assert.equal(oldest.replay_expires, false);
+const sessionRow = [...bob.state.sessions.values()].find((row) => row.open === true);
+assert.equal(sessionRow.seenShares, undefined);
+assert.equal(sessionRow.replaySeq, again.envelope.seq);
 assert.equal(got.alt_internet_live, true);
 
 const blocked = await alice.send(opened.local.session_id, "inject-payload");
@@ -227,10 +247,11 @@ assert.equal(blocked.sent, false);
 const withCara = await bob.exchange(cara);
 assert.equal(withCara.ok, true);
 const row = alice.state.sessions.get(opened.local.session_id);
+const poisonSeq = again.envelope.seq + 1;
 const sealed = await sealPlaintext({
   fromHandle: row.session_id,
   toHandle: row.peer_session_id,
-  seq: 99,
+  seq: poisonSeq,
   recipientEncPublicKey: row.peer_session_enc_public_key,
   plaintext: "inject-payload",
 });
@@ -242,7 +263,7 @@ const poison = {
   to_session: row.peer_session_id,
   handle: alice.state.identity.handle,
   session_public_key: row.session_public_key,
-  seq: 99,
+  seq: poisonSeq,
   route_class: row.route_class,
   ...sealed,
 };

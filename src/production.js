@@ -490,6 +490,7 @@ export function ingressLimitFields(request) {
     ingress_source: row.source,
     forwarded_headers_trusted: false,
     cf_overwrite_proven: false,
+    global_quota: false,
   };
 }
 
@@ -511,6 +512,7 @@ export function rateLimitDecision(env, request, kind, now = Date.now()) {
       ip,
       rate_key: rateKeyOf(ip),
       enforcement: slot.enforcement || "isolate",
+      shared_across_isolates: false,
       ...ingressLimitFields(request),
     };
   }
