@@ -6,6 +6,7 @@
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
+import http from "node:http";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,6 +18,7 @@ import { sealPlaintext } from "../src/fed-mesh/e2e.js";
 import { createIdentity, signObject, verifyObject } from "../src/fed-mesh/identity.js";
 import { startInstance } from "../src/fed-mesh/instance.js";
 import { hashStatement } from "../src/fed-mesh/codec.js";
+import { MAX_ENVELOPE_BYTES } from "../src/fed-mesh/spec.js";
 
 function shareStatement(env) {
   return {
@@ -763,8 +765,10 @@ await convergeFork("parallel");
   const forgedAddr = { ...first.envelope, session_sig: "not-a-signature" };
   const near = await gate.recv(forgedAddr, { source: "198.51.100.5" });
   assert.equal(near.code, "AZP-BAD-SIG");
+  const checksAfterBurn = gate.state.signatureChecks;
   const nearAgain = await gate.recv(forgedAddr, { source: "198.51.100.5" });
   assert.equal(nearAgain.code, "FED-MESH-PREAUTH-RATE");
+  assert.equal(gate.state.signatureChecks, checksAfterBurn);
   const otherAddr = await gate.recv(forgedAddr, { source: "198.51.100.14" });
   assert.equal(otherAddr.code, "AZP-BAD-SIG");
   assert.notEqual(otherAddr.code, "FED-MESH-PREAUTH-RATE");
@@ -817,6 +821,96 @@ await convergeFork("parallel");
   assert.equal(delivered.plaintext, "after-replays");
   assert.equal(gate.state.peerRate.get(nodeKey).count, 2);
   assert.equal(gateRow.replaySeq, 2);
+}
+
+{
+  const gate = createTrack2({
+    identity: await createIdentity(),
+    fixture: true,
+    tipHash: "45".repeat(32),
+    dataDir: "",
+    preAuthPerMin: 1,
+    preAuthGlobalPerMin: PREAUTH_CAP + 1,
+  });
+  const mate = await node("67".repeat(32));
+  await gate.arm(["lan"]);
+  await mate.arm(["lan"]);
+  gate.allowSession(mate.state.identity.handle);
+  mate.allowSession(gate.state.identity.handle);
+  assert.equal((await gate.exchange(mate)).ok, true);
+  const paired = await openPeerSession(gate, mate, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+  assert.equal(paired.ok, true);
+  const mateRow = mate.state.sessions.get(paired.remote_session_id);
+  const gateRow = gate.state.sessions.get(paired.local.session_id);
+  const first = await mate.send(mateRow.session_id, "after-evict");
+  const forged = { ...first.envelope, session_sig: "not-a-signature" };
+  const burned = "198.51.100.5";
+  assert.equal((await gate.recv(forged, { source: burned })).code, "AZP-BAD-SIG");
+  for (let i = 0; i < PREAUTH_CAP; i += 1) {
+    const row = await gate.recv(forged, { source: `203.0.113.${i}` });
+    assert.equal(row.code, "AZP-BAD-SIG");
+  }
+  assert.equal(gate.state.preAuth.has(burned), false);
+  const checks = gate.state.signatureChecks;
+  const again = await gate.recv(forged, { source: burned });
+  assert.equal(again.code, "FED-MESH-PREAUTH-RATE");
+  assert.equal(again.preauth_scope, "global");
+  assert.equal(again.verified_charged, false);
+  assert.equal(gate.state.signatureChecks, checks);
+  assert.equal(gate.state.preAuth.has(burned), false);
+  const delivered = await gate.recv(first.envelope, { source: burned });
+  assert.equal(delivered.ok, true, delivered.code);
+  assert.equal(delivered.plaintext, "after-evict");
+  assert.equal(gateRow.replaySeq, 1);
+}
+
+{
+  const streamRoot = await mkdtemp(join(tmpdir(), "track2-stream-"));
+  const streamNode = await startInstance({ dataDir: streamRoot, fixture: true, port: 0 });
+  try {
+    const declared = await new Promise((resolve, reject) => {
+      const u = new URL(streamNode.base);
+      const req = http.request({
+        hostname: u.hostname,
+        port: u.port,
+        path: "/v1/fed-mesh/peer",
+        method: "POST",
+        headers: { "content-type": "application/json", "content-length": String(MAX_ENVELOPE_BYTES + 1) },
+      }, (res) => {
+        const parts = [];
+        res.on("data", (chunk) => parts.push(chunk));
+        res.on("end", () => resolve({ status: res.statusCode, raw: Buffer.concat(parts).toString() }));
+      });
+      req.setTimeout(2000, () => { req.destroy(); reject(new Error("content-length precheck timed out")); });
+      req.on("error", () => {});
+      req.end();
+    });
+    assert.equal(declared.status, 400);
+    assert.match(declared.raw, /too large to verify/);
+    const streamed = await new Promise((resolve, reject) => {
+      const u = new URL(streamNode.base);
+      const req = http.request({
+        hostname: u.hostname,
+        port: u.port,
+        path: "/v1/fed-mesh/discover",
+        method: "POST",
+        headers: { "content-type": "application/json" },
+      }, (res) => {
+        const parts = [];
+        res.on("data", (chunk) => parts.push(chunk));
+        res.on("end", () => resolve({ status: res.statusCode, raw: Buffer.concat(parts).toString() }));
+      });
+      req.setTimeout(2000, () => { req.destroy(); reject(new Error("stream cap timed out")); });
+      req.on("error", () => resolve({ status: 0, raw: "" }));
+      req.write("x".repeat(MAX_ENVELOPE_BYTES + 1));
+      req.end();
+    });
+    assert.ok(streamed.status === 400 || streamed.status === 0);
+    if (streamed.status === 400) assert.match(streamed.raw, /too large to verify/);
+  } finally {
+    await streamNode.stop();
+    await rm(streamRoot, { recursive: true, force: true });
+  }
 }
 
 const forkNode = await node("44".repeat(32));

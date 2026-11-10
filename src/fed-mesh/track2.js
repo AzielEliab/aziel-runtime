@@ -117,9 +117,11 @@ export const MAX_FORWARD_GAP = 64;
 /** Verified peer ingress. One counter per roster node key. The roster stops at ROSTER_CAP. */
 export const PEER_RECV_PER_MIN = 30;
 export const PEER_RATE_WINDOW_MS = 60_000;
-/** Unverified failures only. Exact remote address, bounded LRU. A verified signature never spends this. */
+/** Unverified failures only. Exact remote address, bounded LRU, plus one global window. */
 export const PREAUTH_PER_MIN = 60;
 export const PREAUTH_CAP = 64;
+/** All addresses share this many failures per window. Evicting an address does not give it back. */
+export const PREAUTH_GLOBAL_PER_MIN = 256;
 
 /** JSON numbers only. Booleans and numeric strings must not become a seq. */
 export function wireShareSeq(value) {
@@ -651,8 +653,11 @@ export function createTrack2(opts = {}) {
     peerRate: new Map(),
     preAuth: new Map(),
     preAuthTick: 0,
+    preAuthGlobal: { start: 0, count: 0 },
+    signatureChecks: 0,
     peerRecvPerMin: Number.isInteger(opts.peerRecvPerMin) && opts.peerRecvPerMin >= 1 ? opts.peerRecvPerMin : PEER_RECV_PER_MIN,
     preAuthPerMin: Number.isInteger(opts.preAuthPerMin) && opts.preAuthPerMin >= 1 ? opts.preAuthPerMin : PREAUTH_PER_MIN,
+    preAuthGlobalPerMin: Number.isInteger(opts.preAuthGlobalPerMin) && opts.preAuthGlobalPerMin >= 1 ? opts.preAuthGlobalPerMin : PREAUTH_GLOBAL_PER_MIN,
     local_socket_verified: false,
   };
 
@@ -1565,10 +1570,47 @@ export function createTrack2(opts = {}) {
         azvpn: false,
       });
     },
+    preAuthRefusal(source, now = Date.now()) {
+      const global = state.preAuthGlobal;
+      if (!global.start || now - global.start >= PEER_RATE_WINDOW_MS) {
+        global.start = now;
+        global.count = 0;
+      }
+      if (global.count >= state.preAuthGlobalPerMin) {
+        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the global failure cap. Evicting an address does not reset it. No roster slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+          preauth_scope: "global",
+          preauth_global_limit: state.preAuthGlobalPerMin,
+          preauth_cap: PREAUTH_CAP,
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - global.start)) / 1000)),
+        });
+      }
+      const key = String(source || "unknown");
+      const slot = state.preAuth.get(key);
+      if (slot && now - slot.start < PEER_RATE_WINDOW_MS && slot.count >= state.preAuthPerMin) {
+        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the pre-auth cap for this address. No roster slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+          preauth_scope: "address",
+          preauth_limit: state.preAuthPerMin,
+          preauth_cap: PREAUTH_CAP,
+          preauth_key: "remote-address",
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
+        });
+      }
+      return null;
+    },
     takePreAuth(source, now = Date.now()) {
+      const blocked = this.preAuthRefusal(source, now);
+      if (blocked) return blocked;
       const key = String(source || "unknown");
       state.preAuthTick += 1;
       let slot = state.preAuth.get(key);
+      if (slot && now - slot.start >= PEER_RATE_WINDOW_MS) {
+        slot.start = now;
+        slot.count = 0;
+      }
       if (!slot) {
         if (state.preAuth.size >= PREAUTH_CAP) {
           let oldestKey = null;
@@ -1582,27 +1624,13 @@ export function createTrack2(opts = {}) {
           if (oldestKey != null) state.preAuth.delete(oldestKey);
         }
         slot = { start: now, count: 0, last: state.preAuthTick };
-        state.preAuth.set(key, slot);
       }
       slot.last = state.preAuthTick;
+      slot.count += 1;
+      state.preAuthGlobal.count += 1;
       state.preAuth.delete(key);
       state.preAuth.set(key, slot);
-      if (now - slot.start >= PEER_RATE_WINDOW_MS) {
-        slot.start = now;
-        slot.count = 0;
-      }
-      slot.count += 1;
-      if (slot.count > state.preAuthPerMin) {
-        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the pre-auth cap for this address. No roster slot was charged.", {
-          replay_advanced: false,
-          verified_charged: false,
-          preauth_limit: state.preAuthPerMin,
-          preauth_cap: PREAUTH_CAP,
-          preauth_key: "remote-address",
-          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
-        });
-      }
-      return ok({ preauth_ok: true, verified_charged: false, preauth_count: slot.count, preauth_key: "remote-address" });
+      return ok({ preauth_ok: true, verified_charged: false, preauth_count: slot.count, preauth_global_count: state.preAuthGlobal.count, preauth_key: "remote-address" });
     },
     failUnverified(source, code, message, extra = {}) {
       const rated = this.takePreAuth(source);
@@ -1695,6 +1723,11 @@ export function createTrack2(opts = {}) {
         return this.failUnverified(source, "FED-MESH-POISON", "That peer is isolated.", { handle: envelope.handle, mesh_fenced_to_loopback: false });
       }
       let signed = false;
+      const refusal = this.preAuthRefusal(source);
+      const keyMatches = envelope.session_public_key === row.peer_session_public_key;
+      const plausible = typeof envelope.session_sig === "string" && envelope.session_sig.length === 86;
+      if (refusal && !(keyMatches && plausible)) return refusal;
+      state.signatureChecks += 1;
       try {
         signed = await verifyObject(envelope.session_public_key, {
           v: envelope.v,
@@ -1717,6 +1750,7 @@ export function createTrack2(opts = {}) {
         });
       }
       if (!signed || envelope.session_public_key !== row.peer_session_public_key) {
+        if (refusal) return refusal;
         return this.failUnverified(source, "AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
           plaintext: null,
           integrity: false,

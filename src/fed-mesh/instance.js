@@ -633,13 +633,11 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     directNote: "",
   };
   const onRequest = async (req, res) => {
-    const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
-    const raw = Buffer.concat(chunks).toString("utf8");
     const url = new URL(req.url || "/", "http://127.0.0.1");
     const peerPostEarly = req.method === "POST" && (url.pathname.startsWith("/v1/fed-mesh/") || url.pathname.startsWith("/local/"));
-    if (peerPostEarly && raw.length > MAX_ENVELOPE_BYTES) {
-      const rated = node.track2.takePreAuth((req.socket && req.socket.remoteAddress) || "unknown");
+    const remoteAddr = (req.socket && req.socket.remoteAddress) || "unknown";
+    const tooLarge = () => {
+      const rated = node.track2.takePreAuth(remoteAddr);
       if (!rated.ok) {
         res.writeHead(429, { "content-type": "application/json", "retry-after": String(rated.retry_after_s || 60) });
         res.end(JSON.stringify(rated));
@@ -652,8 +650,31 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         verified_charged: false,
         message: "Share is too large to verify. The signature was not checked.",
       }));
+    };
+    if (peerPostEarly) {
+      const declared = Number(req.headers["content-length"]);
+      if (Number.isFinite(declared) && declared > MAX_ENVELOPE_BYTES) {
+        tooLarge();
+        req.destroy();
+        return;
+      }
+    }
+    const chunks = [];
+    let received = 0;
+    try {
+      for await (const chunk of req) {
+        received += chunk.length;
+        if (peerPostEarly && received > MAX_ENVELOPE_BYTES) {
+          tooLarge();
+          req.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      }
+    } catch {
       return;
     }
+    const raw = Buffer.concat(chunks).toString("utf8");
     let body = {};
     if (raw) {
       try {
