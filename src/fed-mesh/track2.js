@@ -32,7 +32,7 @@ import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from
 import { negotiateBearer, negotiateRouteClass } from "../transport/routing.js";
 import { classifyPeerUrl, isLanHost, isLoopbackHost, natPunchRequest } from "./bearers.js";
 import { peerFetch } from "./local-tls.js";
-import { hashStatement } from "./codec.js";
+import { canonicalStatement, hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
 import { FED_SPEC, ZERO_HASH } from "./spec.js";
@@ -114,6 +114,10 @@ export const SHARE_SEQ_MAX = 1_000_000;
  * a fresh session, so one captured share cannot retire the epoch.
  */
 export const MAX_FORWARD_GAP = 64;
+/** Local peer ingress. Fixed slots, one window, no replay set. */
+export const PEER_RECV_PER_MIN = 30;
+export const PEER_RATE_SLOTS = 32;
+export const PEER_RATE_WINDOW_MS = 60_000;
 
 /** JSON numbers only. Booleans and numeric strings must not become a seq. */
 export function wireShareSeq(value) {
@@ -152,6 +156,28 @@ function orderingFields(row, extra = {}) {
 function randomId(prefix) {
   const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
   return prefix ? `${prefix}${hex}` : hex;
+}
+
+function peerRateIndex(handle) {
+  let n = 0;
+  const text = String(handle || "anonymous");
+  for (let i = 0; i < text.length; i += 1) n = (Math.imul(n, 33) + text.charCodeAt(i)) >>> 0;
+  return n % PEER_RATE_SLOTS;
+}
+
+async function rekeyOfferRank(offer) {
+  const { sig, ...statement } = offer || {};
+  return sha256Hex(canonicalStatement(statement));
+}
+
+function closeLostSession(state, sessionId) {
+  const row = state.sessions.get(sessionId);
+  if (!row) return;
+  row.open = false;
+  row.lost = true;
+  row.exhausted = true;
+  state.sessions.delete(sessionId);
+  state.retiredSessions.set(sessionId, row);
 }
 
 function retireSession(state, row, successorId, successorEpoch) {
@@ -627,6 +653,8 @@ export function createTrack2(opts = {}) {
       phoenix_lock: "wait-reseal",
     },
     seq: 0,
+    peerRate: Array.from({ length: PEER_RATE_SLOTS }, () => ({ start: 0, count: 0 })),
+    peerRecvPerMin: Number.isInteger(opts.peerRecvPerMin) && opts.peerRecvPerMin >= 1 ? opts.peerRecvPerMin : PEER_RECV_PER_MIN,
     local_socket_verified: false,
   };
 
@@ -1243,6 +1271,25 @@ export function createTrack2(opts = {}) {
         }
         return fail("FED-MESH-REKEY-REPLAY", "That rekey does not match an open epoch.", { replay_advanced: false, cross_epoch_replay: false });
       }
+      if (row.rekeyPending && row.rekeyPending !== "claiming" && row.rekeyPending.offer) {
+        const mine = await rekeyOfferRank(row.rekeyPending.offer);
+        const theirs = await rekeyOfferRank(offer);
+        if (theirs > mine) {
+          closeLostSession(state, offer.session_id);
+          return fail("FED-MESH-REKEY-LOST", "This offer sorts after the local rekey. The lower offer stays the one successor.", {
+            replay_advanced: false,
+            winning_session_id: row.rekeyPending.session_id,
+            losing_session_id: offer.session_id,
+            losing_session_closed: true,
+          });
+        }
+        if (theirs < mine) {
+          row.rekeyLost = row.rekeyPending;
+          row.rekeyLost.lost = true;
+          closeLostSession(state, row.rekeyLost.session_id);
+          row.rekeyPending = null;
+        }
+      }
       if (row.rekeyNonce || row.rekeyBusy) {
         if (row.rekeyNonce === offer.rekey_nonce && row.rekeyCounter) {
           return ok({
@@ -1338,6 +1385,7 @@ export function createTrack2(opts = {}) {
       state.sessions.set(session_id, next);
       row.successor_session_id = session_id;
       row.successor_epoch = epoch;
+      row.winning_session_id = offer.session_id;
       row.rekeyCounter = counter;
       retireSession(state, row, session_id, epoch);
       return ok({
@@ -1356,11 +1404,22 @@ export function createTrack2(opts = {}) {
       if (!counter || counter.kind !== "peer-session-rekey" || counter.plane !== TRACK2_PLANE) {
         return fail("FED-MESH-BAD-INPUT", "Rekey plane is track2-reachability.");
       }
-      const row = [...state.sessions.values()].find((item) => item.rekeyPending && item.rekeyPending !== "claiming" && item.rekeyPending.session_id === counter.to_session);
-      const retired = row ? null : [...state.retiredSessions.values()].find((item) => item.rekeyPending && item.rekeyPending !== "claiming" && item.rekeyPending.session_id === counter.to_session);
+      const matches = (item) => (item.rekeyPending && item.rekeyPending !== "claiming" && item.rekeyPending.session_id === counter.to_session) || (item.rekeyLost && item.rekeyLost.session_id === counter.to_session);
+      const row = [...state.sessions.values()].find(matches);
+      const retired = row ? null : [...state.retiredSessions.values()].find(matches);
       const owner = row || retired;
-      if (!owner || !owner.rekeyPending || owner.rekeyPending === "claiming") {
+      if (!owner) {
         return fail("FED-MESH-REKEY-REPLAY", "That rekey does not match an offer from this node.", { replay_advanced: false });
+      }
+      const lost = owner.rekeyLost && owner.rekeyLost.session_id === counter.to_session ? owner.rekeyLost : null;
+      if (lost || (owner.rekeyPending && owner.rekeyPending.lost && owner.rekeyPending.session_id === counter.to_session)) {
+        closeLostSession(state, counter.to_session);
+        return fail("FED-MESH-REKEY-LOST", "This offer lost the tie-break. Its session was not installed.", {
+          replay_advanced: false,
+          losing_session_id: counter.to_session,
+          losing_session_closed: true,
+          winning_session_id: owner.winning_session_id || null,
+        });
       }
       const pending = owner.rekeyPending;
       if (pending.completed) {
@@ -1416,6 +1475,7 @@ export function createTrack2(opts = {}) {
         route: owner.route,
       };
       state.sessions.set(next.session_id, next);
+      owner.winning_session_id = pending.session_id;
       if (row) retireSession(state, owner, next.session_id, pending.epoch);
       return ok({
         op: "peer_session_rekey",
@@ -1446,15 +1506,27 @@ export function createTrack2(opts = {}) {
       if (!row.peer_session_enc_public_key || !row.peer_session_id) {
         return fail("MESH-NO-ROUTE", "Peer session key is missing.");
       }
-      state.seq += 1;
+      // Share seq is per session. Phoenix and other local bookkeeping keep state.seq
+      // and must not open a gap the peer then refuses.
+      const seq = (Number.isSafeInteger(row.sendSeq) ? row.sendSeq : 0) + 1;
+      if (seq > SHARE_SEQ_MAX) {
+        row.exhausted = true;
+        return fail("FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. Nothing was sent.", {
+          sent: false,
+          plaintext: null,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: true }),
+        });
+      }
       const sealed = await sealPlaintext({
         fromHandle: row.session_id,
         toHandle: row.peer_session_id,
-        seq: state.seq,
+        seq,
         recipientEncPublicKey: row.peer_session_enc_public_key,
         plaintext: String(plaintext ?? ""),
       });
       if (!sealed) return fail("AZP-REFUSE", "Session seal failed. Fail closed.");
+      row.sendSeq = seq;
       const envelope = {
         v: TRACK2_SPEC,
         kind: "peer-share",
@@ -1463,7 +1535,7 @@ export function createTrack2(opts = {}) {
         to_session: row.peer_session_id,
         handle: identity.handle,
         session_public_key: row.session_public_key,
-        seq: state.seq,
+        seq,
         route_class: row.route_class,
         ...sealed,
       };
@@ -1489,10 +1561,30 @@ export function createTrack2(opts = {}) {
         azvpn: false,
       });
     },
+    takePeerIngress(handle, now = Date.now()) {
+      const slot = state.peerRate[peerRateIndex(handle)];
+      if (!slot.start || now - slot.start >= PEER_RATE_WINDOW_MS) {
+        slot.start = now;
+        slot.count = 0;
+      }
+      slot.count += 1;
+      if (slot.count > state.peerRecvPerMin) {
+        return fail("FED-MESH-PEER-RATE", "That peer is over the local ingress limit for this minute. The watermark did not move.", {
+          replay_advanced: false,
+          peer_rate_limit: state.peerRecvPerMin,
+          peer_rate_slots: PEER_RATE_SLOTS,
+          peer_rate_window_ms: PEER_RATE_WINDOW_MS,
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
+        });
+      }
+      return ok({ peer_rate_ok: true, peer_rate_count: slot.count, peer_rate_slots: PEER_RATE_SLOTS });
+    },
     async recv(envelope) {
       if (!envelope || envelope.kind !== "peer-share" || envelope.plane !== TRACK2_PLANE) {
         return fail("FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.");
       }
+      const rated = this.takePeerIngress(envelope.handle || envelope.session_id || "anonymous");
+      if (!rated.ok) return rated;
       if (envelope.plaintext || envelope.body || envelope.payload) {
         return fail("MESH-NO-BYTES", "A share carries ciphertext only.");
       }

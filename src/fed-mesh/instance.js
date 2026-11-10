@@ -605,13 +605,14 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime", secure = false }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime", secure = false, peerRecvPerMin = null }) {
   const node = await openInstance({ dataDir, relays, passphrase });
   const track2 = createTrack2({
     identity: node.identity,
     tipHash: node.directChain.prev || ZERO_HASH,
     dataDir,
     fixture: fixture === true,
+    peerRecvPerMin: peerRecvPerMin || undefined,
     // AZRT-MESH-PEER-DENY-1.0: empty unless the local operator lists handles (option or FED_MESH_SESSION_ALLOW).
     sessionAllow: Array.isArray(sessionAllow)
       ? sessionAllow
@@ -643,6 +644,17 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       }
     }
     const url = new URL(req.url || "/", "http://127.0.0.1");
+    const peerPost = req.method === "POST" && (url.pathname.startsWith("/v1/fed-mesh/") || url.pathname.startsWith("/local/"));
+    const ratedInRecv = url.pathname === "/v1/fed-mesh/peer";
+    const adminPost = url.pathname.endsWith("/allow") || url.pathname.endsWith("/deliver");
+    if (peerPost && !ratedInRecv && !adminPost) {
+      const rated = node.track2.takePeerIngress(body.handle || body.peer_handle || body.peer || body.from || "anonymous");
+      if (!rated.ok) {
+        res.writeHead(429, { "content-type": "application/json", "retry-after": String(rated.retry_after_s || 60) });
+        res.end(JSON.stringify(rated));
+        return;
+      }
+    }
     if (req.method === "GET" || req.method === "HEAD") {
       const asset = mobile.get(url.pathname);
       if (asset) {
@@ -748,7 +760,8 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       out = await node.onDirect(body);
     }
     const wire = url.pathname === "/v1/fed-mesh/deliver" || url.pathname === "/local/deliver" ? wireResult(out) : out;
-    res.writeHead(wire && wire.ok === false ? 400 : 200, { "content-type": "application/json" });
+    const status = wire && wire.code === "FED-MESH-PEER-RATE" ? 429 : wire && wire.ok === false ? 400 : 200;
+    res.writeHead(status, { "content-type": "application/json", ...(status === 429 ? { "retry-after": String(wire.retry_after_s || 60) } : {}) });
     res.end(JSON.stringify(wire));
   };
   const server = tlsMaterial

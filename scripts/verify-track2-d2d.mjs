@@ -565,6 +565,145 @@ const earlyAgain = await seqRight.rekeyOffer(fresh.session_id);
 assert.equal(earlyAgain.code, "FED-MESH-REKEY-EARLY");
 assert.equal(seqRight.state.sessions.size, rightBefore);
 
+function openSessions(mesh) {
+  return [...mesh.state.sessions.values()].filter((row) => row.open === true);
+}
+
+async function exhaustedPair(mark) {
+  const a = await node(`${mark}a`.padEnd(64, "a").slice(0, 64));
+  const b = await node(`${mark}b`.padEnd(64, "b").slice(0, 64));
+  await a.arm(["lan"]);
+  await b.arm(["lan"]);
+  a.allowSession(b.state.identity.handle);
+  b.allowSession(a.state.identity.handle);
+  assert.equal((await a.exchange(b)).ok, true);
+  const opened = await openPeerSession(a, b, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+  assert.equal(opened.ok, true);
+  const aRow = a.state.sessions.get(opened.local.session_id);
+  const bRow = b.state.sessions.get(opened.remote_session_id);
+  aRow.replaySeq = SHARE_SEQ_MAX;
+  aRow.exhausted = true;
+  bRow.replaySeq = SHARE_SEQ_MAX;
+  bRow.exhausted = true;
+  return { a, b, aRow, bRow };
+}
+
+async function convergeFork(order) {
+  const { a, b, aRow, bRow } = await exhaustedPair(order);
+  const aOffer = await a.rekeyOffer(aRow.session_id);
+  const bOffer = await b.rekeyOffer(bRow.session_id);
+  assert.equal(aOffer.ok, true);
+  assert.equal(bOffer.ok, true);
+  let aAcc;
+  let bAcc;
+  if (order === "parallel") {
+    [aAcc, bAcc] = await Promise.all([a.rekeyAccept(bOffer.offer), b.rekeyAccept(aOffer.offer)]);
+  } else if (order === "b-first") {
+    bAcc = await b.rekeyAccept(aOffer.offer);
+    aAcc = await a.rekeyAccept(bOffer.offer);
+  } else {
+    aAcc = await a.rekeyAccept(bOffer.offer);
+    bAcc = await b.rekeyAccept(aOffer.offer);
+  }
+  const jobs = [];
+  if (bAcc && bAcc.ok && bAcc.offer) jobs.push(a.rekeyComplete(bAcc.offer));
+  if (aAcc && aAcc.ok && aAcc.offer) jobs.push(b.rekeyComplete(aAcc.offer));
+  if (!aAcc.ok) jobs.push(b.rekeyComplete({ kind: "peer-session-rekey", plane: "track2-reachability", to_session: bOffer.session_id }));
+  if (!bAcc.ok) jobs.push(a.rekeyComplete({ kind: "peer-session-rekey", plane: "track2-reachability", to_session: aOffer.session_id }));
+  const finished = await Promise.all(jobs);
+  assert.equal(finished.filter((row) => row.ok === true).length, 1);
+  assert.ok(finished.some((row) => row.code === "FED-MESH-REKEY-LOST"));
+  const as = openSessions(a);
+  const bs = openSessions(b);
+  assert.equal(as.length, 1, order);
+  assert.equal(bs.length, 1, order);
+  assert.equal(as[0].peer_session_id, bs[0].session_id);
+  assert.equal(bs[0].peer_session_id, as[0].session_id);
+  const aWin = [...a.state.retiredSessions.values()].find((row) => row.winning_session_id);
+  const bWin = [...b.state.retiredSessions.values()].find((row) => row.winning_session_id);
+  assert.equal(aWin.winning_session_id, bWin.winning_session_id);
+  assert.ok(aWin.winning_session_id === as[0].session_id || aWin.winning_session_id === bs[0].session_id);
+  const lostId = aWin.winning_session_id === aOffer.session_id ? bOffer.session_id : aOffer.session_id;
+  assert.equal(a.state.sessions.has(lostId), false);
+  assert.equal(b.state.sessions.has(lostId), false);
+  const sent = await a.send(as[0].session_id, `fork-${order}`);
+  assert.equal(sent.ok, true, JSON.stringify(sent));
+  const got = await b.recv(sent.envelope);
+  assert.equal(got.ok, true, JSON.stringify(got));
+  assert.equal(got.plaintext, `fork-${order}`);
+  const back = await b.send(bs[0].session_id, `back-${order}`);
+  const gotBack = await a.recv(back.envelope);
+  assert.equal(gotBack.plaintext, `back-${order}`);
+}
+
+await convergeFork("a-first");
+await convergeFork("b-first");
+await convergeFork("parallel");
+
+{
+  const book = await exhaustedPair("book");
+  book.aRow.replaySeq = 0;
+  book.aRow.exhausted = false;
+  book.bRow.replaySeq = 0;
+  book.bRow.exhausted = false;
+  const first = await book.a.send(book.aRow.session_id, "before-phoenix");
+  assert.equal(first.ok, true);
+  assert.equal((await book.b.recv(first.envelope)).ok, true);
+  const seqBefore = book.a.state.seq;
+  for (let i = 0; i < 64; i += 1) await book.a.phoenixLocal();
+  assert.equal(book.a.state.seq, seqBefore + 64);
+  const second = await book.a.send(book.aRow.session_id, "after-phoenix");
+  assert.equal(second.ok, true);
+  assert.equal(second.envelope.seq, first.envelope.seq + 1);
+  const opened = await book.b.recv(second.envelope);
+  assert.equal(opened.ok, true, opened.code);
+  assert.equal(opened.plaintext, "after-phoenix");
+  assert.equal(book.bRow.replaySeq, 2);
+}
+
+{
+  const limited = createTrack2({
+    identity: await createIdentity(),
+    fixture: true,
+    tipHash: "77".repeat(32),
+    dataDir: "",
+    peerRecvPerMin: 2,
+  });
+  const other = await node("88".repeat(32));
+  await limited.arm(["lan"]);
+  await other.arm(["lan"]);
+  limited.allowSession(other.state.identity.handle);
+  other.allowSession(limited.state.identity.handle);
+  assert.equal((await limited.exchange(other)).ok, true);
+  const opened = await openPeerSession(limited, other, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
+  assert.equal(opened.ok, true);
+  const from = other.state.sessions.get(opened.remote_session_id);
+  const peer = limited.state.sessions.get(opened.local.session_id);
+  const one = await other.send(from.session_id, "rate-1");
+  const two = await other.send(from.session_id, "rate-2");
+  assert.equal((await limited.recv(one.envelope)).ok, true);
+  assert.equal((await limited.recv(two.envelope)).ok, true);
+  const three = await other.send(from.session_id, "rate-3");
+  const blocked = await limited.recv(three.envelope);
+  assert.equal(blocked.code, "FED-MESH-PEER-RATE");
+  assert.equal(blocked.replay_advanced, false);
+  assert.equal(peer.replaySeq, 2);
+  assert.equal(other.state.peerRate.length, 32);
+  const rateRoot = await mkdtemp(join(tmpdir(), "track2-rate-"));
+  const rateNode = await startInstance({ dataDir: rateRoot, fixture: true, port: 0, peerRecvPerMin: 2 });
+  try {
+    const posts = [];
+    for (let i = 0; i < 3; i += 1) {
+      const res = await fetch(`${rateNode.base}/v1/fed-mesh/discover`, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
+      posts.push(res.status);
+    }
+    assert.deepEqual(posts, [400, 400, 429]);
+  } finally {
+    await rateNode.stop();
+    await rm(rateRoot, { recursive: true, force: true });
+  }
+}
+
 const forkNode = await node("44".repeat(32));
 await forkNode.arm(["lan"]);
 const prev = alice.state.prev;
