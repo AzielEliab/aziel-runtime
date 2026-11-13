@@ -1,30 +1,29 @@
 /**
  * RIB-048 / RIB-049: read the verified witness log and run the two checks.
  * Reading does not write the log, does not mint a key, and does not sign.
+ * The statement for a request stays on that request. It is not stored on the isolate.
  * A statement with no artifact digest or no receipt key stays not_checked, never a pass.
  * Author: Aziel Eliab.
  */
-import { anchorsKnown, loadAnchors } from "./anchor.js";
-import { attestFromStatement, setWitnessedBuildAttest, witnessedBuildAttest } from "./build-attest.js";
-import { setWitnessedReceiptKeyId, witnessedKeyIdFromStatement, witnessedReceiptKeyId } from "./second-mint.js";
+import { refreshAnchorsIfStale } from "./anchor.js";
+import { attestFromStatement } from "./build-attest.js";
+import { witnessedKeyIdFromStatement } from "./second-mint.js";
 
 /**
- * Verified slot-1 statement this isolate already holds, or a bounded read of the witness log.
- * A failed read is not a pass and does not clear a note the caller did not ask to replace.
+ * Newest verified slot-1 statement, refreshed when the memo is older than ANCHOR_CACHE_MS.
+ * `checked` is true only when that read verified. A failed read is not a pass.
  */
-export async function readGroupD(fetchImpl) {
-  let st = anchorsKnown();
-  if (!st) {
-    try {
-      st = await loadAnchors(fetchImpl);
-    } catch {
-      st = null;
-    }
+export async function readGroupD(fetchImpl, now = Date.now()) {
+  let st = null;
+  try {
+    st = await refreshAnchorsIfStale(fetchImpl, now);
+  } catch {
+    st = null;
   }
   const log_ok = Boolean(st && st.ok && st.latest && st.latest.statement);
   const statement = log_ok ? st.latest.statement : null;
   return {
-    checked: Boolean(st),
+    checked: log_ok,
     log_ok,
     statement,
     attest: statement ? attestFromStatement(statement) : null,
@@ -32,22 +31,8 @@ export async function readGroupD(fetchImpl) {
   };
 }
 
-/**
- * Note the statement for the duration of one session request, then restore the previous note.
- * Exec and signing in that request see the statement. A later direct call does not.
- */
+/** Load the statement and hand it to this call. Does not write the isolate note. */
 export async function withGroupD(fetchImpl, fn) {
-  const prevAttest = witnessedBuildAttest();
-  const prevKey = witnessedReceiptKeyId();
   const view = await readGroupD(fetchImpl);
-  if (view.log_ok) {
-    setWitnessedBuildAttest(view.attest);
-    setWitnessedReceiptKeyId(view.receipt_key_id);
-  }
-  try {
-    return await fn(view);
-  } finally {
-    setWitnessedBuildAttest(prevAttest);
-    setWitnessedReceiptKeyId(prevKey);
-  }
+  return fn(view);
 }

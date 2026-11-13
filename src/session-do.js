@@ -153,7 +153,7 @@ export class RuntimeSession {
       // RIB-042: use the provisioned receipt key if one is held (never generated here).
       // A witnessed key id from this request is passed in. It does not stick after the request.
       const { heldSignerFromEnv, setActiveReceiptSigner } = await import("./receipt-signing.js");
-      const signerOpts = view.log_ok ? { witnessedKeyId: view.receipt_key_id } : {};
+      const signerOpts = { witnessedKeyId: view.log_ok ? view.receipt_key_id : null };
       setActiveReceiptSigner(await heldSignerFromEnv(this.env, signerOpts));
       const url = new URL(request.url);
       const action = url.pathname.replace(/^\//, "") || "status";
@@ -164,10 +164,10 @@ export class RuntimeSession {
         return await this.policy(await readJson(request));
       }
       if (action === "intent" && request.method === "POST") {
-        return await this.intent(await readJson(request));
+        return await this.intent(await readJson(request), view);
       }
       if (action === "commit" && request.method === "POST") {
-        return await this.commit(await readJson(request));
+        return await this.commit(await readJson(request), view);
       }
       if (action === "audit-gate" && request.method === "POST") {
         return await this.auditGate(await readJson(request));
@@ -306,7 +306,7 @@ export class RuntimeSession {
     return json({ ok: true, session: publicSession(out.session), receipt: out.receipt });
   }
 
-  async intent(body) {
+  async intent(body, view) {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     // RIB-044: a paused session runs nothing; a frozen session is re-checked once per (cold) isolate.
@@ -341,6 +341,7 @@ export class RuntimeSession {
         decision: body.decision || null,
         goal: body.goal || null,
         writerEpoch: body.writer_epoch,
+        ...(view ? { attestFromRequest: true, witnessedAttest: view.attest } : {}),
       },
       now,
     );
@@ -354,7 +355,7 @@ export class RuntimeSession {
     return json({ ok: true, session: publicSession(session), intent: out.intent });
   }
 
-  async commit(body) {
+  async commit(body, view) {
     const session = await this.expireIfNeeded(await this.load());
     const now = new Date().toISOString();
     try {
@@ -377,6 +378,7 @@ export class RuntimeSession {
           correlation_id: body.correlation_id,
           outcome: body.outcome,
           additive: body,
+          ...(view ? { attestFromRequest: true, witnessedAttest: view.attest } : {}),
         },
         now,
       );

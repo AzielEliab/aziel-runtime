@@ -33,6 +33,7 @@ import {
   resetSecondMintState,
   secondMintWitnessFragment,
   setWitnessedReceiptKeyId,
+  verifySecondMintChain,
   verifySecondMintRefusal,
 } from "../src/second-mint.js";
 
@@ -121,6 +122,10 @@ n++;
   assert.ok(row.deny_reason);
   assert.equal(row.signed, false);
   assert.equal((await verifySecondMintRefusal(row, { tip: row.tip })).ok, true);
+  assert.equal((await verifySecondMintChain([row])).ok, true);
+  const unlinked = { ...row, prev_hash: "cd".repeat(32), hash: row.hash };
+  assert.equal((await verifySecondMintRefusal(unlinked, { tip: row.tip })).code, "KEY-SECOND-MINT-FORGED");
+  assert.equal((await verifySecondMintChain([{ ...row, prev_hash: "cd".repeat(32) }])).ok, false);
   const forged = { ...row, deny_reason: "forged allow" };
   const bad = await verifySecondMintRefusal(forged, { tip: row.tip });
   assert.equal(bad.ok, false);
@@ -355,8 +360,20 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
   assert.equal(heads.second_mint.live, true);
   assert.equal(heads.second_mint.code, "KEY-SECOND-MINT");
   assert.equal(heads.second_mint.refused_key_id, keyB);
+  assert.equal(heads.second_mint.preview, true);
+  assert.equal(heads.second_mint.hash_role, "preview");
+  assert.match(heads.second_mint.reason, /preview/);
   assert.equal(heads.receipt_key.key_id, keyB);
   assert.equal((await verifySecondMintRefusal(heads.second_mint.refusal, { tip: heads.second_mint.refusal.tip })).ok, true);
+  resetSecondMintState();
+  setWitnessedReceiptKeyId(keyA);
+  const signed = await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub }, { tip: "ab".repeat(32) });
+  assert.equal(signed.ok, false);
+  assert.equal(signed.code, "KEY-SECOND-MINT");
+  assert.notEqual(signed.refusal.hash, heads.second_mint.refusal_receipt_hash);
+  const chain = await (await import("../src/second-mint.js")).verifySecondMintChain([signed.refusal]);
+  assert.equal(chain.ok, true, JSON.stringify(chain.errors));
+  resetSecondMintState();
   const forged = { ...heads.second_mint.refusal, deny_reason: "forged allow" };
   assert.equal((await verifySecondMintRefusal(forged, { tip: forged.tip })).ok, false);
   n++;
@@ -372,8 +389,11 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
     assert.equal(heads.build_attest.status, "not_checked");
     assert.equal(heads.build_attest.ok, null);
     assert.equal(heads.build_attest.live, false);
+    assert.equal(heads.build_attest.checked, false);
     assert.equal(heads.second_mint.status, "not_checked");
     assert.equal(heads.second_mint.live, false);
+    assert.equal(heads.second_mint.checked, false);
+    assert.equal(heads.second_mint.reason, "witness log was not read");
     assert.equal(heads.build_attest.artifact_digest, BUILD_BUNDLE_DIGEST);
   } finally {
     globalThis.fetch = origFetch;
@@ -544,6 +564,110 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
     const rows = await loadChain(storeFor(env), "session", "");
     assert.equal(rows.at(-1).issuer_kind, "untrusted");
     assert.equal(rows.at(-1).issuer_path, "chainlock_append");
+    n++;
+  }
+
+  // P1-1: a fresh memo is reused. Past ANCHOR_CACHE_MS the next read fetches again.
+  {
+    const { ANCHOR_CACHE_MS, seedAnchorMemo: seedAt } = await import("../src/anchor.js");
+    const { readGroupD } = await import("../src/group-d.js");
+    resetAnchorMemo();
+    let calls = 0;
+    const boom = async () => { calls += 1; throw new Error("offline"); };
+    const state = { ok: true, n: 1, latest: { statement: { n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST } } }, entries: [] };
+    seedAt("anchors", state, Date.now());
+    let view = await readGroupD(boom);
+    assert.equal(calls, 0);
+    assert.equal(view.checked, true);
+    assert.equal(view.attest.artifact_digest, BUILD_BUNDLE_DIGEST);
+    seedAt("anchors", state, Date.now() - ANCHOR_CACHE_MS - 1);
+    view = await readGroupD(boom);
+    assert.equal(calls, 1);
+    assert.equal(view.log_ok, false);
+    assert.equal(view.checked, false);
+    resetAnchorMemo();
+    n++;
+  }
+
+  // P1-1: the next session exec uses the statement loaded for that request.
+  // A later witnessed mismatch is enforced. A memo older than the TTL is not reused.
+  {
+    const { ANCHOR_CACHE_MS, seedAnchorMemo: seedAt } = await import("../src/anchor.js");
+    const env = sessEnv();
+    seed({ n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST, builder_identity: { workflow: "ci.yml", run_id: "4" } } });
+    const o = await opened(env);
+    const id = o.session.id;
+    let r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+    let body = await r.json();
+    assert.equal(r.status, 200, JSON.stringify(body));
+    assert.equal(body.receipt.build_attest.status, "verified");
+    seed({ n: 2, build_attest: { artifact_digest: other, builder_identity: { workflow: "ci.yml", run_id: "4" } } });
+    r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+    body = await r.json();
+    assert.equal(r.status, 409, JSON.stringify(body));
+    assert.equal(body.code, "BUILD-ATTEST-MISMATCH");
+    assert.equal(body.executed, false);
+    const state = { ok: true, n: 1, latest: { statement: { n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST } } }, entries: [] };
+    seedAt("anchors", state, Date.now() - ANCHOR_CACHE_MS - 1);
+    const orig = globalThis.fetch;
+    let calls = 0;
+    globalThis.fetch = async () => { calls += 1; throw new Error("offline"); };
+    try {
+      r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+      body = await r.json();
+      assert.equal(calls, 1);
+      assert.equal(r.status, 200, JSON.stringify(body));
+      assert.equal(body.receipt.build_attest.status, "not_checked");
+      assert.equal(body.receipt.build_attest.ok, null);
+    } finally {
+      globalThis.fetch = orig;
+      resetAnchorMemo();
+    }
+    n++;
+  }
+
+  // P2-b: an in-flight load does not replace the isolate note, and an explicit statement stays on that call.
+  {
+    const { withGroupD } = await import("../src/group-d.js");
+    const { assertBuildAttestForExec, setWitnessedBuildAttest, witnessedBuildAttest } = await import("../src/build-attest.js");
+    resetAnchorMemo();
+    resetBuildAttestState();
+    setWitnessedBuildAttest({ artifact_digest: BUILD_BUNDLE_DIGEST, builder_identity: { workflow: "ci.yml", run_id: "1" } });
+    let release;
+    const wait = new Promise((resolve) => { release = resolve; });
+    const inflight = withGroupD(async () => { await wait; throw new Error("slow"); }, async (view) => view);
+    await Promise.resolve();
+    assert.equal(witnessedBuildAttest().artifact_digest, BUILD_BUNDLE_DIGEST);
+    const explicit = await assertBuildAttestForExec({ policy: {}, writer_epoch: 1 }, { witnessed: null });
+    assert.equal(explicit.view.status, "not_checked");
+    assert.equal(explicit.view.live, false);
+    const noted = await assertBuildAttestForExec({ policy: {}, writer_epoch: 1 });
+    assert.equal(noted.view.status, "verified");
+    assert.equal(noted.view.live, true);
+    release();
+    const view = await inflight;
+    assert.equal(view.checked, false);
+    assert.equal(view.log_ok, false);
+    assert.equal(witnessedBuildAttest().artifact_digest, BUILD_BUNDLE_DIGEST);
+    resetBuildAttestState();
+    resetAnchorMemo();
+    n++;
+  }
+
+  // P1-2: the witness patch applies to the current aziel-anchors scripts/witness.mjs snapshot.
+  {
+    const { mkdtempSync, mkdirSync, copyFileSync, rmSync } = await import("node:fs");
+    const { execFileSync } = await import("node:child_process");
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const dir = mkdtempSync(join(tmpdir(), "group-d-patch-"));
+    mkdirSync(join(dir, "scripts"));
+    const base = new URL("../fixtures/aziel-anchors-witness.mjs", import.meta.url);
+    const patch = new URL("../docs/patches/aziel-anchors-witness-group-d.patch", import.meta.url);
+    copyFileSync(base, join(dir, "scripts", "witness.mjs"));
+    execFileSync("git", ["apply", "--check", patch.pathname], { cwd: dir });
+    execFileSync("patch", ["--dry-run", "-p1", "-i", patch.pathname], { cwd: dir });
+    rmSync(dir, { recursive: true, force: true });
     n++;
   }
 

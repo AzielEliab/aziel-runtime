@@ -1,7 +1,7 @@
-diff --git a/scripts/witness.mjs b/scripts/witness.mjs
---- a/scripts/witness.mjs
-+++ b/scripts/witness.mjs
-@@ -46,7 +46,9 @@ const sameHeads = last && canonicalize(last.statement.heads.chains) === canonica
+--- a/scripts/witness.mjs	2026-11-13 10:59:36.154909492 +0000
++++ b/scripts/witness.mjs	2026-11-13 10:59:36.158909463 +0000
+@@ -38,7 +38,10 @@
+ const sameHeads = last && canonicalize(last.statement.heads.chains) === canonicalize(heads.chains) && canonicalize(last.statement.heads.stores) === canonicalize(heads.stores) &&
    canonicalize(headsOnly(last.statement.external)) === canonicalize(headsOnly(external)) &&
    // AZRT-KEYS-1.0: a receipt key change (new epoch) is anchored even when no head moved.
 -  canonicalize(last.statement.receipt_key ?? null) === canonicalize(heads.receipt_key ?? null);
@@ -11,7 +11,9 @@ diff --git a/scripts/witness.mjs b/scripts/witness.mjs
 +  canonicalize(last.statement.second_mint ?? null) === canonicalize(heads.second_mint ?? null);
  // RIB-041: a redeploy (new git_sha / version_id) is anchored even when no head moved.
  const build = buildOf(heads);
-@@ -70,6 +72,10 @@ const statement = {
+ const src = buildSource(heads);
+@@ -68,6 +71,10 @@
+   // Additive (AZRT-KEYS-1.0): the runtime's held receipt key (public parts) or null, so each receipt key
    // epoch is recorded in this signed log. Statements before this field verify unchanged.
    receipt_key: heads.receipt_key ?? null,
 +  // Additive (RIB-048 / RIB-049): artifact digest and second-mint fragment copied from heads.

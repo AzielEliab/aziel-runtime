@@ -7,10 +7,11 @@
  * compares its running artifact digest to the newest witnessed attestation.
  *   verified     digests match
  *   failed       BUILD-ATTEST-MISMATCH (one changed byte fails)
- *   not_checked  no witnessed attestation: ok null, never a pass; strict mode refuses
+ *   not_checked  no witnessed attestation: ok null, live false, never a pass; strict mode refuses
+ *   live         true only when this comparison decided verified or failed
  * Builder identity is read only from that witnessed statement (workflow + run id). A deploy
  * var is ignored. Authorization in force at exec time is part of the check.
- * Not live. Cap-7 is not ICANN. Paid satellite stays HELD.
+ * Cap-7 is not ICANN. Paid satellite stays HELD.
  * Receipts are hash-linked and sealed, not signed.
  * Author: Aziel Eliab.
  */
@@ -18,7 +19,6 @@ import { BUILD_BUNDLE_DIGEST } from "./build-meta.js";
 import { canonicalize, sha256Hex } from "./session-core.js";
 
 export const BUILD_ATTEST_SPEC = "AZRT-BUILD-ATTEST-1.0";
-export const LIVE = false;
 export const CAP7_IS_ICANN = false;
 export const PAID_SAT = "HELD";
 const HEX64 = /^[a-f0-9]{64}$/;
@@ -86,7 +86,6 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
   void deployVars;
   const base = {
     spec: BUILD_ATTEST_SPEC,
-    live: LIVE,
     signed: false,
     cap7_is_icann: CAP7_IS_ICANN,
     paid_sat: PAID_SAT,
@@ -96,6 +95,7 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
   if (!witnessed) {
     const view = {
       ...base,
+      live: false,
       ok: null,
       status: "not_checked",
       code: "BUILD-ATTEST-NOT-CHECKED",
@@ -118,6 +118,7 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
   if (diffs.length) {
     const view = {
       ...base,
+      live: true,
       ok: false,
       status: "failed",
       code: "BUILD-ATTEST-MISMATCH",
@@ -131,6 +132,7 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
     allowed: true,
     view: {
       ...base,
+      live: true,
       ok: true,
       status: "verified",
       code: "BUILD-ATTEST-OK",
@@ -141,7 +143,12 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
   };
 }
 
-export async function assertBuildAttestForExec(session) {
+/**
+ * `opts.witnessed` (including null) is the statement for this call.
+ * Omit `opts` to use the isolate note. A request passes its own statement and does not read the note.
+ */
+export async function assertBuildAttestForExec(session, opts) {
+  const witnessed = opts && Object.prototype.hasOwnProperty.call(opts, "witnessed") ? opts.witnessed : witnessedAttest;
   let policy_hash = null;
   if (session && session.policy) {
     const { policyHashOf } = await import("./evidence-fields.js");
@@ -154,7 +161,7 @@ export async function assertBuildAttestForExec(session) {
   const strict = Boolean(session && session.policy && session.policy.build_attest_strict === true);
   return checkBuildAttest({
     runningDigest: runningBundleDigest(),
-    witnessed: witnessedAttest,
+    witnessed,
     strict,
     authorization,
   });

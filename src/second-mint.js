@@ -70,12 +70,6 @@ export async function verifySecondMintRefusal(row, { tip = null } = {}) {
   const expected = await sha256Hex(canonicalize(body));
   if (expected !== hash) return { ok: false, spec: SECOND_MINT_SPEC, code: "KEY-SECOND-MINT-FORGED", expected, got: hash || null };
   if (tip != null && row.tip !== tip) return { ok: false, spec: SECOND_MINT_SPEC, code: "KEY-SECOND-MINT-TIP", expected: tip, got: row.tip };
-  if (row.prev_hash && rows.length) {
-    const prior = rows.find((r) => r.hash === row.prev_hash);
-    if (row.prev_hash !== ZERO_HASH && prior && prior.hash !== row.prev_hash) {
-      return { ok: false, spec: SECOND_MINT_SPEC, code: "KEY-SECOND-MINT-TIP" };
-    }
-  }
   return { ok: true, spec: SECOND_MINT_SPEC, code: "KEY-SECOND-MINT", hash };
 }
 
@@ -131,7 +125,7 @@ export async function gateSecondMint(signer, { tip = null, witnessedKeyId: overr
 /**
  * What GET /v1/anchor/heads reports. Read-only: it does not append a row and it does not sign.
  * No witnessed key, or no held key to compare, stays not_checked (ok null). A match is status none.
- * A mismatch is a deterministic sealed refusal (attempt 1, tip zero) the witness can copy.
+ * A mismatch publishes a preview hash (attempt 1, tip zero). That hash is not the signing-path row.
  */
 export async function secondMintHead({ witnessedKeyId: witnessed = null, attemptedKeyId = null, checked = false } = {}) {
   const base = { spec: SECOND_MINT_SPEC, signed: false, checked: checked === true, cap7_is_icann: false, paid_sat: "HELD" };
@@ -144,7 +138,7 @@ export async function secondMintHead({ witnessedKeyId: witnessed = null, attempt
       witnessed_key_id: null,
       refused_key_id: null,
       refusal_receipt_hash: null,
-      reason: checked ? "verified witness statement has no receipt key id" : "witness log was not read",
+      reason: checked ? "witness statement has no receipt key id" : "witness log was not read",
     };
   }
   if (!attemptedKeyId) {
@@ -188,9 +182,11 @@ export async function secondMintHead({ witnessedKeyId: witnessed = null, attempt
     code: "KEY-SECOND-MINT",
     witnessed_key_id: witnessed,
     refused_key_id: attemptedKeyId,
+    preview: true,
+    hash_role: "preview",
     refusal_receipt_hash: refusal.hash,
     refusal,
-    reason: "loaded key differs from the witnessed receipt key; second mint refused. No key was minted.",
+    reason: "loaded key differs from the witnessed receipt key. This hash is a read-only preview (attempt 1, tip zero), not the signing-path refusal row. No key was minted.",
   };
 }
 
