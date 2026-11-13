@@ -84,6 +84,8 @@ Public FragGate `store_forward` and multi-hop names stay `FG-STUB`. The Worker d
 
 A signed bootstrap peer list may be empty. `needs_starting_address` stays true. Shelf cite slots name Plane A as cite and Plane B and Plane C as SLOT. `live_multi_provider` stays false. Cold shelves are not painted LIVE. This phase does not cut DNS and does not touch origin cutover. AZNet stamp and verify stay hash continuity. AZNet does not host payloads.
 
+Local cold start (`COLD-START-1.0`, `src/fed-mesh/cold-start.js`) is not this public cite and does not move phase E off scaffold. A node with no operator address returns `COLD-START-NEEDS-ADDRESS` and does not dial. An address is stored only when it is cleartext HTTP to a literal loopback or LAN IP with an explicit port. A name, a public host, HTTPS, and NAT punch are refused before any fetch. After that address returns a verified LAN beacon, the cold-start record sets `starting_address_accepted` and clears its own `needs_starting_address`. The signed bootstrap list still has `needs_starting_address: true`, `live: false`, and `live_multi_provider: false`. One verified peer is not a multi-provider directory. A sealed share then crosses that supplied address. `second_device` stays false while both ends share a machine id, including two network namespaces on one kernel. The public FragGate door stays `FG-STUB`. Wi-Fi, Bluetooth, RF, and photon stay not this exchange. Paid satellite stays HELD. The updater stays OFF. Close-test: `node scripts/verify-cold-start.mjs`.
+
 ### What remains before WARN-5 can move
 
 WARN-5 stays `STANDS-until-demonstrated`. Still required, and not claimed here:
