@@ -16,10 +16,11 @@ export const KEYS_SPEC = "AZRT-KEYS-1.0";
 /** The receipt key as the witness should record it (public parts only), or null when nothing is held. */
 export async function receiptKeyHead(env) {
   const rs = await import("./receipt-signing.js");
-  const held = await rs.heldSignerFromEnv(env);
+  // Publish the held public key even when signing is refused. Hiding it would look like a dropped key.
+  const pub = await rs.publishedReceiptKey(env);
   const retired = [];
   for (const e of rs.RECEIPT_KEY_EPOCHS) retired.push({ key_id: await rs.keyIdOf(e.public_key), until: e.until });
-  return held.ok ? { spec: KEYS_SPEC, key_id: held.provenance.key_id, public_key: held.provenance.public_key, retired } : (retired.length ? { spec: KEYS_SPEC, key_id: null, public_key: null, retired } : null);
+  return pub ? { spec: KEYS_SPEC, key_id: pub.key_id, public_key: pub.public_key, retired } : (retired.length ? { spec: KEYS_SPEC, key_id: null, public_key: null, retired } : null);
 }
 
 export async function keysManifest(env) {

@@ -7,6 +7,7 @@ import { execSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { webcrypto } from "node:crypto";
 import { append, loadChain, saveChain, stampSha256, verify } from "../src/chainlock/ops.js";
+import { storeFor } from "../src/chainlock/store.js";
 import { MemoryStore } from "../src/chainlock/store.js";
 import {
   appendReceipt,
@@ -266,6 +267,289 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
   assert.equal(row.ok, true);
   assert.equal(row.stamp.issuer_kind, undefined);
   n++;
+}
+
+// Heads, session stop, writer fence, and harness seal through the HTTP / MCP door.
+// REQUIRE_TOKEN stays on. No token is 401. No secret is 503. The issuer key stays required.
+{
+  const { BUILD_BUNDLE_DIGEST } = await import("../src/build-meta.js");
+  const { memorySessionNamespace } = await import("../src/session-do.js");
+  const { memoryChainWriterNamespace } = await import("../src/chainlock/writer-do.js");
+  const { resetAnchorMemo, seedAnchorMemo } = await import("../src/anchor.js");
+  const { isSessionMutatePath } = await import("../src/production.js");
+  const handler = (await import("../src/index.js")).default.fetch;
+  assert.equal(isSessionMutatePath("/v1/session/" + "sess_" + "a".repeat(32) + "/stop", "POST"), true);
+  assert.equal(isSessionMutatePath("/v1/session/" + "sess_" + "a".repeat(32) + "/stop", "GET"), false);
+  assert.match(BUILD_BUNDLE_DIGEST, /^[a-f0-9]{64}$/);
+  const attestEnv = { ...process.env };
+  delete attestEnv.GITHUB_WORKFLOW;
+  delete attestEnv.GITHUB_RUN_ID;
+  const emitted = JSON.parse(execSync("node scripts/build-attest.mjs", { encoding: "utf8", env: attestEnv }));
+  assert.equal(emitted.artifact_digest, BUILD_BUNDLE_DIGEST);
+  n++;
+
+  const TOKEN = "rt_" + "d".repeat(40);
+  const A = await provision();
+  const B = await provision();
+  const keyA = await keyIdOf(A.pub);
+  const keyB = await keyIdOf(B.pub);
+  const origin = "https://rt.example";
+  const call = (env, method, path, body, headers) => handler(new Request(origin + path, {
+    method,
+    headers: { "content-type": "application/json", "user-agent": "Mozilla/5.0", ...(headers || {}) },
+    ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+  }), env);
+  function seed(statement) {
+    resetAnchorMemo();
+    seedAnchorMemo("anchors", { ok: true, n: 1, latest: { statement }, entries: [{ statement }] });
+  }
+  function sessEnv(extra) {
+    const env = { REQUIRE_TOKEN: "1", RUNTIME_TOKEN: TOKEN, __aziel_rate_limits: { anon_mutate: 200 }, ...extra };
+    env.SESSION = memorySessionNamespace(env);
+    return env;
+  }
+
+  // Witness has the held key and no artifact digest: second mint is checked (none), build attest stays not_checked.
+  resetSecondMintState();
+  const beforeRows = (await import("../src/second-mint.js")).secondMintRefusals().length;
+  seed({ n: 1, receipt_key: { key_id: keyA } });
+  let heads = await (await call({ RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub }, "GET", "/v1/anchor/heads")).json();
+  assert.equal(heads.second_mint.status, "none");
+  assert.equal(heads.second_mint.ok, true);
+  assert.equal(heads.second_mint.live, true);
+  assert.equal(heads.second_mint.checked, true);
+  assert.equal(heads.second_mint.signed, false);
+  assert.equal(heads.second_mint.witnessed_key_id, keyA);
+  assert.equal(heads.build_attest.status, "not_checked");
+  assert.equal(heads.build_attest.ok, null);
+  assert.equal(heads.build_attest.live, false);
+  assert.equal(heads.build_attest.checked, true);
+  assert.equal(heads.build_attest.artifact_digest, BUILD_BUNDLE_DIGEST);
+  assert.equal(heads.receipt_key.key_id, keyA);
+  assert.equal((await import("../src/second-mint.js")).secondMintRefusals().length, beforeRows, "heads does not append a refusal");
+  n++;
+
+  // Matching witnessed digest: the check decides verified. One changed byte is failed.
+  seed({ n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST, builder_identity: { workflow: "ci.yml", run_id: "4" } }, receipt_key: { key_id: keyA } });
+  heads = await (await call({ RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub }, "GET", "/v1/anchor/heads")).json();
+  assert.equal(heads.build_attest.status, "verified");
+  assert.equal(heads.build_attest.ok, true);
+  assert.equal(heads.build_attest.live, true);
+  assert.equal(heads.build_attest.builder_identity.run_id, "4");
+  assert.equal(heads.build_attest.signed, false);
+  const other = "ab".repeat(32);
+  seed({ n: 1, build_attest: { artifact_digest: other, builder_identity: { workflow: "ci.yml", run_id: "4" } } });
+  heads = await (await call({}, "GET", "/v1/anchor/heads")).json();
+  assert.equal(heads.build_attest.status, "failed");
+  assert.equal(heads.build_attest.ok, false);
+  assert.equal(heads.build_attest.live, true);
+  assert.equal(heads.build_attest.code, "BUILD-ATTEST-MISMATCH");
+  n++;
+
+  // Key B against witnessed key A: sealed refusal on heads, and the held public key is still published.
+  resetSecondMintState();
+  seed({ n: 1, receipt_key: { key_id: keyA } });
+  heads = await (await call({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub }, "GET", "/v1/anchor/heads")).json();
+  assert.equal(heads.second_mint.status, "refused");
+  assert.equal(heads.second_mint.ok, false);
+  assert.equal(heads.second_mint.live, true);
+  assert.equal(heads.second_mint.code, "KEY-SECOND-MINT");
+  assert.equal(heads.second_mint.refused_key_id, keyB);
+  assert.equal(heads.receipt_key.key_id, keyB);
+  assert.equal((await verifySecondMintRefusal(heads.second_mint.refusal, { tip: heads.second_mint.refusal.tip })).ok, true);
+  const forged = { ...heads.second_mint.refusal, deny_reason: "forged allow" };
+  assert.equal((await verifySecondMintRefusal(forged, { tip: forged.tip })).ok, false);
+  n++;
+
+  // Unreadable witness log: not_checked, heads still 200, no fake pass.
+  resetAnchorMemo();
+  const origFetch = globalThis.fetch;
+  globalThis.fetch = async () => { throw new Error("offline"); };
+  try {
+    const res = await call({}, "GET", "/v1/anchor/heads");
+    assert.equal(res.status, 200);
+    heads = await res.json();
+    assert.equal(heads.build_attest.status, "not_checked");
+    assert.equal(heads.build_attest.ok, null);
+    assert.equal(heads.build_attest.live, false);
+    assert.equal(heads.second_mint.status, "not_checked");
+    assert.equal(heads.second_mint.live, false);
+    assert.equal(heads.build_attest.artifact_digest, BUILD_BUNDLE_DIGEST);
+  } finally {
+    globalThis.fetch = origFetch;
+    resetAnchorMemo();
+  }
+  n++;
+
+  const auth = { authorization: "Bearer " + TOKEN };
+  async function opened(env) {
+    const res = await call(env, "POST", "/v1/session/open", {}, auth);
+    const body = await res.json();
+    assert.equal(res.status, 200, JSON.stringify(body));
+    return body;
+  }
+
+  // Token gate stays in front of stop and of the build-attest exec check.
+  {
+    const env = sessEnv();
+    seed({ n: 1 });
+    const o = await opened(env);
+    const id = o.session.id;
+    const ik = o.issuer_key;
+    const len0 = (await (await call(env, "GET", `/v1/session/${id}/receipts`)).json()).receipts.length;
+    let r = await call(env, "POST", `/v1/session/${id}/stop`, { reason: "no token" }, { "x-azrt-issuer-key": ik });
+    assert.equal(r.status, 401);
+    assert.equal((await r.json()).code, "token_required");
+    r = await call(env, "POST", `/v1/session/${id}/stop`, { reason: "wrong token" }, { authorization: "Bearer wrong-token", "x-azrt-issuer-key": ik });
+    assert.equal(r.status, 401);
+    assert.equal((await r.json()).code, "token_mismatch");
+    r = await call(env, "POST", `/v1/session/${id}/stop?token=${TOKEN}`, { reason: "query token" }, { "x-azrt-issuer-key": ik });
+    assert.equal(r.status, 400);
+    assert.equal((await r.json()).code, "TOKEN-QUERY-REFUSED");
+    r = await call(env, "POST", `/v1/session/${id}/stop`, { reason: "no issuer" }, auth);
+    assert.equal(r.status, 403);
+    assert.equal((await r.json()).code, "CL-NOT-ISSUER");
+    assert.equal((await (await call(env, "GET", `/v1/session/${id}/receipts`)).json()).receipts.length, len0);
+    const bare = { SESSION: memorySessionNamespace({}), REQUIRE_TOKEN: "1" };
+    r = await call(bare, "POST", `/v1/session/${id}/stop`, { reason: "no secret" }, { authorization: "Bearer " + TOKEN, "x-azrt-issuer-key": ik });
+    assert.equal(r.status, 503);
+    assert.equal((await r.json()).code, "token_not_configured");
+    n++;
+
+    seed({ n: 1, build_attest: { artifact_digest: other } });
+    r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} });
+    assert.equal(r.status, 401, "mismatch does not run when the token is missing");
+    assert.equal((await r.json()).code, "token_required");
+    r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+    const mismatch = await r.json();
+    assert.equal(r.status, 409, JSON.stringify(mismatch));
+    assert.equal(mismatch.code, "BUILD-ATTEST-MISMATCH");
+    assert.equal(mismatch.executed, false);
+    const refused = (await (await call(env, "GET", `/v1/session/${id}/receipts`)).json()).receipts.at(-1);
+    assert.equal(refused.event, "refused");
+    assert.equal(refused.issuer_kind, "harness");
+    assert.equal(refused.payload.refusal.code, "BUILD-ATTEST-MISMATCH");
+    n++;
+
+    seed({ n: 1 });
+    r = await call(env, "POST", `/v1/session/${id}/policy`, { build_attest_strict: true }, auth);
+    assert.equal(r.status, 200, JSON.stringify(await r.clone().json()));
+    r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+    const strict = await r.json();
+    assert.equal(r.status, 409, JSON.stringify(strict));
+    assert.equal(strict.code, "BUILD-ATTEST-NOT-CHECKED");
+    r = await call(env, "POST", `/v1/session/${id}/policy`, { build_attest_strict: false }, auth);
+    assert.equal(r.status, 409);
+    assert.equal((await r.json()).code, "BUILD-ATTEST-POLICY-DOWNGRADE");
+    n++;
+  }
+
+  // A witnessed matching digest lets exec run. The receipt is harness-sealed and records the check.
+  {
+    const env = sessEnv();
+    seed({ n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST, builder_identity: { workflow: "ci.yml", run_id: "4" } } });
+    const o = await opened(env);
+    const id = o.session.id;
+    const r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+    const body = await r.json();
+    assert.equal(r.status, 200, JSON.stringify(body));
+    assert.equal(body.receipt.event, "exec");
+    assert.equal(body.receipt.issuer_kind, "harness");
+    assert.equal(body.receipt.issuer_path, "runtime_session_exec");
+    assert.equal(body.receipt.build_attest.status, "verified");
+    assert.equal(body.receipt.build_attest.ok, true);
+    assert.equal(body.receipt.build_attest.signed, false);
+    assert.equal(body.receipt.build_attest.builder_identity.run_id, "4");
+    const chain = await verifyChainStrict((await (await call(env, "GET", `/v1/session/${id}/receipts`)).json()).receipts);
+    assert.equal(chain.ok, true, JSON.stringify(chain.errors));
+    assert.equal(chain.harness_seal.trusted_exec, 1);
+    n++;
+  }
+
+  // Stop is runtime-enforced. The next exec is SESSION-STOPPED. Side effects are not undone.
+  {
+    const env = sessEnv();
+    seed({ n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST } });
+    const o = await opened(env);
+    const id = o.session.id;
+    const ik = o.issuer_key;
+    let r = await call(env, "POST", `/v1/session/${id}/stop`, {
+      reason: "operator stop",
+      side_effects: [{ id: "ext", side_effect_status: "completed" }, { id: "lie", side_effect_status: "rolled_back" }],
+    }, { ...auth, "x-azrt-issuer-key": ik });
+    const stopped = await r.json();
+    assert.equal(r.status, 200, JSON.stringify(stopped));
+    assert.equal(stopped.receipt.event, "stop");
+    assert.equal(stopped.receipt.writer_fence.stopped, true);
+    assert.match(stopped.receipt.stop.not_undone, /does not undo/);
+    assert.equal(JSON.stringify(stopped.receipt).includes("rolled_back"), false);
+    assert.ok(stopped.receipt.stop.side_effects.some((x) => x.side_effect_status === "completed"));
+    // No in-flight intent on this stop, so only the completed effect is kept. A pending intent is recorded unknown by the direct fence test above.
+    assert.equal(stopped.receipt.stop.side_effects.some((x) => x.side_effect_status === "unknown"), false);
+    r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
+    const after = await r.json();
+    assert.equal(r.status, 409, JSON.stringify(after));
+    assert.equal(after.code, "SESSION-STOPPED");
+    assert.equal(after.executed, false);
+    const chain = await verifyChainStrict((await (await call(env, "GET", `/v1/session/${id}/receipts`)).json()).receipts);
+    assert.equal(chain.ok, true, JSON.stringify(chain.errors));
+    n++;
+  }
+
+  // Revoke bumps the epoch. An older writer_epoch is fenced at the session door. The issuer key is still required.
+  {
+    const env = sessEnv();
+    seed({ n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST } });
+    const o = await opened(env);
+    const id = o.session.id;
+    const ik = o.issuer_key;
+    let r = await call(env, "POST", `/v1/session/${id}/revoke`, { reason: "bump the epoch" }, { ...auth, "x-azrt-issuer-key": ik });
+    const revoked = await r.json();
+    assert.equal(r.status, 200, JSON.stringify(revoked));
+    assert.equal(revoked.session.writer_epoch, 2);
+    r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {}, writer_epoch: 1 }, auth);
+    const fenced = await r.json();
+    assert.equal(r.status, 409, JSON.stringify(fenced));
+    assert.equal(fenced.code, "STALE-WRITER-FENCED");
+    assert.equal(fenced.executed, false);
+    n++;
+  }
+
+  // Public chainlock_append cannot mint a harness receipt, and a stale writer epoch is fenced.
+  {
+    resetAnchorMemo();
+    const env = { CHAINLOCK: memoryChainWriterNamespace({}) };
+    const opened = await append(env, { c: "acts", subject: "fence", fact: "epoch one", writer_epoch: 1 }, { fenceAuthority: true });
+    assert.equal(opened.ok, true);
+    const bumped = await append(env, { c: "acts", subject: "fence", fact: "epoch two", writer_epoch: 2 }, { fenceAuthority: true });
+    assert.equal(bumped.ok, true);
+    const mcp = async (args) => {
+      const res = await call(env, "POST", "/mcp", { jsonrpc: "2.0", id: 1, method: "tools/call", params: { name: "chainlock_append", arguments: args } });
+      const body = await res.json();
+      const text = body && body.result && body.result.content && body.result.content[0] && body.result.content[0].text;
+      return { body, text: text || JSON.stringify(body) };
+    };
+    const stale = await mcp({ c: "acts", subject: "fence", fact: "stale writer", writer_epoch: 1, confirm: true });
+    assert.match(stale.text, /STALE-WRITER-FENCED/);
+    assert.match(stale.text, /written: false/);
+    const script = await mcp({ c: "session", subject: "script", fact: "note", issuer_kind: "harness", issuer_path: "runtime_session_exec", confirm: true });
+    assert.match(script.text, /SELF-AUDIT-REFUSED/);
+    assert.match(script.text, /written: false/);
+    const self = await mcp({ c: "session", subject: "script", fact: "I called foldlock", confirm: true });
+    assert.equal(self.body.result.isError, false);
+    const seen = await verify(env, { c: "session" });
+    assert.equal(seen.ok, true, JSON.stringify(seen.breaks));
+    assert.equal(seen.chains[0].harness.not_trusted, true);
+    assert.equal(seen.chains[0].harness.exec_evidence, false);
+    const rows = await loadChain(storeFor(env), "session", "");
+    assert.equal(rows.at(-1).issuer_kind, "untrusted");
+    assert.equal(rows.at(-1).issuer_path, "chainlock_append");
+    n++;
+  }
+
+  resetAnchorMemo();
+  resetBuildAttestState();
+  resetSecondMintState();
 }
 
 console.log(`ok rib-048-051: ${n} checks`);

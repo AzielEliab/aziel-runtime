@@ -10,13 +10,13 @@ One draft covers the four ideas because they share the session receipt chain and
 
 The script binds source revision (`git rev-parse HEAD`), build environment (lockfile sha256 and toolchain versions), builder identity, and an artifact digest. Builder identity is `GITHUB_WORKFLOW` plus `GITHUB_RUN_ID` when both are set, and is otherwise absent. A deploy var is not the builder. The script does not sign the attestation. Running it twice yields the same digest. `--mismatch` changes one manifest byte and the check returns `BUILD-ATTEST-MISMATCH`.
 
-Before exec, the runtime compares its running artifact digest with the newest witnessed attestation. A mismatch refuses `BUILD-ATTEST-MISMATCH` and seals a `refused` receipt. No attestation is `not_checked` (`ok: null`), never a pass. Strict mode (`policy.build_attest_strict`) refuses `BUILD-ATTEST-NOT-CHECKED`. `BUILD_BUNDLE_DIGEST` stays null until a build emits one, so a deploy with no witnessed attestation is not a pass.
+Before exec, the runtime compares its running artifact digest with the newest witnessed attestation. A mismatch refuses `BUILD-ATTEST-MISMATCH` and seals a `refused` receipt. No attestation is `not_checked` (`ok: null`), never a pass. Strict mode (`policy.build_attest_strict`) refuses `BUILD-ATTEST-NOT-CHECKED`. `scripts/build-attest.mjs --emit` writes `BUILD_BUNDLE_DIGEST`. `GET /v1/anchor/heads` reads the verified witness log and publishes that digest. A statement with no artifact digest stays `not_checked` (`checked: true` once the log was read). That is not a pass. The witness copies `build_attest` only after `docs/patches/aziel-anchors-witness-group-d.patch`.
 
 ## RIB-049 — AZRT-SECOND-MINT-1.0
 
 `src/second-mint.js`, gated from `heldSignerFromEnv`. No key is generated, exported, or rotated.
 
-When a loaded receipt key id differs from the key id on a verified witness statement, signing is refused `KEY-SECOND-MINT`. The refusal row carries path, attempt, deny reason, and tip, and is hash-linked. Verify recomputes the row and fails closed if the deny reason was changed. The refused key id and the refusal hash are the witness fragment on `GET /v1/anchor/heads` (`second_mint`). No witnessed key yet is `not_checked`, not a pass. The first held key still signs.
+When a loaded receipt key id differs from the key id on a verified witness statement, signing is refused `KEY-SECOND-MINT`. The refusal row carries path, attempt, deny reason, and tip, and is hash-linked. Verify recomputes the row and fails closed if the deny reason was changed. `GET /v1/anchor/heads` reads `receipt_key.key_id` on the verified witness statement and compares it to the held key. A match is `second_mint.status` `none` (`ok: true`, `live: true`): the check ran and there is no second mint. A mismatch publishes a deterministic sealed refusal (`status: refused`) and does not hide the held public key. No witnessed key, or no held key, is `not_checked`, not a pass. The first held key still signs. Heads does not append that refusal; signing does.
 
 ## RIB-050 — AZRT-WRITER-FENCE-1.0
 
@@ -32,4 +32,4 @@ Open seals `writer_epoch` 1. Revoke bumps the epoch. `POST /v1/session/{id}/stop
 
 ## Honesty
 
-Not live until the code is deployed and AZBot clears it. The witness repo is not updated by this change. Receipts stay hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD.
+Not live as a cleared production claim until the code is deployed and AZBot clears it. On heads, `live: true` means this response decided the check (verified, failed, key match, or second-mint refusal). `not_checked` stays `live: false` and `ok: null`. The witness repo is not updated by this change; the slot-1 copy is `docs/patches/aziel-anchors-witness-group-d.patch`. Slot 2 (`witness2/kit`) copies `build_attest`, `second_mint`, and `receipt_key`. Receipts stay hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD. Stop, stale-writer fencing, and the harness seal stay behind `RUNTIME_TOKEN` when `REQUIRE_TOKEN=1`, and behind the issuer key. A missing token is 401. A missing secret is 503. Neither path runs the control.

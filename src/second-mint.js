@@ -95,9 +95,10 @@ export async function verifySecondMintChain(list = rows) {
  * Refuse signing when the loaded key id is not the witnessed id.
  * No witnessed id yet: not a second mint (first hold). Never a pass that the key was witnessed.
  */
-export async function gateSecondMint(signer, { tip = null } = {}) {
+export async function gateSecondMint(signer, { tip = null, witnessedKeyId: override } = {}) {
   if (!signer || !signer.ok) return signer;
-  const witnessed = witnessedKeyId;
+  // undefined: the isolate note. null: this call read a statement that names no key.
+  const witnessed = override !== undefined ? override : witnessedKeyId;
   if (!witnessed) return signer;
   const attempted = signer.provenance && signer.provenance.key_id;
   if (attempted === witnessed) return signer;
@@ -125,6 +126,72 @@ export async function gateSecondMint(signer, { tip = null } = {}) {
   };
   seen.set(id, out);
   return out;
+}
+
+/**
+ * What GET /v1/anchor/heads reports. Read-only: it does not append a row and it does not sign.
+ * No witnessed key, or no held key to compare, stays not_checked (ok null). A match is status none.
+ * A mismatch is a deterministic sealed refusal (attempt 1, tip zero) the witness can copy.
+ */
+export async function secondMintHead({ witnessedKeyId: witnessed = null, attemptedKeyId = null, checked = false } = {}) {
+  const base = { spec: SECOND_MINT_SPEC, signed: false, checked: checked === true, cap7_is_icann: false, paid_sat: "HELD" };
+  if (!witnessed) {
+    return {
+      ...base,
+      status: "not_checked",
+      ok: null,
+      live: false,
+      witnessed_key_id: null,
+      refused_key_id: null,
+      refusal_receipt_hash: null,
+      reason: checked ? "verified witness statement has no receipt key id" : "witness log was not read",
+    };
+  }
+  if (!attemptedKeyId) {
+    return {
+      ...base,
+      status: "not_checked",
+      ok: null,
+      live: false,
+      witnessed_key_id: witnessed,
+      refused_key_id: null,
+      refusal_receipt_hash: null,
+      reason: "no held receipt key to compare",
+    };
+  }
+  if (attemptedKeyId === witnessed) {
+    return {
+      ...base,
+      status: "none",
+      ok: true,
+      live: true,
+      witnessed_key_id: witnessed,
+      refused_key_id: null,
+      refusal_receipt_hash: null,
+      reason: "held key matches the witnessed receipt key",
+    };
+  }
+  const refusal = await sealSecondMintRefusal({
+    path: "deploy-held-key",
+    deny_reason: "loaded key id differs from the witnessed key",
+    tip: ZERO_HASH,
+    attempted_key_id: attemptedKeyId,
+    witnessed_key_id: witnessed,
+    attempt_n: 1,
+    prev_hash: ZERO_HASH,
+  });
+  return {
+    ...base,
+    status: "refused",
+    ok: false,
+    live: true,
+    code: "KEY-SECOND-MINT",
+    witnessed_key_id: witnessed,
+    refused_key_id: attemptedKeyId,
+    refusal_receipt_hash: refusal.hash,
+    refusal,
+    reason: "loaded key differs from the witnessed receipt key; second mint refused. No key was minted.",
+  };
 }
 
 export function secondMintWitnessFragment() {

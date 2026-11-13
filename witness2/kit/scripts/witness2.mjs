@@ -43,7 +43,7 @@ export async function anchorOnce({ heads, now = new Date(), force = false, key, 
   const own = verifyOwnLog(log, pub);
   if (!own.ok) return { anchored: false, refused: true, ...own, reason: `own log does not verify at row ${own.at} (${own.code}): ${own.reason}; nothing appended` };
   const last = log[log.length - 1];
-  const same = last && canonicalize(last.statement.heads.chains) === canonicalize(heads.chains) && canonicalize(last.statement.heads.stores || null) === canonicalize(heads.stores || null) && (last.statement.git_sha || null) === (heads.git_sha || null);
+  const same = last && canonicalize(last.statement.heads.chains) === canonicalize(heads.chains) && canonicalize(last.statement.heads.stores || null) === canonicalize(heads.stores || null) && (last.statement.git_sha || null) === (heads.git_sha || null) && canonicalize(last.statement.build_attest ?? null) === canonicalize(heads.build_attest ?? null) && canonicalize(last.statement.second_mint ?? null) === canonicalize(heads.second_mint ?? null) && canonicalize(last.statement.receipt_key ?? null) === canonicalize(heads.receipt_key ?? null);
   if (same && !force) return { anchored: false, reason: `heads unchanged since statement ${last.statement.n}` };
   const statement = {
     spec: "AZRT-ANCHOR-1.0",
@@ -53,6 +53,11 @@ export async function anchorOnce({ heads, now = new Date(), force = false, key, 
     source: `${RUNTIME}/v1/anchor/heads`,
     git_sha: heads.git_sha || null,
     heads: { chains: heads.chains, stores: heads.stores || null, version: heads.version || null, git_sha: heads.git_sha || null, at: heads.at || null },
+    // Additive (RIB-048 / RIB-049): copy the runtime's build attestation and second-mint fragment.
+    // Absent stays null. Old statements verify unchanged.
+    build_attest: heads.build_attest ?? null,
+    second_mint: heads.second_mint ?? null,
+    receipt_key: heads.receipt_key ?? null,
     witness: { slot: 2, host: HOST, repo: REPO, run_id: runId, key: "keys/witness2.pub" },
   };
   const text = canonicalize(statement);

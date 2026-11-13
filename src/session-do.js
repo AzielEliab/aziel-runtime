@@ -146,10 +146,15 @@ export class RuntimeSession {
   }
 
   async fetchInner(request) {
+    // RIB-048 / RIB-049: the verified witness statement is in force for this request only.
+    const { withGroupD } = await import("./group-d.js");
+    return withGroupD(fetch, async (view) => {
     try {
       // RIB-042: use the provisioned receipt key if one is held (never generated here).
+      // A witnessed key id from this request is passed in. It does not stick after the request.
       const { heldSignerFromEnv, setActiveReceiptSigner } = await import("./receipt-signing.js");
-      setActiveReceiptSigner(await heldSignerFromEnv(this.env));
+      const signerOpts = view.log_ok ? { witnessedKeyId: view.receipt_key_id } : {};
+      setActiveReceiptSigner(await heldSignerFromEnv(this.env, signerOpts));
       const url = new URL(request.url);
       const action = url.pathname.replace(/^\//, "") || "status";
       if (action === "open" && request.method === "POST") {
@@ -229,6 +234,7 @@ export class RuntimeSession {
     } catch (err) {
       return fail(err);
     }
+    });
   }
 
   async jobPut(body) {

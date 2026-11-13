@@ -160,26 +160,39 @@ export async function assertBuildAttestForExec(session) {
   });
 }
 
-/** What GET /v1/anchor/heads publishes for the witness to copy. Not a signature. Not live. */
-export function buildAttestHead(meta = {}) {
+/**
+ * What GET /v1/anchor/heads publishes for the witness to copy. Not a signature.
+ * `witnessed` is the attestation taken from a verified witness statement (null when that
+ * statement has none). The running artifact_digest is always published so the witness can copy it.
+ * No statement digest is not_checked (ok null), never a pass. A real comparison sets live.
+ */
+export function buildAttestHead(meta = {}, { witnessed = null, checked = false } = {}) {
   const running = runningBundleDigest();
+  const verdict = checkBuildAttest({
+    runningDigest: running,
+    witnessed,
+    strict: false,
+    deployVars: meta,
+  });
+  const view = verdict.view;
+  const decided = view.status === "verified" || view.status === "failed";
   return {
-    spec: BUILD_ATTEST_SPEC,
-    live: false,
-    signed: false,
-    source_revision: meta && meta.git_sha ? meta.git_sha : null,
+    ...view,
+    live: decided,
+    checked: checked === true,
+    source_revision: (meta && meta.git_sha) || (witnessed && witnessed.source_revision) || null,
     artifact_digest: running,
-    builder_identity: null,
+    builder_identity: witnessed && witnessed.builder_identity ? witnessed.builder_identity : null,
     builder_identity_note: "Builder identity is taken only from a witnessed attestation (CI workflow + run id), never from a deploy var.",
-    witnessed: witnessedAttest
+    witnessed: witnessed
       ? {
-          artifact_digest: witnessedAttest.artifact_digest,
-          source_revision: witnessedAttest.source_revision,
-          builder_identity: witnessedAttest.builder_identity,
+          artifact_digest: witnessed.artifact_digest,
+          source_revision: witnessed.source_revision || null,
+          builder_identity: witnessed.builder_identity || null,
         }
       : null,
-    status: witnessedAttest ? "witnessed" : "not_checked",
-    ok: null,
-    note: "Not live. No attestation is not a pass. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD.",
+    note: decided
+      ? "Compared the running artifact digest to the witnessed attestation. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD."
+      : "No witnessed artifact digest, so this is not a pass. artifact_digest is published for the witness to copy. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD.",
   };
 }

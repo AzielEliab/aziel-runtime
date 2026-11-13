@@ -488,6 +488,13 @@ export function mergePolicy(current, incoming) {
     // RIB-044: resume refuses unless a witness statement covers the freeze head.
     next.resume_strict = incoming.resume_strict === true;
   }
+  if (incoming.build_attest_strict !== undefined) {
+    // RIB-048: no witnessed build attestation refuses before exec. One-way within the session.
+    if (current && current.build_attest_strict === true && incoming.build_attest_strict !== true) {
+      throw sessionError(409, "BUILD-ATTEST-POLICY-DOWNGRADE", "This session requires a witnessed build attestation. That cannot be turned off mid-session; open a new session. Policy unchanged.", { spec: "AZRT-BUILD-ATTEST-1.0" });
+    }
+    next.build_attest_strict = incoming.build_attest_strict === true;
+  }
   if (incoming.kv_increment !== undefined) {
     next.kv_increment = incoming.kv_increment === true;
   }
