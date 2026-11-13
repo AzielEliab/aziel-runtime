@@ -151,6 +151,11 @@ async function fetchText(fetchImpl, url) {
 async function loadLog(kind, fetchImpl, { force = false, now = Date.now() } = {}) {
   const hit = memo[kind];
   if (!force && hit && now - hit.at < ANCHOR_CACHE_MS) return hit.state;
+  const networkFetch = globalThis.__azielHermeticFetch;
+  if (process.env.AZIEL_HERMETIC === "1" && (typeof fetchImpl !== "function" || fetchImpl === networkFetch || (networkFetch == null && fetchImpl === globalThis.fetch))) {
+    const url = kind === "anchors" ? WITNESS_LOG_URL : AUDIT_LOG_URL;
+    return { ok: false, code: ANCHOR_CODES.unreachable, url, detail: "hermetic" };
+  }
   const url = kind === "anchors" ? WITNESS_LOG_URL : AUDIT_LOG_URL;
   const key = kind === "anchors" ? WITNESS_PUBLIC_KEY : AUDITOR_PUBLIC_KEY;
   const retiredKeys = kind === "anchors" ? WITNESS_RETIRED_KEYS : AUDITOR_RETIRED_KEYS;

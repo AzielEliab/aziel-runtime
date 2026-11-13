@@ -5,7 +5,7 @@
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
-import { RATE_WINDOW_MS, clientIp, limiterIp, rateLimitDecision, rateLimitForKind, takeRateSlot } from "./production.js";
+import { RATE_WINDOW_MS, ingressLimitFields, limiterIp, rateLimitDecision, rateLimitForKind, takeRateSlot } from "./production.js";
 
 export class RateQuota {
   constructor(ctx, env) {
@@ -150,7 +150,10 @@ export async function takeDistributedRateSlot(env, bucket, key, limit, now = Dat
   if (stub) {
     try {
       if (typeof stub.take === "function") {
-        return await stub.take({ limit, window_ms: RATE_WINDOW_MS, now });
+        const taken = await stub.take({ limit, window_ms: RATE_WINDOW_MS, now });
+        if (taken && typeof taken.ok === "boolean") {
+          return { ...taken, rate_backend: "durable-object", shared_across_isolates: true, global_quota: false, cf_overwrite_proven: false };
+        }
       }
       const res = await stub.fetch(
         new Request("https://rate/take", {
@@ -160,13 +163,16 @@ export async function takeDistributedRateSlot(env, bucket, key, limit, now = Dat
         }),
       );
       const body = await res.json();
-      if (body && typeof body.ok === "boolean") return body;
+      if (body && typeof body.ok === "boolean") {
+        return { ...body, rate_backend: "durable-object", shared_across_isolates: true, global_quota: false, cf_overwrite_proven: false };
+      }
     } catch {
-      /* isolate fallback — labeled */
+      const slot = takeRateSlot(env, bucket, key, limit, now);
+      return { ...slot, enforcement: "isolate", rate_backend: "isolate-fallback", shared_across_isolates: false, global_quota: false, cf_overwrite_proven: false, rate_error: "RATE-UNAVAILABLE" };
     }
   }
   const slot = takeRateSlot(env, bucket, key, limit, now);
-  return { ...slot, enforcement: "isolate" };
+  return { ...slot, enforcement: "isolate", rate_backend: "isolate", shared_across_isolates: false, global_quota: false, cf_overwrite_proven: false };
 }
 
 const DOOR_SCOPES = {
@@ -188,5 +194,5 @@ export async function doorRateLimitDecision(env, request, kind, now = Date.now()
   }
   const { rateKeyOf } = await import("./production.js");
   const slot = await takeDistributedRateSlot(env, kind, rateKeyOf(ip), limit, now);
-  return { ...slot, scope: DOOR_SCOPES[kind], ip, rate_key: rateKeyOf(ip) };
+  return { ...slot, scope: DOOR_SCOPES[kind], ip, rate_key: rateKeyOf(ip), ...ingressLimitFields(request) };
 }

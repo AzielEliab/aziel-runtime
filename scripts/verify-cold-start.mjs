@@ -145,7 +145,7 @@ try {
   check(sent.ok === true && sent.loopback === true && sent.bearer_mode === "loopback", `loopback deliver ${sent.code} ${sent.bearer_mode}`);
   check(sent.second_device === false && sent.same_machine === true && sent.physical_devices === 1, "loopback is not a second device");
   check(sent.plaintext_sha256 === (await sha256Hex(share)) && sent.plaintext_on_wire === false, "loopback share hash");
-  check(sent.plaintext_returned === true, "this main build still returns plaintext on the peer HTTP response");
+  check(sent.plaintext_returned === false, "peer HTTP response is a hash receipt");
   check(sent.peer_exchange_wifi === false && sent.peer_exchange_rf === false && sent.peer_exchange_photon === false, "other carriers were not this share");
   check(seen.every((row) => row.startsWith("POST /v1/fed-mesh/")), "loopback dialed only fed-mesh paths");
   check(left.auto_update.enabled === false && left.auto_update.code === "UPDATE-OFF" && left.auto_update.live === false, "node updater stayed off");

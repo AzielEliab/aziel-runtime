@@ -417,6 +417,7 @@ async function imageOf(raw, fetchImpl) {
 
 function fetchImplOf(ctx) {
   if (ctx && typeof ctx.fetchImpl === "function") return ctx.fetchImpl;
+  if (process.env.AZIEL_HERMETIC === "1") return null;
   if (typeof fetch === "function") return fetch;
   return null;
 }

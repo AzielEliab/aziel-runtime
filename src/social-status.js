@@ -282,6 +282,9 @@ async function readJsonCapped(res, maxBytes = SOCIAL_STATUS_MAX_BODY) {
 }
 
 export async function fetchSiblingJson(url, options = {}) {
+  if (process.env.AZIEL_HERMETIC === "1" && !options.fetch) {
+    return { error: "hermetic", status: 0 };
+  }
   const fetchImpl = options.fetch || globalThis.fetch;
   const timeoutMs = options.timeoutMs || SOCIAL_STATUS_FETCH_TIMEOUT_MS;
   const headers = {
@@ -458,7 +461,7 @@ export async function statsRollupSnapshot(env = {}, options = {}) {
 
   const origin = options.origin || "https://aziel-runtime.vibelock.workers.dev";
   const fetchOpts = {
-    fetch: options.fetch || (env && env.STATS_FETCH) || globalThis.fetch,
+    fetch: options.fetch || (env && env.STATS_FETCH) || (process.env.AZIEL_HERMETIC === "1" ? undefined : globalThis.fetch),
     timeoutMs: options.timeoutMs,
     parallelFast: options.parallelFast === true,
     env,

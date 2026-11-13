@@ -411,8 +411,8 @@ assert.ok(localTools.includes("memory_recall"));
 assert.ok(!localTools.includes("godlock_submit"));
 assert.ok(!localTools.includes("foldlock_fold-preview"));
 
-if (process.env.AZIEL_RUNTIME_MCP_SKIP_LIVE === "1") {
-  console.log("verify-mcp-stdio: skip live smoke (AZIEL_RUNTIME_MCP_SKIP_LIVE=1)");
+if (process.env.AZIEL_RUNTIME_MCP_SKIP_LIVE === "1" || process.env.AZIEL_HERMETIC === "1") {
+  console.log("verify-mcp-stdio: live public Worker is not called (hermetic or AZIEL_RUNTIME_MCP_SKIP_LIVE)");
 } else {
   const liveUrl = (process.env.AZIEL_RUNTIME_URL || DEFAULT_RUNTIME_URL).replace(/\/$/, "");
   let online = false;

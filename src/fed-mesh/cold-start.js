@@ -372,14 +372,17 @@ export function createColdStart(track2, opts = {}) {
           detail: String(err && err.message ? err.message : err),
         });
       }
-      const arrived = opened && opened.ok === true && opened.plaintext === String(plaintext ?? "");
+      const plaintextHash = await sha256Hex(text);
+      const arrived = opened
+        && opened.ok === true
+        && opened.plaintext == null
+        && opened.plaintext_sha256 === plaintextHash;
       const measured = deliveryWatch({
         machineId,
         peerMachineId: typeof peerMachineId === "string" ? peerMachineId : "",
         loopback: supplied.loopback === true,
         arrived,
       });
-      const plaintextHash = await sha256Hex(text);
       const ciphertextHash = await sha256Hex(String(envelope.ciphertext || ""));
       return {
         ok: arrived === true,
