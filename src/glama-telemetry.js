@@ -87,6 +87,7 @@ export function isSuccessfulToolsCall(message, rpc) {
 function resolveTelemetryFetch(explicit) {
   if (typeof explicit === "function") return explicit;
   if (typeof telemetryFetchOverride === "function") return telemetryFetchOverride;
+  if (process.env.AZIEL_HERMETIC === "1") return null;
   if (typeof globalThis.fetch === "function") return globalThis.fetch.bind(globalThis);
   return null;
 }

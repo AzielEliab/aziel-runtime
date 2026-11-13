@@ -7,6 +7,9 @@
 export const REACH_PROBE_URL = "https://github.com/AzielEliab/aziel-runtime";
 
 export async function probeInternetReach(opts = {}) {
+  if (process.env.AZIEL_HERMETIC === "1" && !Object.prototype.hasOwnProperty.call(opts, "fetchImpl")) {
+    return { ok: false, reachable: false, status: 0, code: "UPDATE-INTERNET-UNREACHABLE", live: false, hermetic: true };
+  }
   const fetchFn = Object.prototype.hasOwnProperty.call(opts, "fetchImpl") ? opts.fetchImpl : globalThis.fetch;
   if (typeof fetchFn !== "function") return { ok: false, reachable: false, code: "UPDATE-NO-REACH-PROBE", live: false };
   const url = typeof opts.url === "string" && opts.url ? opts.url : REACH_PROBE_URL;

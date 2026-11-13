@@ -21,6 +21,9 @@ export const FED_SPEC = "FED-MESH-1.0";
 export const JOIN_CARRIER = "lan";
 export const ZERO_HASH = "0".repeat(64);
 
+import { isLanHost, isLoopbackHost } from "../../src/fed-mesh/bearers.js";
+import { peerFetch } from "../../src/fed-mesh/local-tls.js";
+
 const CROCKFORD = "0123456789ABCDEFGHJKMNPQRSTVWXYZ";
 const HANDLE_LEN = 11;
 const BEACON_KEYS = new Set([
@@ -35,6 +38,7 @@ const BEACON_KEYS = new Set([
   "enc_public_key",
   "carrier",
   "direct_url",
+  "tls_sha256",
   "sig",
 ]);
 const FORBIDDEN_TICK = new Set([
@@ -229,20 +233,6 @@ function baseOf(raw) {
   return String(raw || "").trim().replace(/\/$/, "");
 }
 
-function isLanHost(host) {
-  if (host.endsWith(".local")) return true;
-  const parts = host.split(".");
-  if (parts.length === 4 && parts.every((part) => /^\d{1,3}$/.test(part))) {
-    const n = parts.map((part) => Number(part));
-    if (n.some((part) => part > 255)) return false;
-    if (n[0] === 10) return true;
-    if (n[0] === 192 && n[1] === 168) return true;
-    if (n[0] === 172 && n[1] >= 16 && n[1] <= 31) return true;
-    if (n[0] === 169 && n[1] === 254) return true;
-    return false;
-  }
-  return host.startsWith("fc") || host.startsWith("fd") || host.startsWith("fe80:");
-}
 
 export function joinRoute(raw) {
   const text = String(raw || "").trim();
@@ -267,45 +257,46 @@ export function joinRoute(raw) {
     return fail("FED-MESH-NAT-REFUSE", "That scheme is not the LAN client path.", { hole_punch: false });
   }
   const host = url.hostname.replace(/^\[|\]$/g, "").toLowerCase();
-  if (host === "localhost" || host === "127.0.0.1" || host === "::1") {
+  if (isLoopbackHost(host)) {
     return pass({ route_class: "direct", bearer_mode: "loopback", hole_punch: false });
   }
-  if (isLanHost(host)) return pass({ route_class: "direct", bearer_mode: "direct-lan", hole_punch: false });
+  if (isLanHost(host)) {
+    if (url.protocol !== "https:") {
+      return fail("FED-MESH-TLS-REQUIRED", "A non-loopback peer requires TLS. Cleartext LAN is refused.", {
+        tls_required: true,
+        sent: false,
+        hole_punch: false,
+      });
+    }
+    return pass({ route_class: "direct", bearer_mode: "direct-lan", hole_punch: false, tls: true });
+  }
   return fail("FED-MESH-NO-ROUTE", "The mobile client joins a loopback or LAN node. A public host is not this path.", {
     hole_punch: false,
   });
 }
 
 async function postJson(url, body) {
-  let res;
-  try {
-    res = await fetch(url, {
-      method: "POST",
-      headers: { "content-type": "application/json", accept: "application/json" },
-      body: JSON.stringify(body),
-    });
-  } catch (err) {
-    return fail("FED-MESH-NO-ROUTE", "The local node did not answer. NAT punch is not a fallback.", {
-      detail: String(err && err.message ? err.message : err),
+  const res = await peerFetch(url, { method: "POST", json: body, tlsPin: "" });
+  if (!res.transportOk) {
+    return fail(res.code || "FED-MESH-NO-ROUTE", res.message || "The local node did not answer. NAT punch is not a fallback.", {
+      sent: res.sent === true,
+      application_bytes: res.application_bytes || 0,
       hole_punch: false,
     });
   }
-  const parsed = await res.json().catch(() => ({}));
-  return parsed && typeof parsed === "object" ? parsed : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
+  return res.json && typeof res.json === "object" ? res.json : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
 }
 
 async function getJson(url) {
-  let res;
-  try {
-    res = await fetch(url, { headers: { accept: "application/json" } });
-  } catch (err) {
-    return fail("FED-MESH-NO-ROUTE", "The local node did not answer. NAT punch is not a fallback.", {
-      detail: String(err && err.message ? err.message : err),
+  const res = await peerFetch(url, { method: "GET", tlsPin: "" });
+  if (!res.transportOk) {
+    return fail(res.code || "FED-MESH-NO-ROUTE", res.message || "The local node did not answer. NAT punch is not a fallback.", {
+      sent: res.sent === true,
+      application_bytes: res.application_bytes || 0,
       hole_punch: false,
     });
   }
-  const parsed = await res.json().catch(() => ({}));
-  return parsed && typeof parsed === "object" ? parsed : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
+  return res.json && typeof res.json === "object" ? res.json : fail("FED-MESH-BAD-INPUT", "The node did not return JSON.");
 }
 
 function sessionId() {
@@ -335,6 +326,11 @@ async function sharedKey(privateKey, publicB64, fromHandle, toHandle, seq) {
     256,
   );
   return crypto.subtle.importKey("raw", aes, "AES-GCM", false, ["encrypt", "decrypt"]);
+}
+
+async function sha256Hex(text) {
+  const digest = await crypto.subtle.digest("SHA-256", utf8(String(text ?? "")));
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 async function sealPlaintext({ fromHandle, toHandle, seq, recipientEncPublicKey, plaintext }) {
@@ -634,9 +630,19 @@ export async function createMobileJoinClient() {
           node: body,
         });
       }
+      const plaintext_sha256 = await sha256Hex(String(plaintext ?? ""));
+      if (body.plaintext != null || body.plaintext_sha256 !== plaintext_sha256) {
+        return fail(body.plaintext != null ? "MESH-NO-BYTES" : "FED-MESH-TAMPER", body.plaintext != null
+          ? "Peer transport returned plaintext."
+          : "Peer receipt hash does not match the sealed share.", {
+          plaintext: null,
+          integrity: false,
+        });
+      }
       return pass({
         op: "peer_recv",
-        plaintext: body.plaintext,
+        plaintext_sha256,
+        plaintext_returned: false,
         peer_tunnel: body.peer_tunnel || "LIVE-when-session",
         live: true,
         route_class: row.route_class,

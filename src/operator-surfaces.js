@@ -1232,6 +1232,12 @@ export async function crawl(payload, env) {
   const url = src.url ? String(src.url) : "";
   if (!url) return { ok: true, op: "crawl", tool: "absent", fetched: [], recorded: true, ...honesty() };
   if (typeof fetch !== "function") return { ok: false, op: "crawl", tool: "absent", fetched: [], code: "CRAWL-NO-FETCH", ...honesty() };
+  if (process.env.AZIEL_HERMETIC === "1") {
+    let host = "";
+    try { host = new URL(url).hostname; } catch { host = ""; }
+    const local = host === "127.0.0.1" || host === "localhost" || host === "::1" || host === "[::1]";
+    if (!local) return { ok: false, op: "crawl", tool: "absent", fetched: [], code: "CRAWL-NO-FETCH", hermetic: true, ...honesty() };
+  }
   try {
     const res = await fetch(url, { signal: AbortSignal.timeout(2500) });
     const buf = new Uint8Array(await res.arrayBuffer());

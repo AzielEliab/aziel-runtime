@@ -3498,11 +3498,15 @@ async function upstreamFetch(env, product, path, init) {
   const target = `${publicHost}${path}`;
   const next = withUpstreamHeaders(init);
   const signal = next.signal || AbortSignal.timeout(4000);
+  if (process.env.AZIEL_HERMETIC === "1" && !(bind && typeof bind.fetch === "function")) {
+    return { res: null, target, hermetic: true };
+  }
   if (bind && typeof bind.fetch === "function") {
     try {
       const req = new Request("https://internal" + path, { ...next, signal });
       return { res: await bind.fetch(req), target: target + " (service binding)" };
     } catch (err) {
+      if (process.env.AZIEL_HERMETIC === "1") return { res: null, target, hermetic: true };
       /* fall through to public URL */
       console.log(
         JSON.stringify({
@@ -4281,7 +4285,7 @@ async function serveSigil(request, env) {
       /* fall through */
     }
   }
-  const fallbacks = [
+  const fallbacks = process.env.AZIEL_HERMETIC === "1" ? [] : [
     "https://www.azielcorpuslibrary.net/sigil.png",
     "https://foldlock-download-tracker.vibelock.workers.dev/sigil.png",
   ];

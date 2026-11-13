@@ -10,6 +10,7 @@ export const RELEASE_REPO = "AzielEliab/aziel-runtime";
 export const RELEASE_MANIFEST_NAME = "auto-update-manifest.json";
 
 export async function fetchStableRelease(opts = {}) {
+  if (process.env.AZIEL_HERMETIC === "1" && !Object.prototype.hasOwnProperty.call(opts, "fetchImpl")) return null;
   const fetchFn = Object.prototype.hasOwnProperty.call(opts, "fetchImpl") ? opts.fetchImpl : globalThis.fetch;
   if (typeof fetchFn !== "function") return null;
   const repo = opts.repo || RELEASE_REPO;

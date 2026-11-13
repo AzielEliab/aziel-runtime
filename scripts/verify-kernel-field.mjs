@@ -25,7 +25,9 @@ assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // and with the ark op list (USER-SIGNIN-ARK-1.0 added account_open/append/recall/challenge/session, additive, default OFF; stubs stay 363)
 // and with the 4dmap digest (CORPUS-INTAKE-SAFETY-1.0 media floor: news images hashed and dropped; counts unchanged).
 // and with engine wording for QNM named flags (mesh_node_live, alt_internet_live, packet_path_live ON; radio PHY stays false; counts unchanged).
-assert.equal(list.registry_digest, "153be311652b1ed7dbe64b46a7ae06c0f388b1e0095b979de1b022a7a6c92e1e");
+// and with the AZVPN artifact (isolate-inbox honesty: not the QNM packet path; counts unchanged).
+// and with the 4dmap artifact (hermetic tests do not dial news or weather feeds; counts unchanged).
+assert.equal(list.registry_digest, "dc28b99f5be541dfd1a09dee21d42a9b03238bad95dd214a3adbc99f18c08bcf");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;

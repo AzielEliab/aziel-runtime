@@ -41,6 +41,7 @@ const relays = relaysArg
 const passphrase = arg("--passphrase", "");
 const armArg = arg("--arm", "");
 const fixture = process.argv.includes("--fixture");
+const secure = process.argv.includes("--secure");
 const product = arg("--product", "mesh");
 const heartbeatSec = Math.max(0, Number(arg("--heartbeat-sec", "0")) || 0);
 // MESH-ONBOARD-1.0 log cap: with --log-file, JSON lines go to that file (0600) and it rotates to
@@ -48,7 +49,7 @@ const heartbeatSec = Math.max(0, Number(arg("--heartbeat-sec", "0")) || 0);
 // capped files exist (src/fed-mesh/capped-log.js). Without --log-file, lines go to stdout as before.
 const logFile = arg("--log-file", "");
 if (logFile) console.log = cappedLogger(logFile, Number(arg("--log-max-bytes", "1048576")));
-const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture, product });
+const node = await startInstance({ dataDir: data, port, host, advertise, relays, passphrase, fixture, product, secure });
 console.log(JSON.stringify({
   handle: node.handle,
   listen_host: node.listenHost,
@@ -62,6 +63,8 @@ console.log(JSON.stringify({
   turn: false,
   public_icann: false,
   radio_phy: false,
+  tls: node.tls === true,
+  tls_sha256: node.tls_sha256 || null,
   awareness_socket: false,
   track2: node.track2.summary(),
   mobile_join: `${node.base}/mobile/`,

@@ -73,6 +73,15 @@ export function resetSotStore() {
   pushOverrides.clear();
 }
 
+/** Read-only ledger view for tests. A refused or rate-limited POST must leave this unchanged. */
+export function sotLedgerView() {
+  return {
+    tip_hash: ledger.tip_hash,
+    receipts: ledger.receipts.length,
+    outlet_ids: Object.keys(ledger.outlets).sort(),
+  };
+}
+
 export function setOutletPushUrl(id, url) {
   const key = String(id || "").trim();
   const accepted = acceptOutletHook(url);
@@ -771,6 +780,9 @@ async function resolveSot(origin, env, fetchImpl, payload) {
 function fetchOf(env, payload) {
   if (env && typeof env.sotFetch === "function") return env.sotFetch;
   if (payload && typeof payload.fetchImpl === "function") return payload.fetchImpl;
+  if (process.env.AZIEL_HERMETIC === "1") {
+    return async () => new Response("", { status: 503, headers: { "x-aziel-hermetic": "1" } });
+  }
   return globalThis.fetch;
 }
 

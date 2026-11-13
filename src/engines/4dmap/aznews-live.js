@@ -611,6 +611,10 @@ async function blackSwans(batch, repo, recent, now) {
 /* ------------------------------------------------------- weather / sky */
 
 async function ingestWeather(batch, fetchImpl, now) {
+  const networkFetch = globalThis.__azielHermeticFetch;
+  if (process.env.AZIEL_HERMETIC === "1" && (fetchImpl === networkFetch || (networkFetch == null && fetchImpl === globalThis.fetch))) {
+    return { ok: false, reason: "hermetic", stored: 0 };
+  }
   const url = weatherBatchUrl();
   let body = null;
   let http = null;
@@ -699,6 +703,8 @@ async function ingestSky(batch, now) {
 /* ---------------------------------------------------------------- tick */
 
 export async function tick(repo, { fetchImpl = typeof fetch === "function" ? fetch : null, now = Date.now(), outletsPerTick = OUTLETS_PER_TICK, force = {} } = {}) {
+  const networkFetch = globalThis.__azielHermeticFetch;
+  if (process.env.AZIEL_HERMETIC === "1" && (fetchImpl === networkFetch || (networkFetch == null && fetchImpl === globalThis.fetch))) fetchImpl = null;
   const state = (await repo.metaGet("state")) || { cursor: 0, cycle: 0, last_weather_ms: 0, last_sky_ms: 0, ticks: 0 };
   const outletStatus = (await repo.metaGet("outlets")) || {};
   let recent = recentWithin(await repo.metaGet("recent"), now);

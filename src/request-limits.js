@@ -52,48 +52,6 @@ export function requestLimitKind(pathname, method) {
   }
   // Seal on this path can dispatch a live FragGate op. Bill it as a call, not a read.
   if (path === "/v1/interface" && m === "POST") return "fraggate_call";
-  if (
-    m === "POST" &&
-    (path === "/v1/mesh/join" ||
-      path === "/v1/mesh/heartbeat" ||
-      path === "/v1/mesh/broadcast" ||
-      path === "/v1/mesh/leave" ||
-      path === "/v1/mesh/site-presence" ||
-      path === "/v1/mesh/site-heartbeat" ||
-      path === "/v1/mesh/relay/register" ||
-      path === "/v1/mesh/relay/heartbeat" ||
-      path === "/v1/mesh/relay/leave" ||
-      path === "/v1/mesh/relay/post" ||
-      path === "/v1/mesh/relay/pull" ||
-      path === "/v1/mesh/relay/deliver" ||
-      path === "/v1/mesh/relay/forward" ||
-      path === "/v1/mesh/relay/peers" ||
-      path === "/v1/mesh/relay/bootstrap" ||
-      path === "/v1/mesh/relay/rollup" ||
-      path === "/v1/mesh/relay/remote-task" ||
-      path === "/v1/mesh/relay/ref" ||
-      path === "/v1/mesh/relay/sync" ||
-      path === "/v1/mesh/relay/object" ||
-      path === "/v1/mesh/relay/name" ||
-      path === "/v1/mesh/relay/witness" ||
-      path === "/v1/mesh/relay/equivocation" ||
-      path === "/v1/mesh/relay/vouch" ||
-      path === "/v1/mesh/relay/advisory" ||
-      path === "/v1/mesh/relay/quarantine" ||
-      path === "/v1/mesh/relay/island" ||
-      path === "/v1/mesh/relay/airgap" ||
-      path === "/v1/mesh/relay/restore" ||
-      path === "/v1/mesh/relay/isolation" ||
-      path === "/v1/mesh/relay/appeal" ||
-      path === "/v1/mesh/hole-punch" ||
-      path === "/v1/mesh/nat" ||
-      path === "/v1/mesh/stun" ||
-      path === "/v1/mesh/relay/hole-punch" ||
-      path === "/v1/mesh/relay/nat" ||
-      path === "/v1/mesh/relay/stun")
-  ) {
-    return "mesh_mutate";
-  }
   // AGENT-SUBNET-1.0 (AZBot N2): every POST /v1/mesh/agents/* shares mesh_mutate; the status, directory
   // and challenge GETs get their own per-IP agent_read limit. GET receipts is the cached hourly snapshot.
   if (path === "/v1/mesh/agents" || path.startsWith("/v1/mesh/agents/")) {
@@ -101,9 +59,10 @@ export function requestLimitKind(pathname, method) {
     if ((m === "GET" || m === "HEAD") && (path === "/v1/mesh/agents" || path === "/v1/mesh/agents/directory" || path === "/v1/mesh/agents/challenge")) return "agent_read";
     return null;
   }
-  if (m === "POST" && path.startsWith("/v1/memory/")) {
-    return "memory_mutate";
-  }
+  // Every mesh POST shares mesh_mutate, including enable, disable, sot-sync, rewrite, and lie.
+  // GET, HEAD, HTML, and crawler reads stay outside this bucket.
+  if (m === "POST" && (path === "/v1/mesh" || path.startsWith("/v1/mesh/"))) return "mesh_mutate";
+  if (m === "POST" && (path === "/v1/memory" || path.startsWith("/v1/memory/"))) return "memory_mutate";
   return null;
 }
 

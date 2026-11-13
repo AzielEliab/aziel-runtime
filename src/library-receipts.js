@@ -291,7 +291,15 @@ function peekJsonHash(body) {
   return "";
 }
 
+function receiptFetch(fetchImpl) {
+  const network = globalThis.__azielHermeticFetch;
+  const bare = process.env.AZIEL_HERMETIC === "1" && (typeof fetchImpl !== "function" || fetchImpl === network || (network == null && fetchImpl === globalThis.fetch));
+  if (bare) return async () => new Response("", { status: 503, headers: { "x-aziel-hermetic": "1" } });
+  return fetchImpl;
+}
+
 export async function fetchCorpusTip(env, fetchImpl = fetch) {
+  fetchImpl = receiptFetch(fetchImpl);
   try {
     const headers = { "User-Agent": DEFAULT_UA, Accept: "application/json" };
     const token = receiptAppendToken(env);
@@ -311,6 +319,7 @@ export async function fetchCorpusTip(env, fetchImpl = fetch) {
 }
 
 export async function appendActReceipt(env, receipt, fetchImpl = fetch) {
+  fetchImpl = receiptFetch(fetchImpl);
   const token = receiptAppendToken(env);
   if (!token) return { ok: false, refuse: "no-token", published: false };
   try {
@@ -547,6 +556,7 @@ export function actReceiptRefuse(code, message, extra = {}) {
 }
 
 export async function proxyCorpusReceipts(env, kind = "tip", fetchImpl = fetch) {
+  fetchImpl = receiptFetch(fetchImpl);
   const url = kind === "read" ? LIBRARY_RECEIPTS_READ : LIBRARY_RECEIPTS_TIP;
   try {
     const headers = { "User-Agent": DEFAULT_UA, Accept: "application/json" };

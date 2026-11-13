@@ -136,7 +136,13 @@ async function readViewSnapshot(meters, fetchImpl, now) {
  */
 export async function rectifyUsesBody(body, { meters = [], siteLive = null, fetchImpl = null, now = Date.now() } = {}) {
   if (!body || body.uses_total_source !== USES_TOTAL_SOURCE) return body;
-  const fetchFn = typeof fetchImpl === "function" ? fetchImpl : typeof globalThis.fetch === "function" ? globalThis.fetch : null;
+  const fetchFn = typeof fetchImpl === "function"
+    ? fetchImpl
+    : process.env.AZIEL_HERMETIC === "1"
+      ? null
+      : typeof globalThis.fetch === "function"
+        ? globalThis.fetch
+        : null;
   const uses_legacy = whole(body.uses_legacy) || 0;
   const uses_durable = whole(body.uses_durable) || 0;
   const uses_read = uses_legacy + uses_durable;

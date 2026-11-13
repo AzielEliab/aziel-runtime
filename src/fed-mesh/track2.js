@@ -7,6 +7,9 @@
  * Phase D: disk outbox and bounded A→B→C store-forward. In-process peers
  * are a fixture (second_device false). The three QNM named flags are live.
  * That fixture is not radio PHY and is not a second device.
+ * A mutual beacon is not a live carrier. deliverToPeer is local socket
+ * verification between two node processes. It does not deploy a public path
+ * and it does not mark Wi-Fi, Bluetooth, RF, or photon hardware-live.
  * Phase E: signed bootstrap list and shelf cite slots. Scaffold only.
  *
  * The public Worker cites this plane and does not run it.
@@ -19,18 +22,20 @@
 
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
+import { readMachineId, track2CarrierProbe } from "../../qnm-node/bearers/radio.js";
+import { watchQualifies } from "../alt-internet-fact.js";
 import { qnmNamedLive } from "../qnm-honesty.js";
 import { notifyCarrierContact, notifyPeerContact } from "../auto-update/adopt.js";
 import { D2D_MOBILE_CLIENT, D2D_STORE_FORWARD } from "../d2d-carriers.js";
 import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
 import { negotiateBearer, negotiateRouteClass } from "../transport/routing.js";
-import { classifyPeerUrl, natPunchRequest } from "./bearers.js";
-import { hashStatement } from "./codec.js";
+import { classifyPeerUrl, isLanHost, isLoopbackHost, natPunchRequest } from "./bearers.js";
+import { peerFetch } from "./local-tls.js";
+import { canonicalStatement, hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
-import { FED_SPEC, ZERO_HASH } from "./spec.js";
+import { FED_SPEC, MAX_CIPHERTEXT_BYTES, ROSTER_CAP, ZERO_HASH } from "./spec.js";
 
 export const TRACK2_SPEC = "D2D-CARRIERS-1.0";
 export const TRACK2_AUTHOR = "Aziel Eliab";
@@ -52,6 +57,7 @@ const BEACON_KEYS = new Set([
   "enc_public_key",
   "carrier",
   "direct_url",
+  "tls_sha256",
   "sig",
 ]);
 
@@ -99,8 +105,96 @@ function ok(extra = {}) {
   };
 }
 
+/** Highest share seq in one session epoch. */
+export const SHARE_SEQ_MAX = 1_000_000;
+/**
+ * Largest step above the watermark one share may take.
+ * state.seq also moves for phoenix and other local bookkeeping, so the next
+ * share need not be watermark+1. A step this size cannot reach the cap from
+ * a fresh session, so one captured share cannot retire the epoch.
+ */
+export const MAX_FORWARD_GAP = 64;
+/** Verified peer ingress. One counter per roster node key. The roster stops at ROSTER_CAP. */
+export const PEER_RECV_PER_MIN = 30;
+export const PEER_RATE_WINDOW_MS = 60_000;
+/** Unverified failures only. Exact remote address, bounded LRU, plus one global window. */
+export const PREAUTH_PER_MIN = 60;
+export const PREAUTH_CAP = 64;
+/** All addresses share this many failures per window. Evicting an address does not give it back. */
+export const PREAUTH_GLOBAL_PER_MIN = 256;
+
+/** JSON numbers only. Booleans and numeric strings must not become a seq. */
+export function wireShareSeq(value) {
+  if (typeof value !== "number" || !Number.isInteger(value)) return null;
+  if (!Number.isSafeInteger(value) || value < 1 || value > SHARE_SEQ_MAX) return null;
+  return value;
+}
+
+function sessionEpoch(row) {
+  return Number.isSafeInteger(row && row.epoch) && row.epoch >= 1 ? row.epoch : 1;
+}
+
+function sessionWatermark(row) {
+  return Number.isSafeInteger(row && row.replaySeq) && row.replaySeq >= 0 ? row.replaySeq : 0;
+}
+
+function rekeyWindowOpen(row) {
+  return row.exhausted === true || sessionWatermark(row) >= SHARE_SEQ_MAX - MAX_FORWARD_GAP;
+}
+
+function orderingFields(row, extra = {}) {
+  const watermark = sessionWatermark(row);
+  return {
+    replay_expires: false,
+    out_of_order_delivery: false,
+    ordered_delivery: "highest-seq-closes-lower",
+    max_forward_gap: MAX_FORWARD_GAP,
+    epoch: sessionEpoch(row),
+    replay_watermark: watermark,
+    session_remaining: Math.max(0, SHARE_SEQ_MAX - watermark),
+    rekey_required: rekeyWindowOpen(row),
+    ...extra,
+  };
+}
+
+function randomId(prefix) {
+  const hex = [...crypto.getRandomValues(new Uint8Array(16))].map((b) => b.toString(16).padStart(2, "0")).join("");
+  return prefix ? `${prefix}${hex}` : hex;
+}
+
+async function rekeyOfferRank(offer) {
+  const { sig, ...statement } = offer || {};
+  return sha256Hex(canonicalStatement(statement));
+}
+
+function closeLostSession(state, sessionId) {
+  const row = state.sessions.get(sessionId);
+  if (!row) return;
+  row.open = false;
+  row.lost = true;
+  row.exhausted = true;
+  state.sessions.delete(sessionId);
+  state.retiredSessions.set(sessionId, row);
+}
+
+function retireSession(state, row, successorId, successorEpoch) {
+  row.open = false;
+  row.retired = true;
+  row.exhausted = true;
+  row.successor_session_id = successorId;
+  row.successor_epoch = successorEpoch;
+  state.sessions.delete(row.session_id);
+  state.retiredSessions.set(row.session_id, row);
+}
+
 function poisonText(value) {
   return /\b(inject-payload|jailbreak-ignore|ignore previous instructions|dan mode|poison)\b/i.test(String(value || ""));
+}
+
+async function sha256Hex(text) {
+  const bytes = typeof text === "string" ? new TextEncoder().encode(text) : text;
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
 function carrierProbe(state, id) {
@@ -179,13 +273,18 @@ function discoveryFor(state, id) {
     };
   }
   if (mutual.length > 0) {
+    const socket = state.local_socket_verified === true && state.fixture !== true;
     return {
       id,
-      status: "LIVE",
+      status: state.fixture === true ? "fixture" : socket ? "local-socket" : "beacon",
       code: "MESH-OK",
       armed: true,
-      live: true,
-      peer_exchange_demonstrated: true,
+      live: false,
+      peer_exchange_demonstrated: false,
+      local_socket_verified: socket,
+      public_deployment: false,
+      hardware_live: false,
+      radio_phy: false,
       peers: mutual.length,
       fixture: state.fixture === true,
       second_device: false,
@@ -193,8 +292,10 @@ function discoveryFor(state, id) {
       hardware: hw.kind,
       mock: false,
       note: state.fixture
-        ? "Two local peers verified each other's beacon. Fixture mode: no second physical device. Not alt-internet LIVE."
-        : "Two local peers verified each other's LAN beacon. Not a second physical device unless the operator demonstrated one. Not alt-internet LIVE.",
+        ? "Fixture beacon exchange is not a live carrier. A simulated send does not substantiate packet delivery. second_device stays false."
+        : socket
+          ? "A sealed share crossed a local socket and the peer recomputed it. Local verification only. Not a public deployment, not radio hardware, and not a second device."
+          : "Mutual LAN beacons are presence and tip hash only. A beacon is not a substantiated packet carrier.",
     };
   }
   return {
@@ -224,8 +325,10 @@ async function signBeacon(state, carrier) {
     enc_public_key: state.identity.enc_public_key,
     carrier,
     direct_url: state.direct_url || undefined,
+    tls_sha256: /^[a-f0-9]{64}$/.test(String(state.tls_sha256 || "")) ? state.tls_sha256 : undefined,
   };
   if (!statement.direct_url) delete statement.direct_url;
+  if (!statement.tls_sha256) delete statement.tls_sha256;
   const sig = await signObject(state.identity.privateKey, statement);
   return { ...statement, sig };
 }
@@ -529,6 +632,7 @@ export function createTrack2(opts = {}) {
     armed: new Set(),
     roster: new Map(),
     sessions: new Map(),
+    retiredSessions: new Map(),
     isolated: new Map(),
     outbox: [],
     receipts: [],
@@ -546,6 +650,15 @@ export function createTrack2(opts = {}) {
       phoenix_lock: "wait-reseal",
     },
     seq: 0,
+    peerRate: new Map(),
+    preAuth: new Map(),
+    preAuthTick: 0,
+    preAuthGlobal: { start: 0, count: 0 },
+    signatureChecks: 0,
+    peerRecvPerMin: Number.isInteger(opts.peerRecvPerMin) && opts.peerRecvPerMin >= 1 ? opts.peerRecvPerMin : PEER_RECV_PER_MIN,
+    preAuthPerMin: Number.isInteger(opts.preAuthPerMin) && opts.preAuthPerMin >= 1 ? opts.preAuthPerMin : PREAUTH_PER_MIN,
+    preAuthGlobalPerMin: Number.isInteger(opts.preAuthGlobalPerMin) && opts.preAuthGlobalPerMin >= 1 ? opts.preAuthGlobalPerMin : PREAUTH_GLOBAL_PER_MIN,
+    local_socket_verified: false,
   };
 
   function summary() {
@@ -556,7 +669,11 @@ export function createTrack2(opts = {}) {
       author: TRACK2_AUTHOR,
       handle: identity.handle,
       armed: [...state.armed],
-      lan_discovery: lan.live ? "LIVE" : lan.status,
+      lan_discovery: lan.status,
+      local_socket_verified: state.local_socket_verified === true,
+      machine_id: readMachineId(),
+      public_deployment: false,
+      radio_phy: false,
       lan_code: lan.code,
       peer_tunnel: [...state.sessions.values()].some((row) => row.open) ? "LIVE-when-session" : "down",
       peer_count: [...state.roster.values()].filter((row) => row.verified && row.presence !== "isolated").length,
@@ -569,7 +686,7 @@ export function createTrack2(opts = {}) {
       mobile_client: D2D_MOBILE_CLIENT,
       mobile_demonstrated: false,
       app_store_release: false,
-      in_process: true,
+      in_process: state.local_socket_verified !== true,
       needs_starting_address: true,
       live_multi_provider: false,
       cold_shelf_live: false,
@@ -778,6 +895,12 @@ export function createTrack2(opts = {}) {
         });
       }
       const prior = state.roster.get(beacon.handle);
+      if (!prior && state.roster.size >= ROSTER_CAP) {
+        return fail("FED-MESH-ROSTER-FULL", `This node holds ${ROSTER_CAP} peers. That cap is local. No rate slot was added.`, {
+          roster_cap: ROSTER_CAP,
+          verified_charged: false,
+        });
+      }
       const tips = prior && prior.prev === prev ? prior.tips.slice() : [];
       if (!tips.includes(tip)) tips.push(tip);
       const judged = judgeEquivocation({ prev, tips, node_id: beacon.handle, presence: "live" });
@@ -794,6 +917,7 @@ export function createTrack2(opts = {}) {
           tips,
           hits: (prior && prior.hits) || 1,
           direct_url: beacon.direct_url || null,
+          tls_sha256: /^[a-f0-9]{64}$/.test(String(beacon.tls_sha256 || "")) ? beacon.tls_sha256 : null,
           presence: "isolated",
           verified: true,
           mutual: false,
@@ -819,6 +943,7 @@ export function createTrack2(opts = {}) {
         tips,
         hits,
         direct_url: beacon.direct_url || null,
+        tls_sha256: /^[a-f0-9]{64}$/.test(String(beacon.tls_sha256 || "")) ? beacon.tls_sha256 : null,
         presence: "live",
         verified: true,
         mutual,
@@ -858,25 +983,21 @@ export function createTrack2(opts = {}) {
         back_ok: back.ok === true,
       });
     },
-    async discoverUrl(url) {
+    async discoverUrl(url, opts = {}) {
       let last = null;
       for (let round = 0; round < 2; round += 1) {
         const mine = await this.beacon("lan");
         if (!mine.ok) return mine;
-        let res;
-        try {
-          res = await fetch(url, {
-            method: "POST",
-            headers: { "content-type": "application/json", accept: "application/json" },
-            body: JSON.stringify(mine.beacon),
-          });
-        } catch (err) {
-          return fail("FED-MESH-NO-ROUTE", "Discovery peer did not answer. NAT punch is not a fallback.", {
-            detail: String(err && err.message ? err.message : err),
+        const res = await peerFetch(url, { method: "POST", json: mine.beacon, tlsPin: opts.tlsPin });
+        if (!res.transportOk) {
+          return fail(res.code || "FED-MESH-NO-ROUTE", res.message || "Discovery peer did not answer. NAT punch is not a fallback.", {
+            detail: res.message || "",
             hole_punch: false,
+            sent: res.sent === true,
+            tls_required: res.tls_required === true,
           });
         }
-        const body = await res.json().catch(() => ({}));
+        const body = res.json;
         if (!body || body.ok !== true || !body.beacon) return body && body.code ? body : fail("FED-MESH-NO-ROUTE", "Peer did not return a beacon.");
         last = await this.ingest(body.beacon);
         if (!last.ok) return last;
@@ -929,6 +1050,7 @@ export function createTrack2(opts = {}) {
         session_public_key: signing.public_key,
         session_enc_public_key: enc.enc_public_key,
         peer_handle: handle,
+        epoch: 1,
         route_class: route.route_class,
         bearer_mode: route.mode,
       };
@@ -943,6 +1065,9 @@ export function createTrack2(opts = {}) {
         peer_session_id: null,
         open: false,
         route,
+        epoch: 1,
+        replaySeq: 0,
+        exhausted: false,
       });
       return ok({
         op: "peer_session_open",
@@ -977,6 +1102,7 @@ export function createTrack2(opts = {}) {
         session_enc_public_key: enc.enc_public_key,
         peer_handle: offer.handle,
         peer_session_id: offer.session_id,
+        epoch: 1,
         route_class: offer.route_class,
         bearer_mode: offer.bearer_mode,
       };
@@ -991,6 +1117,9 @@ export function createTrack2(opts = {}) {
         peer_session_id: offer.session_id,
         open: true,
         route: { route_class: offer.route_class, mode: offer.bearer_mode },
+        epoch: 1,
+        replaySeq: 0,
+        exhausted: false,
       });
       await notifyPeerContact(state);
       return ok({
@@ -1043,6 +1172,12 @@ export function createTrack2(opts = {}) {
         session_handle: row.session_handle,
         node_handle: identity.handle,
         session_identity_is_node_key: false,
+        epoch: sessionEpoch(row),
+        replay_watermark: sessionWatermark(row),
+        exhausted: row.exhausted === true,
+        rekey_required: rekeyWindowOpen(row),
+        session_remaining: Math.max(0, SHARE_SEQ_MAX - sessionWatermark(row)),
+        max_forward_gap: MAX_FORWARD_GAP,
         alt_internet_live: true,
         azvpn: false,
       });
@@ -1054,24 +1189,353 @@ export function createTrack2(opts = {}) {
       state.sessions.delete(sessionId);
       return ok({ op: "peer_session_close", session_id: sessionId, live: false, peer_tunnel: "down" });
     },
+    async rekeyOffer(sessionId) {
+      const row = state.sessions.get(sessionId);
+      if (!row || row.open !== true) return fail("MESH-NO-ROUTE", "Session is not open.", { rekey_required: false });
+      if (state.isolated.has(row.peer_handle)) return fail("FED-MESH-POISON", "That peer is isolated.", { handle: row.peer_handle });
+      if (!rekeyWindowOpen(row)) {
+        return fail("FED-MESH-REKEY-EARLY", "Rekey waits until this epoch is near the seq cap or already exhausted. The watermark did not move.", {
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: false }),
+        });
+      }
+      if (row.rekeyPending && row.rekeyPending.offer) {
+        return ok({
+          op: "peer_session_rekey",
+          offer: row.rekeyPending.offer,
+          replay: true,
+          epoch: row.rekeyPending.epoch,
+          prev_epoch: sessionEpoch(row),
+          prev_session_id: row.session_id,
+          session_id: row.rekeyPending.session_id,
+          replay_watermark: sessionWatermark(row),
+          rekey_required: true,
+        });
+      }
+      if (row.rekeyPending === "claiming") {
+        return fail("FED-MESH-REKEY-REPLAY", "A rekey for this epoch is already in progress.", { replay_advanced: false, rekey_required: true });
+      }
+      row.rekeyPending = "claiming";
+      const signing = await generateEd25519();
+      const enc = await generateX25519();
+      if (signing.public_key === identity.public_key || enc.enc_public_key === identity.enc_public_key || signing.handle === identity.handle || signing.public_key === row.session_public_key) {
+        row.rekeyPending = null;
+        return fail("AZP-BAD-KEY", "Rekey session key matched the node key or the old session key.");
+      }
+      const session_id = randomId("d2d_");
+      const rekey_nonce = randomId("");
+      const epoch = sessionEpoch(row) + 1;
+      const statement = {
+        v: TRACK2_SPEC,
+        kind: "peer-session-rekey",
+        plane: TRACK2_PLANE,
+        epoch,
+        prev_epoch: sessionEpoch(row),
+        session_id,
+        prev_session_id: row.session_id,
+        to_session: row.peer_session_id,
+        handle: identity.handle,
+        node_public_key: identity.public_key,
+        session_handle: signing.handle,
+        session_public_key: signing.public_key,
+        session_enc_public_key: enc.enc_public_key,
+        prev_session_public_key: row.session_public_key,
+        rekey_nonce,
+        route_class: row.route_class,
+        bearer_mode: row.bearer_mode,
+      };
+      const sig = await signObject(row.signPrivate, statement);
+      const offer = { ...statement, sig };
+      row.rekeyPending = { session_id, signing, enc, epoch, nonce: rekey_nonce, offer, completed: false };
+      return ok({
+        op: "peer_session_rekey",
+        offer,
+        replay: false,
+        epoch,
+        prev_epoch: sessionEpoch(row),
+        prev_session_id: row.session_id,
+        session_id,
+        replay_watermark: sessionWatermark(row),
+        rekey_required: true,
+      });
+    },
+    async rekeyAccept(offer) {
+      if (!offer || offer.kind !== "peer-session-rekey" || offer.plane !== TRACK2_PLANE) {
+        return fail("FED-MESH-BAD-INPUT", "Rekey plane is track2-reachability.");
+      }
+      const row = state.sessions.get(offer.to_session);
+      if (!row || row.open !== true) {
+        const retired = state.retiredSessions.get(offer.to_session);
+        if (retired && retired.rekeyNonce === offer.rekey_nonce && retired.rekeyCounter) {
+          return ok({
+            op: "peer_session_rekey",
+            offer: retired.rekeyCounter,
+            replay: true,
+            epoch: retired.successor_epoch,
+            prev_session_id: retired.session_id,
+            session_id: retired.successor_session_id,
+            replay_watermark: 0,
+            rekey_required: false,
+          });
+        }
+        return fail("FED-MESH-REKEY-REPLAY", "That rekey does not match an open epoch.", { replay_advanced: false, cross_epoch_replay: false });
+      }
+      if (row.rekeyPending && row.rekeyPending !== "claiming" && row.rekeyPending.offer) {
+        const mine = await rekeyOfferRank(row.rekeyPending.offer);
+        const theirs = await rekeyOfferRank(offer);
+        if (theirs > mine) {
+          closeLostSession(state, offer.session_id);
+          return fail("FED-MESH-REKEY-LOST", "This offer sorts after the local rekey. The lower offer stays the one successor.", {
+            replay_advanced: false,
+            winning_session_id: row.rekeyPending.session_id,
+            losing_session_id: offer.session_id,
+            losing_session_closed: true,
+          });
+        }
+        if (theirs < mine) {
+          row.rekeyLost = row.rekeyPending;
+          row.rekeyLost.lost = true;
+          closeLostSession(state, row.rekeyLost.session_id);
+          row.rekeyPending = null;
+        }
+      }
+      if (row.rekeyNonce || row.rekeyBusy) {
+        if (row.rekeyNonce === offer.rekey_nonce && row.rekeyCounter) {
+          return ok({
+            op: "peer_session_rekey",
+            offer: row.rekeyCounter,
+            replay: true,
+            epoch: row.successor_epoch,
+            prev_session_id: row.session_id,
+            session_id: row.successor_session_id,
+            replay_watermark: 0,
+            rekey_required: false,
+          });
+        }
+        return fail("FED-MESH-REKEY-REPLAY", "This epoch already accepted a rekey. A second offer was not installed.", {
+          replay_advanced: false,
+          rekey_required: true,
+          epoch: sessionEpoch(row),
+        });
+      }
+      row.rekeyBusy = true;
+      const { sig, ...statement } = offer;
+      const verified = await verifyObject(row.peer_session_public_key, statement, sig);
+      if (!verified || offer.prev_session_public_key !== row.peer_session_public_key || offer.prev_session_id !== row.peer_session_id) {
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-SIG", "Rekey signature failed. The old session key did not sign this rotation.", { replay_advanced: false });
+      }
+      if (offer.handle !== row.peer_handle) {
+        row.rekeyBusy = false;
+        return fail("FED-MESH-BAD-HANDLE", "Rekey is from a different peer.");
+      }
+      const peer = state.roster.get(offer.handle);
+      if (!peer || peer.public_key !== offer.node_public_key) {
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-SIG", "Rekey node key does not match the roster.");
+      }
+      if (offer.epoch !== sessionEpoch(row) + 1 || offer.prev_epoch !== sessionEpoch(row)) {
+        row.rekeyBusy = false;
+        return fail("FED-MESH-EPOCH-RETIRED", "Rekey epoch does not follow this session.", { cross_epoch_replay: false, replay_advanced: false });
+      }
+      if (offer.session_public_key === row.session_public_key || offer.session_public_key === identity.public_key || offer.session_handle === identity.handle) {
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-KEY", "Rekey key matched a key this epoch already uses.");
+      }
+      row.rekeyNonce = offer.rekey_nonce;
+      const signing = await generateEd25519();
+      const enc = await generateX25519();
+      if (signing.public_key === identity.public_key || enc.enc_public_key === identity.enc_public_key || signing.handle === identity.handle || signing.public_key === row.session_public_key) {
+        row.rekeyNonce = null;
+        row.rekeyBusy = false;
+        return fail("AZP-BAD-KEY", "Rekey session key matched the node key or the old session key.");
+      }
+      const session_id = randomId("d2d_");
+      const rekey_nonce = randomId("");
+      const epoch = sessionEpoch(row) + 1;
+      const counterStatement = {
+        v: TRACK2_SPEC,
+        kind: "peer-session-rekey",
+        plane: TRACK2_PLANE,
+        epoch,
+        prev_epoch: sessionEpoch(row),
+        session_id,
+        prev_session_id: row.session_id,
+        to_session: offer.session_id,
+        handle: identity.handle,
+        node_public_key: identity.public_key,
+        session_handle: signing.handle,
+        session_public_key: signing.public_key,
+        session_enc_public_key: enc.enc_public_key,
+        prev_session_public_key: row.session_public_key,
+        rekey_nonce,
+        peer_rekey_nonce: offer.rekey_nonce,
+        route_class: row.route_class,
+        bearer_mode: row.bearer_mode,
+      };
+      const counterSig = await signObject(row.signPrivate, counterStatement);
+      const counter = { ...counterStatement, sig: counterSig };
+      const next = {
+        ...counterStatement,
+        role: "responder",
+        signPrivate: signing.privateKey,
+        encPrivate: enc.privateKey,
+        peer_session_public_key: offer.session_public_key,
+        peer_session_enc_public_key: offer.session_enc_public_key,
+        peer_session_id: offer.session_id,
+        peer_handle: offer.handle,
+        open: true,
+        epoch,
+        replaySeq: 0,
+        exhausted: false,
+        prev_session_id: row.session_id,
+        route: { route_class: row.route_class, mode: row.bearer_mode },
+      };
+      state.sessions.set(session_id, next);
+      row.successor_session_id = session_id;
+      row.successor_epoch = epoch;
+      row.winning_session_id = offer.session_id;
+      row.rekeyCounter = counter;
+      retireSession(state, row, session_id, epoch);
+      return ok({
+        op: "peer_session_rekey",
+        offer: counter,
+        replay: false,
+        epoch,
+        prev_epoch: epoch - 1,
+        prev_session_id: row.session_id,
+        session_id,
+        replay_watermark: 0,
+        rekey_required: false,
+      });
+    },
+    async rekeyComplete(counter) {
+      if (!counter || counter.kind !== "peer-session-rekey" || counter.plane !== TRACK2_PLANE) {
+        return fail("FED-MESH-BAD-INPUT", "Rekey plane is track2-reachability.");
+      }
+      const matches = (item) => (item.rekeyPending && item.rekeyPending !== "claiming" && item.rekeyPending.session_id === counter.to_session) || (item.rekeyLost && item.rekeyLost.session_id === counter.to_session);
+      const row = [...state.sessions.values()].find(matches);
+      const retired = row ? null : [...state.retiredSessions.values()].find(matches);
+      const owner = row || retired;
+      if (!owner) {
+        return fail("FED-MESH-REKEY-REPLAY", "That rekey does not match an offer from this node.", { replay_advanced: false });
+      }
+      const lost = owner.rekeyLost && owner.rekeyLost.session_id === counter.to_session ? owner.rekeyLost : null;
+      if (lost || (owner.rekeyPending && owner.rekeyPending.lost && owner.rekeyPending.session_id === counter.to_session)) {
+        closeLostSession(state, counter.to_session);
+        return fail("FED-MESH-REKEY-LOST", "This offer lost the tie-break. Its session was not installed.", {
+          replay_advanced: false,
+          losing_session_id: counter.to_session,
+          losing_session_closed: true,
+          winning_session_id: owner.winning_session_id || null,
+        });
+      }
+      const pending = owner.rekeyPending;
+      if (pending.completed) {
+        if (pending.peer_nonce === counter.rekey_nonce) {
+          return ok({
+            op: "peer_session_rekey",
+            replay: true,
+            epoch: pending.epoch,
+            prev_session_id: owner.session_id,
+            session_id: pending.session_id,
+            replay_watermark: 0,
+            rekey_required: false,
+          });
+        }
+        return fail("FED-MESH-REKEY-REPLAY", "This epoch was already rotated. A second rekey was not installed.", { replay_advanced: false, cross_epoch_replay: false });
+      }
+      if (pending.completing) {
+        return fail("FED-MESH-REKEY-REPLAY", "A rekey for this epoch is already in progress.", { replay_advanced: false });
+      }
+      pending.completing = true;
+      const { sig, ...statement } = counter;
+      const verified = await verifyObject(owner.peer_session_public_key, statement, sig);
+      if (!verified || counter.peer_rekey_nonce !== pending.nonce || counter.to_session !== pending.session_id || counter.prev_session_id !== owner.peer_session_id || counter.epoch !== pending.epoch || counter.prev_session_public_key !== owner.peer_session_public_key) {
+        pending.completing = false;
+        return fail("AZP-BAD-SIG", "Rekey counter-signature failed. The old session key did not sign this rotation.", { replay_advanced: false });
+      }
+      pending.completed = true;
+      pending.peer_nonce = counter.rekey_nonce;
+      const next = {
+        v: TRACK2_SPEC,
+        kind: "peer-session",
+        plane: TRACK2_PLANE,
+        session_id: pending.session_id,
+        handle: identity.handle,
+        node_public_key: identity.public_key,
+        session_handle: pending.signing.handle,
+        session_public_key: pending.signing.public_key,
+        session_enc_public_key: pending.enc.enc_public_key,
+        peer_handle: owner.peer_handle,
+        role: "initiator",
+        signPrivate: pending.signing.privateKey,
+        encPrivate: pending.enc.privateKey,
+        peer_session_public_key: counter.session_public_key,
+        peer_session_enc_public_key: counter.session_enc_public_key,
+        peer_session_id: counter.session_id,
+        open: true,
+        epoch: pending.epoch,
+        replaySeq: 0,
+        exhausted: false,
+        prev_session_id: owner.session_id,
+        route_class: owner.route_class,
+        bearer_mode: owner.bearer_mode,
+        route: owner.route,
+      };
+      state.sessions.set(next.session_id, next);
+      owner.winning_session_id = pending.session_id;
+      if (row) retireSession(state, owner, next.session_id, pending.epoch);
+      return ok({
+        op: "peer_session_rekey",
+        replay: false,
+        epoch: pending.epoch,
+        prev_epoch: pending.epoch - 1,
+        prev_session_id: owner.session_id,
+        session_id: next.session_id,
+        replay_watermark: 0,
+        rekey_required: false,
+      });
+    },
     async send(sessionId, plaintext) {
       const row = state.sessions.get(sessionId);
       if (!row || row.open !== true) return fail("MESH-NO-ROUTE", "Session is not open.", { peer_tunnel: "down" });
+      if (row.exhausted === true || sessionWatermark(row) >= SHARE_SEQ_MAX) {
+        row.exhausted = true;
+        return fail("FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. Nothing was sent.", {
+          sent: false,
+          plaintext: null,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: true }),
+        });
+      }
       if (poisonText(plaintext)) {
         return fail("FED-MESH-POISON", "Poison refused before send. Not interpreted.", { sent: false });
       }
       if (!row.peer_session_enc_public_key || !row.peer_session_id) {
         return fail("MESH-NO-ROUTE", "Peer session key is missing.");
       }
-      state.seq += 1;
+      // Share seq is per session. Phoenix and other local bookkeeping keep state.seq
+      // and must not open a gap the peer then refuses.
+      const seq = (Number.isSafeInteger(row.sendSeq) ? row.sendSeq : 0) + 1;
+      if (seq > SHARE_SEQ_MAX) {
+        row.exhausted = true;
+        return fail("FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. Nothing was sent.", {
+          sent: false,
+          plaintext: null,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: true }),
+        });
+      }
       const sealed = await sealPlaintext({
         fromHandle: row.session_id,
         toHandle: row.peer_session_id,
-        seq: state.seq,
+        seq,
         recipientEncPublicKey: row.peer_session_enc_public_key,
         plaintext: String(plaintext ?? ""),
       });
       if (!sealed) return fail("AZP-REFUSE", "Session seal failed. Fail closed.");
+      row.sendSeq = seq;
       const envelope = {
         v: TRACK2_SPEC,
         kind: "peer-share",
@@ -1080,7 +1544,7 @@ export function createTrack2(opts = {}) {
         to_session: row.peer_session_id,
         handle: identity.handle,
         session_public_key: row.session_public_key,
-        seq: state.seq,
+        seq,
         route_class: row.route_class,
         ...sealed,
       };
@@ -1106,32 +1570,260 @@ export function createTrack2(opts = {}) {
         azvpn: false,
       });
     },
-    async recv(envelope) {
+    preAuthRefusal(source, now = Date.now()) {
+      const global = state.preAuthGlobal;
+      if (!global.start || now - global.start >= PEER_RATE_WINDOW_MS) {
+        global.start = now;
+        global.count = 0;
+      }
+      if (global.count >= state.preAuthGlobalPerMin) {
+        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the global failure cap. Evicting an address does not reset it. No roster slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+          preauth_scope: "global",
+          preauth_global_limit: state.preAuthGlobalPerMin,
+          preauth_cap: PREAUTH_CAP,
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - global.start)) / 1000)),
+        });
+      }
+      const key = String(source || "unknown");
+      const slot = state.preAuth.get(key);
+      if (slot && now - slot.start < PEER_RATE_WINDOW_MS && slot.count >= state.preAuthPerMin) {
+        return fail("FED-MESH-PREAUTH-RATE", "Unverified ingress is over the pre-auth cap for this address. No roster slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+          preauth_scope: "address",
+          preauth_limit: state.preAuthPerMin,
+          preauth_cap: PREAUTH_CAP,
+          preauth_key: "remote-address",
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
+        });
+      }
+      return null;
+    },
+    takePreAuth(source, now = Date.now()) {
+      const blocked = this.preAuthRefusal(source, now);
+      if (blocked) return blocked;
+      const key = String(source || "unknown");
+      state.preAuthTick += 1;
+      let slot = state.preAuth.get(key);
+      if (slot && now - slot.start >= PEER_RATE_WINDOW_MS) {
+        slot.start = now;
+        slot.count = 0;
+      }
+      if (!slot) {
+        if (state.preAuth.size >= PREAUTH_CAP) {
+          let oldestKey = null;
+          let oldest = Infinity;
+          for (const [addr, row] of state.preAuth) {
+            if (row.last < oldest) {
+              oldest = row.last;
+              oldestKey = addr;
+            }
+          }
+          if (oldestKey != null) state.preAuth.delete(oldestKey);
+        }
+        slot = { start: now, count: 0, last: state.preAuthTick };
+      }
+      slot.last = state.preAuthTick;
+      slot.count += 1;
+      state.preAuthGlobal.count += 1;
+      state.preAuth.delete(key);
+      state.preAuth.set(key, slot);
+      return ok({ preauth_ok: true, verified_charged: false, preauth_count: slot.count, preauth_global_count: state.preAuthGlobal.count, preauth_key: "remote-address" });
+    },
+    failUnverified(source, code, message, extra = {}) {
+      const rated = this.takePreAuth(source);
+      if (!rated.ok) return rated;
+      return fail(code, message, { verified_charged: false, replay_advanced: extra.replay_advanced === true, ...extra });
+    },
+    takeVerifiedPeer(nodePublicKey, now = Date.now()) {
+      const key = String(nodePublicKey || "");
+      const known = [...state.roster.values()].find((row) => row.verified === true && row.public_key === key);
+      if (!known) {
+        return fail("AZP-BAD-SIG", "That share is not bound to a roster node key. No peer slot was charged.", {
+          replay_advanced: false,
+          verified_charged: false,
+        });
+      }
+      let slot = state.peerRate.get(key);
+      if (!slot) {
+        if (state.peerRate.size >= ROSTER_CAP) {
+          return fail("FED-MESH-PEER-RATE", "The roster rate table is full. The watermark did not move.", {
+            replay_advanced: false,
+            verified_charged: false,
+            roster_cap: ROSTER_CAP,
+            peer_rate_key: "roster-node-key",
+          });
+        }
+        slot = { start: 0, count: 0 };
+        state.peerRate.set(key, slot);
+      }
+      if (!slot.start || now - slot.start >= PEER_RATE_WINDOW_MS) {
+        slot.start = now;
+        slot.count = 0;
+      }
+      slot.count += 1;
+      if (slot.count > state.peerRecvPerMin) {
+        return fail("FED-MESH-PEER-RATE", "That roster node is over the local ingress limit for this minute. The watermark did not move.", {
+          replay_advanced: false,
+          verified_charged: true,
+          peer_rate_limit: state.peerRecvPerMin,
+          peer_rate_key: "roster-node-key",
+          roster_cap: ROSTER_CAP,
+          peer_rate_window_ms: PEER_RATE_WINDOW_MS,
+          retry_after_s: Math.max(1, Math.ceil((PEER_RATE_WINDOW_MS - (now - slot.start)) / 1000)),
+        });
+      }
+      return ok({
+        peer_rate_ok: true,
+        verified_charged: true,
+        peer_rate_count: slot.count,
+        peer_rate_key: "roster-node-key",
+        roster_cap: ROSTER_CAP,
+      });
+    },
+    async recv(envelope, opts = {}) {
+      const source = opts.source || "in-process";
       if (!envelope || envelope.kind !== "peer-share" || envelope.plane !== TRACK2_PLANE) {
-        return fail("FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.");
+        return this.failUnverified(source, "FED-MESH-BAD-INPUT", "Peer share plane is track2-reachability.");
       }
       if (envelope.plaintext || envelope.body || envelope.payload) {
-        return fail("MESH-NO-BYTES", "A share carries ciphertext only.");
+        return this.failUnverified(source, "MESH-NO-BYTES", "A share carries ciphertext only.");
+      }
+      const ciphertext = envelope.ciphertext;
+      const sessionSig = envelope.session_sig;
+      const nonceText = envelope.nonce;
+      if (typeof ciphertext !== "string" || ciphertext.length < 1 || ciphertext.length > MAX_CIPHERTEXT_BYTES || typeof sessionSig !== "string" || sessionSig.length < 1 || sessionSig.length > 128 || typeof nonceText !== "string" || nonceText.length < 1 || nonceText.length > 64) {
+        return this.failUnverified(source, "FED-MESH-BAD-INPUT", "Share is malformed or too large to verify. The signature was not checked.", { replay_advanced: false });
+      }
+      if (wireShareSeq(envelope.seq) == null) {
+        return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq must be an integer from 1 to 1000000. Strings and booleans are not seqs.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields({ replaySeq: 0, epoch: 1 }),
+        });
+      }
+      const retired = state.retiredSessions.get(envelope.to_session);
+      if (retired) {
+        return this.failUnverified(source, "FED-MESH-EPOCH-RETIRED", "That session epoch was rotated. An old share cannot enter the new epoch.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          cross_epoch_replay: false,
+          epoch: sessionEpoch(retired),
+          rekey_required: false,
+          replay_watermark: sessionWatermark(retired),
+        });
       }
       const row = [...state.sessions.values()].find((item) => item.session_id === envelope.to_session && item.open === true);
-      if (!row) return fail("MESH-NO-ROUTE", "No open session for that share.");
+      if (!row) return this.failUnverified(source, "MESH-NO-ROUTE", "No open session for that share.");
       if (state.isolated.has(envelope.handle)) {
-        return fail("FED-MESH-POISON", "That peer is isolated.", { handle: envelope.handle, mesh_fenced_to_loopback: false });
+        return this.failUnverified(source, "FED-MESH-POISON", "That peer is isolated.", { handle: envelope.handle, mesh_fenced_to_loopback: false });
       }
-      const signed = await verifyObject(envelope.session_public_key, {
-        v: envelope.v,
-        kind: envelope.kind,
-        plane: envelope.plane,
-        session_id: envelope.session_id,
-        to_session: envelope.to_session,
-        seq: envelope.seq,
-        nonce: envelope.nonce,
-        eph_public_key: envelope.eph_public_key,
-        ciphertext: envelope.ciphertext,
-        route_class: envelope.route_class,
-      }, envelope.session_sig);
+      let signed = false;
+      const refusal = this.preAuthRefusal(source);
+      const keyMatches = envelope.session_public_key === row.peer_session_public_key;
+      const plausible = typeof envelope.session_sig === "string" && envelope.session_sig.length === 86;
+      if (refusal && !(keyMatches && plausible)) return refusal;
+      state.signatureChecks += 1;
+      try {
+        signed = await verifyObject(envelope.session_public_key, {
+          v: envelope.v,
+          kind: envelope.kind,
+          plane: envelope.plane,
+          session_id: envelope.session_id,
+          to_session: envelope.to_session,
+          seq: envelope.seq,
+          nonce: envelope.nonce,
+          eph_public_key: envelope.eph_public_key,
+          ciphertext: envelope.ciphertext,
+          route_class: envelope.route_class,
+        }, envelope.session_sig);
+      } catch {
+        return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq is not a canonical integer. The watermark did not move.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields(row),
+        });
+      }
       if (!signed || envelope.session_public_key !== row.peer_session_public_key) {
-        return fail("AZP-BAD-SIG", "Session signature failed. The node key is not the session key.");
+        if (refusal) return refusal;
+        return this.failUnverified(source, "AZP-BAD-SIG", "Session signature failed. The node key is not the session key.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+        });
+      }
+      const roster = state.roster.get(row.peer_handle);
+      if (!roster || roster.verified !== true || !roster.public_key) {
+        return this.failUnverified(source, "AZP-BAD-SIG", "The session peer is not a verified roster node. No peer slot was charged.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+        });
+      }
+      const seq = wireShareSeq(envelope.seq);
+      const nonce = typeof envelope.nonce === "string" ? envelope.nonce : "";
+      if (seq == null || !nonce) {
+        return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq must be an integer from 1 to 1000000. Strings and booleans are not seqs.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields(row),
+        });
+      }
+      if (!Number.isSafeInteger(row.replaySeq)) row.replaySeq = 0;
+      if (row.exhausted === true || row.replaySeq >= SHARE_SEQ_MAX) {
+        row.exhausted = true;
+        return this.failUnverified(source, "FED-MESH-SESSION-EXHAUSTED", "This session epoch is closed. Rekey to a new session. The watermark did not move.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: true }),
+        });
+      }
+      // A single share may move the watermark at most MAX_FORWARD_GAP.
+      // That still closes lower in-flight seqs inside the window. It cannot
+      // jump from a fresh session to the cap.
+      if (seq > row.replaySeq + MAX_FORWARD_GAP) {
+        return this.failUnverified(source, "FED-MESH-SEQ-GAP", "Share seq jumps farther than the forward gap. The watermark did not move.", {
+          plaintext: null,
+          integrity: false,
+          replay_advanced: false,
+          ...orderingFields(row, { rekey_required: false }),
+        });
+      }
+      // A replay is a failed delivery. It spends the pre-auth path, not this peer's verified budget.
+      if (seq <= row.replaySeq) {
+        return this.failUnverified(source, "FED-MESH-REPLAY", "That share seq was already accepted or was closed by a higher seq.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          replay_advanced: false,
+          ...orderingFields(row),
+        });
+      }
+      const rated = this.takeVerifiedPeer(roster.public_key);
+      if (!rated.ok) return rated;
+      // Claim this seq before decrypt so two overlapping recv calls cannot
+      // both deliver. A higher seq inside the gap closes every lower seq,
+      // including one still decrypting. This is not an out-of-order buffer
+      // and it does not expire.
+      row.replaySeq = seq;
+      if (seq >= SHARE_SEQ_MAX) row.exhausted = true;
+      row.replayNonce = nonce;
+      if (typeof row.beforeDecrypt === "function") await row.beforeDecrypt(seq);
+      if (row.replaySeq !== seq) {
+        return fail("FED-MESH-REPLAY", "A higher seq closed this share before delivery.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          superseded: true,
+          ...orderingFields(row),
+        });
       }
       const text = await openCiphertext({
         encPrivateKey: row.encPrivate,
@@ -1142,7 +1834,27 @@ export function createTrack2(opts = {}) {
         eph_public_key: envelope.eph_public_key,
         ciphertext: envelope.ciphertext,
       });
-      if (text == null) return fail("FED-MESH-TAMPER", "Session ciphertext did not open.");
+      const ciphertext_sha256 = await sha256Hex(String(envelope.ciphertext || ""));
+      const ciphertext_bytes = new TextEncoder().encode(String(envelope.ciphertext || "")).byteLength;
+      if (text == null) {
+        return fail("FED-MESH-TAMPER", "Session ciphertext did not open. That seq stays consumed.", {
+          ciphertext_sha256,
+          ciphertext_bytes,
+          plaintext: null,
+          integrity: false,
+          replay_advanced: true,
+          ...orderingFields(row),
+        });
+      }
+      if (row.replaySeq !== seq) {
+        return fail("FED-MESH-REPLAY", "A higher seq closed this share before delivery.", {
+          plaintext: null,
+          integrity: false,
+          replay: true,
+          superseded: true,
+          ...orderingFields(row),
+        });
+      }
       if (poisonText(text)) {
         state.isolated.set(envelope.handle, { reason: "apg-poison" });
         const peer = state.roster.get(envelope.handle);
@@ -1159,16 +1871,175 @@ export function createTrack2(opts = {}) {
           plaintext: null,
         });
       }
+      const plaintext_sha256 = await sha256Hex(text);
       return ok({
         op: "peer_recv",
         from: envelope.handle,
         session_id: row.session_id,
         route_class: envelope.route_class,
         plaintext: text,
+        plaintext_sha256,
+        ciphertext_sha256,
+        ciphertext_bytes,
+        integrity: true,
+        ...orderingFields(row),
+        machine_id: readMachineId(),
         peer_tunnel: "LIVE-when-session",
         live: true,
+        public_deployment: false,
+        hardware_live: false,
+        radio_phy: false,
         alt_internet_live: true,
         azvpn: false,
+      });
+    },
+    async deliverToPeer(peerBase, plaintext, opts = {}) {
+      const base = String(peerBase || "").trim().replace(/\/+$/, "");
+      if (!base) return fail("FED-MESH-BAD-INPUT", "peer_base is required.", { sent: false });
+      let parsed;
+      try {
+        parsed = new URL(base);
+      } catch {
+        return fail("FED-MESH-BAD-INPUT", "peer_base is not a URL.", { sent: false });
+      }
+      const host = parsed.hostname.replace(/^\[|\]$/g, "");
+      const loopback = isLoopbackHost(host);
+      const lan = isLanHost(host);
+      const tlsPin = String((opts && opts.tls_sha256) || "").trim().toLowerCase();
+      if (parsed.protocol === "http:" && !loopback) {
+        if (!lan) {
+          return fail("FED-MESH-NO-ROUTE", "That host is not a canonical loopback or LAN literal. Names are not resolved.", {
+            sent: false,
+            public_egress: false,
+            host,
+          });
+        }
+        return fail("FED-MESH-TLS-REQUIRED", "A non-loopback peer requires TLS. Cleartext LAN is refused.", {
+          sent: false,
+          tls_required: true,
+          public_egress: false,
+          host,
+        });
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return fail("FED-MESH-NO-ROUTE", "peer_base is http on loopback or https on a LAN literal.", { sent: false, public_egress: false });
+      }
+      if (!loopback && !lan) {
+        return fail("FED-MESH-NO-ROUTE", "A public host is not this local peer path. No ICANN dial and no public egress.", {
+          sent: false,
+          public_egress: false,
+          cap7_public_egress: false,
+          host,
+        });
+      }
+      if (parsed.protocol === "https:" && !/^[a-f0-9]{64}$/.test(tlsPin)) {
+        return fail("FED-MESH-TLS-PIN", "HTTPS peer dial needs the operator-supplied certificate sha256.", { sent: false });
+      }
+      if (poisonText(plaintext)) {
+        return fail("FED-MESH-POISON", "Poison refused before send. Not interpreted.", { sent: false, plaintext: null });
+      }
+      const text = String(plaintext ?? "");
+      const dial = { tlsPin: parsed.protocol === "https:" ? tlsPin : "" };
+      const discovered = await this.discoverUrl(`${base}/v1/fed-mesh/discover`, dial);
+      if (!discovered.ok) return discovered;
+      const peer = [...state.roster.values()].find((row) => row.mutual === true && row.verified === true && row.presence !== "isolated");
+      if (!peer) return fail("MESH-NO-ROUTE", "Discovery did not admit a mutual peer.", { sent: false });
+      if (parsed.protocol === "https:" && peer.tls_sha256 !== tlsPin) {
+        return fail("FED-MESH-TLS-PIN", "The signed beacon certificate pin does not match the operator pin.", {
+          sent: false,
+          integrity: false,
+        });
+      }
+      const allowed = this.allowSession(peer.handle);
+      if (!allowed.ok) return allowed;
+      const offered = await this.offer(peer.handle, { directUrl: `${base}/v1/fed-mesh/direct` });
+      if (!offered.ok) return offered;
+      const acceptRes = await peerFetch(`${base}/v1/fed-mesh/peer-session`, { method: "POST", json: offered.offer, tlsPin: dial.tlsPin });
+      if (!acceptRes.transportOk) {
+        return fail(acceptRes.code || "FED-MESH-NO-ROUTE", acceptRes.message || "Peer did not answer the session offer.", { sent: false });
+      }
+      const accepted = acceptRes.json;
+      if (!accepted || accepted.ok !== true || !accepted.offer) {
+        return accepted && accepted.code ? accepted : fail("MESH-NO-ROUTE", "Peer did not counter-sign the session.", { sent: false });
+      }
+      const done = await this.complete(accepted.offer);
+      if (!done.ok) return done;
+      const sent = await this.send(done.session_id, text);
+      if (!sent.ok) return sent;
+      const ciphertext = String(sent.envelope.ciphertext || "");
+      const ciphertext_sha256 = await sha256Hex(ciphertext);
+      const plaintext_sha256 = await sha256Hex(text);
+      const recvRes = await peerFetch(`${base}/v1/fed-mesh/peer`, { method: "POST", json: sent.envelope, tlsPin: dial.tlsPin });
+      if (!recvRes.transportOk) {
+        return fail(recvRes.code || "FED-MESH-NO-ROUTE", recvRes.message || "Peer did not receive the sealed share.", { sent: true, plaintext: null });
+      }
+      const opened = recvRes.json || {};
+      if (opened.plaintext != null || (recvRes.raw && recvRes.raw.includes(text))) {
+        return fail("MESH-NO-BYTES", "Peer transport returned plaintext. The receipt was refused.", {
+          sent: true,
+          integrity: false,
+          plaintext: null,
+        });
+      }
+      const localId = readMachineId();
+      const peerId = opened && typeof opened.machine_id === "string" ? opened.machine_id : "";
+      const sameMachine = Boolean(localId && peerId && localId === peerId);
+      const integrity = opened.ok === true
+        && opened.plaintext_sha256 === plaintext_sha256
+        && opened.ciphertext_sha256 === ciphertext_sha256
+        && opened.replay !== true;
+      if (!integrity) {
+        return fail(opened.code || "FED-MESH-TAMPER", opened.message || "Peer bytes did not match the sealed share.", {
+          sent: true,
+          integrity: false,
+          plaintext: null,
+          ciphertext_sha256,
+          peer_ciphertext_sha256: opened.ciphertext_sha256,
+        });
+      }
+      if (state.fixture !== true) state.local_socket_verified = true;
+      const qualified = watchQualifies({
+        mock: false,
+        left_machine: true,
+        arrived_other_machine: true,
+        same_machine_id: sameMachine ? true : false,
+        machine_id: localId || "",
+        peer_machine_id: peerId,
+      });
+      return ok({
+        op: "peer_deliver",
+        local_socket_verified: state.fixture !== true,
+        fixture: state.fixture === true,
+        public_deployment: false,
+        hardware_live: false,
+        radio_phy: false,
+        wifi_live: false,
+        bluetooth_live: false,
+        rf_live: false,
+        photon_live: false,
+        lan_public_live: false,
+        warn5_closed: false,
+        public_door: "FG-STUB",
+        second_device: qualified === true,
+        same_machine: sameMachine,
+        machine_id: localId,
+        peer_machine_id: peerId || null,
+        bytes: new TextEncoder().encode(text).byteLength,
+        plaintext_sha256,
+        ciphertext_sha256,
+        integrity: true,
+        bearer_mode: offered.bearer_mode,
+        route_class: offered.route_class,
+        host,
+        loopback,
+        lan,
+        tls: parsed.protocol === "https:",
+        plaintext_returned: false,
+        pin_source: parsed.protocol === "https:" ? "operator" : null,
+        scope: "local-process-verification",
+        azvpn_is_packet_path: false,
+        envelope: sent.envelope,
+        session_id: done.session_id,
       });
     },
     async phoenixLocal() {
@@ -1737,6 +2608,28 @@ async function verifyOffer(state, offer) {
   const verified = await verifyObject(offer.node_public_key, statement, sig);
   if (!verified) return fail("AZP-BAD-SIG", "Session binding signature failed.");
   return ok({ offer });
+}
+
+export async function rekeyPeerSession(local, remote) {
+  const handle = remote.state.identity.handle;
+  const row = [...local.state.sessions.values()].find((item) => item.open === true && item.peer_handle === handle && rekeyWindowOpen(item));
+  if (!row) return fail("FED-MESH-REKEY-EARLY", "No near-exhausted or exhausted session with that peer can be rotated.");
+  const offered = await local.rekeyOffer(row.session_id);
+  if (!offered.ok) return offered;
+  const accepted = await remote.rekeyAccept(offered.offer);
+  if (!accepted.ok) return accepted;
+  const done = await local.rekeyComplete(accepted.offer);
+  if (!done.ok) return done;
+  return ok({
+    op: "peer_session_rekey",
+    local: done,
+    remote_session_id: accepted.session_id,
+    epoch: done.epoch,
+    prev_session_id: done.prev_session_id,
+    replay_watermark: 0,
+    rekey_required: false,
+    replay: false,
+  });
 }
 
 export async function openPeerSession(local, remote, routeOpts = {}) {

@@ -8,7 +8,9 @@
  */
 
 import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { createHash, timingSafeEqual } from "node:crypto";
 import http from "node:http";
+import https from "node:https";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { D2D_MOBILE_CLIENT } from "../d2d-carriers.js";
@@ -16,8 +18,36 @@ import { createKeystore, exportPublicIdentity, identityFromUnlocked, unlockKeyst
 import { classifyPeerUrl, natPunchRequest, survivalMethods } from "./bearers.js";
 import { actHash, openAct, sealAct, signAct } from "./client.js";
 import { createIdentity } from "./identity.js";
-import { FED_SPEC, ZERO_HASH } from "./spec.js";
+import { FED_SPEC, MAX_ENVELOPE_BYTES, ZERO_HASH } from "./spec.js";
+import { mintLocalCert } from "./local-tls.js";
 import { createTrack2 } from "./track2.js";
+
+function adminTokenOk(presented, expected) {
+  if (!expected || String(expected).length < 16) return false;
+  const a = createHash("sha256").update(String(presented || "")).digest();
+  const b = createHash("sha256").update(String(expected)).digest();
+  return timingSafeEqual(a, b);
+}
+
+function loopbackAddr(addr) {
+  return addr === "127.0.0.1" || addr === "::1" || addr === "::ffff:127.0.0.1";
+}
+
+function loopbackPeer(req) {
+  const remote = String((req && req.socket && req.socket.remoteAddress) || "");
+  const local = String((req && req.socket && req.socket.localAddress) || "");
+  return loopbackAddr(remote) && loopbackAddr(local);
+}
+
+function wireResult(out) {
+  if (!out || typeof out !== "object" || Array.isArray(out)) return out;
+  const copy = { ...out };
+  delete copy.body;
+  delete copy.payload;
+  copy.plaintext = null;
+  copy.plaintext_returned = false;
+  return copy;
+}
 
 async function loadJson(path, fallback) {
   try {
@@ -575,20 +605,25 @@ function bracketHost(host) {
   return text;
 }
 
-export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime" }) {
+export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", advertise = "", relays = [], passphrase = "", fixture = false, sessionAllow = null, product = "aziel-runtime", secure = false, peerRecvPerMin = null, preAuthPerMin = null }) {
   const node = await openInstance({ dataDir, relays, passphrase });
   const track2 = createTrack2({
     identity: node.identity,
     tipHash: node.directChain.prev || ZERO_HASH,
     dataDir,
     fixture: fixture === true,
+    peerRecvPerMin: peerRecvPerMin || undefined,
+    preAuthPerMin: preAuthPerMin || undefined,
     // AZRT-MESH-PEER-DENY-1.0: empty unless the local operator lists handles (option or FED_MESH_SESSION_ALLOW).
     sessionAllow: Array.isArray(sessionAllow)
       ? sessionAllow
       : String((typeof process !== "undefined" && process.env && process.env.FED_MESH_SESSION_ALLOW) || "").split(",").map((h) => h.trim()).filter(Boolean),
   });
   await track2.loadOutbox();
+  const tlsMaterial = secure === true ? mintLocalCert() : null;
+  if (tlsMaterial) track2.state.tls_sha256 = tlsMaterial.fingerprint;
   node.track2 = track2;
+  const adminToken = String((typeof process !== "undefined" && process.env && process.env.FED_MESH_ADMIN_TOKEN) || "");
   const mobile = await mobileRoutes();
   const listenHost = String(host || "127.0.0.1").trim() || "127.0.0.1";
   const share = {
@@ -597,9 +632,48 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     directMode: null,
     directNote: "",
   };
-  const server = http.createServer(async (req, res) => {
+  const onRequest = async (req, res) => {
+    const url = new URL(req.url || "/", "http://127.0.0.1");
+    const peerPostEarly = req.method === "POST" && (url.pathname.startsWith("/v1/fed-mesh/") || url.pathname.startsWith("/local/"));
+    const remoteAddr = (req.socket && req.socket.remoteAddress) || "unknown";
+    const tooLarge = () => {
+      const rated = node.track2.takePreAuth(remoteAddr);
+      if (!rated.ok) {
+        res.writeHead(429, { "content-type": "application/json", "retry-after": String(rated.retry_after_s || 60) });
+        res.end(JSON.stringify(rated));
+        return;
+      }
+      res.writeHead(400, { "content-type": "application/json" });
+      res.end(JSON.stringify({
+        ok: false,
+        code: "FED-MESH-BAD-INPUT",
+        verified_charged: false,
+        message: "Share is too large to verify. The signature was not checked.",
+      }));
+    };
+    if (peerPostEarly) {
+      const declared = Number(req.headers["content-length"]);
+      if (Number.isFinite(declared) && declared > MAX_ENVELOPE_BYTES) {
+        tooLarge();
+        req.destroy();
+        return;
+      }
+    }
     const chunks = [];
-    for await (const chunk of req) chunks.push(chunk);
+    let received = 0;
+    try {
+      for await (const chunk of req) {
+        received += chunk.length;
+        if (peerPostEarly && received > MAX_ENVELOPE_BYTES) {
+          tooLarge();
+          req.destroy();
+          return;
+        }
+        chunks.push(chunk);
+      }
+    } catch {
+      return;
+    }
     const raw = Buffer.concat(chunks).toString("utf8");
     let body = {};
     if (raw) {
@@ -609,7 +683,17 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         body = {};
       }
     }
-    const url = new URL(req.url || "/", "http://127.0.0.1");
+    const peerPost = req.method === "POST" && (url.pathname.startsWith("/v1/fed-mesh/") || url.pathname.startsWith("/local/"));
+    const ratedInRecv = url.pathname === "/v1/fed-mesh/peer";
+    const adminPost = url.pathname.endsWith("/allow") || url.pathname.endsWith("/deliver");
+    if (peerPost && !ratedInRecv && !adminPost) {
+      const rated = node.track2.takePreAuth(req.socket.remoteAddress || "unknown");
+      if (!rated.ok) {
+        res.writeHead(429, { "content-type": "application/json", "retry-after": String(rated.retry_after_s || 60) });
+        res.end(JSON.stringify(rated));
+        return;
+      }
+    }
     if (req.method === "GET" || req.method === "HEAD") {
       const asset = mobile.get(url.pathname);
       if (asset) {
@@ -645,6 +729,9 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
         mobile_join: "/mobile/",
         app_store_release: false,
         worker_hardware: false,
+        tls: Boolean(tlsMaterial),
+        tls_sha256: tlsMaterial ? tlsMaterial.fingerprint : null,
+        plaintext_transport: !tlsMaterial,
       };
     } else if (req.method === "GET" && url.pathname === "/v1/fed-mesh/discover") {
       out = node.track2.status();
@@ -655,18 +742,47 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/arm" || url.pathname === "/local/arm")) {
       const names = body.order === true || body.order === "order" ? "order" : body.carriers || body.carrier || "";
       out = await node.track2.arm(names, "operator");
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/allow" || url.pathname === "/local/allow")) {
+      const presented = body.admin_token || req.headers["x-aziel-admin-token"];
+      if (!loopbackPeer(req) || !adminTokenOk(presented, adminToken)) {
+        out = {
+          ok: false,
+          code: "FED-MESH-LOCAL-ADMIN",
+          message: "Session allow is a local operator step. A peer URL cannot set consent.",
+          allowlist_changed: false,
+          sent: false,
+        };
+      } else {
+        out = node.track2.allowSession(body.handle || body.peer);
+      }
+    } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/deliver" || url.pathname === "/local/deliver")) {
+      const presented = body.admin_token || req.headers["x-aziel-admin-token"];
+      if (!loopbackPeer(req) || !adminTokenOk(presented, adminToken)) {
+        out = {
+          ok: false,
+          code: "FED-MESH-LOCAL-ADMIN",
+          message: "Deliver is a local operator step. A peer URL cannot ask this node to send.",
+          sent: false,
+          plaintext: null,
+        };
+      } else {
+        out = await node.track2.deliverToPeer(body.peer_base || body.peer, body.plaintext, { tls_sha256: body.tls_sha256 });
+      }
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer-session") {
       out = body && body.kind === "peer-session" ? await node.track2.accept(body) : await node.track2.offer(body.peer_handle || body.peer, body);
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/peer") {
-      out = await node.track2.recv(body);
+      const opened = await node.track2.recv(body, { source: (req.socket && req.socket.remoteAddress) || "unknown" });
       const updateHost = node.track2.state && node.track2.state.autoUpdateHost;
-      if (out && out.ok === true && updateHost && typeof updateHost.answerUpdate === "function" && typeof out.plaintext === "string" && out.session_id) {
-        const answer = await updateHost.answerUpdate(out.plaintext);
+      let updateReply = null;
+      if (opened && opened.ok === true && updateHost && typeof updateHost.answerUpdate === "function" && typeof opened.plaintext === "string" && opened.session_id) {
+        const answer = await updateHost.answerUpdate(opened.plaintext);
         if (answer) {
-          const reply = await node.track2.send(out.session_id, JSON.stringify(answer));
-          if (reply && reply.ok === true && reply.envelope) out = { ...out, update_reply: reply.envelope };
+          const reply = await node.track2.send(opened.session_id, JSON.stringify(answer));
+          if (reply && reply.ok === true && reply.envelope) updateReply = reply.envelope;
         }
       }
+      out = wireResult(opened);
+      if (updateReply) out = { ...out, update_reply: updateReply };
     } else if (req.method === "GET" && (url.pathname === "/v1/fed-mesh/outbox" || url.pathname === "/local/outbox")) {
       out = node.track2.tickets();
     } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/outbox" || url.pathname === "/local/outbox")) {
@@ -682,9 +798,14 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     } else if (req.method === "POST" && url.pathname === "/v1/fed-mesh/direct") {
       out = await node.onDirect(body);
     }
-    res.writeHead(out.ok === false ? 400 : 200, { "content-type": "application/json" });
-    res.end(JSON.stringify(out));
-  });
+    const wire = url.pathname === "/v1/fed-mesh/deliver" || url.pathname === "/local/deliver" ? wireResult(out) : out;
+    const status = wire && (wire.code === "FED-MESH-PEER-RATE" || wire.code === "FED-MESH-PREAUTH-RATE") ? 429 : wire && wire.ok === false ? 400 : 200;
+    res.writeHead(status, { "content-type": "application/json", ...(status === 429 ? { "retry-after": String(wire.retry_after_s || 60) } : {}) });
+    res.end(JSON.stringify(wire));
+  };
+  const server = tlsMaterial
+    ? https.createServer({ key: tlsMaterial.keyPem, cert: tlsMaterial.certPem }, onRequest)
+    : http.createServer(onRequest);
   await new Promise((resolve, reject) => {
     const onError = (err) => reject(err);
     server.once("error", onError);
@@ -697,11 +818,12 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
   const portNum = addr && typeof addr === "object" ? addr.port : port;
   const wildcard = listenHost === "0.0.0.0" || listenHost === "::" || listenHost === "[::]";
   const healthHost = wildcard ? "127.0.0.1" : bracketHost(listenHost);
-  const base = `http://${healthHost}:${portNum}`;
+  const scheme = tlsMaterial ? "https" : "http";
+  const base = `${scheme}://${healthHost}:${portNum}`;
   const advertised = String(advertise || "").trim();
   const shareHost = advertised || (wildcard ? "" : listenHost);
   if (shareHost) {
-    const candidate = `http://${bracketHost(shareHost)}:${portNum}/v1/fed-mesh/direct`;
+    const candidate = `${scheme}://${bracketHost(shareHost)}:${portNum}/v1/fed-mesh/direct`;
     const classified = classifyPeerUrl(candidate, { role: "direct" });
     if (classified.ok) {
       share.directUrl = classified.url;
@@ -791,6 +913,8 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     directUrl: share.directUrl,
     directMode: share.directMode,
     directNote: share.directNote,
+    tls: Boolean(tlsMaterial),
+    tls_sha256: tlsMaterial ? tlsMaterial.fingerprint : null,
     awarenessSocket: false,
     mobileJoin: `${base}/mobile/`,
     mobile_client: D2D_MOBILE_CLIENT,

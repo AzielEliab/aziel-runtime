@@ -12,7 +12,7 @@ npm install
 npm test
 ```
 
-`package.json` `test` runs engine digest hashing, then the `scripts/verify-*.mjs` probes in order. No Cloudflare credentials. No `wrangler deploy`. Optional live probe: `npm run probe:live` (hits production; not required for CI).
+`npm test` is the hermetic entry (`scripts/run-hermetic.mjs`). It runs the same `scripts/verify-*.mjs` chain as `npm run test:suite`, with an absolute network fence so a child that changes directory still loads the fence. Outbound calls that are not this machine fail the run. A test that means to prove a refusal records that host first. No Cloudflare credentials. No `wrangler deploy`. Optional live probe: `npm run probe:live` (hits production; not part of `npm test`).
 
 Local mesh handle (same Ed25519 identity as [`docs/designs/FED-MESH-1.0.md`](../designs/FED-MESH-1.0.md) section 2):
 
@@ -43,6 +43,9 @@ Clean-room wrapper (clone → test → MCP → receipt): `bash scripts/clean-roo
 | [`scripts/verify-interface-orchestrator.mjs`](../../scripts/verify-interface-orchestrator.mjs) | Human-side planner on the workspace tiles: VeilLock plans do not launch or append; seal uses ACT-RECEIPT fields; live dispatch is FragGate only; tools/list stays 36 |
 | [`scripts/verify-software.mjs`](../../scripts/verify-software.mjs) | Catalog shape, Plain→Gate→Lock sort, purpose copy, Glama `primary_host` |
 | [`scripts/verify-sot-sync.mjs`](../../scripts/verify-sot-sync.mjs) | SOT-SYNC-1.0 dry_run plan, confirm ACT receipt, unreachable last-known, Softwares 42, version_id null when the Worker version binding is unbound |
+| [`scripts/verify-open-post-limits.mjs`](../../scripts/verify-open-post-limits.mjs) | F03 mesh_mutate and memory_mutate on the remaining open POSTs, including sot-sync. Bypass, window reset, burst, invalid payload, and unchanged state. HTML and GET stay unlimited |
+| [`scripts/verify-lan-peer-delivery.mjs`](../../scripts/verify-lan-peer-delivery.mjs) | Two local processes deliver a sealed share over TLS on the LAN address. The peer returns a hash receipt, replay is refused, and second_device stays false |
+| [`scripts/verify-peer-transport.mjs`](../../scripts/verify-peer-transport.mjs) | Certificate pin is checked before any HTTP request bytes. Canonical address literals only. A thrown RATE stub falls back to the isolate counter and is not a global quota |
 | [`scripts/verify-spore.mjs`](../../scripts/verify-spore.mjs) | SPORE-1.0 last-resort failsafe; dormant vs live honesty; no invented heartbeats; shelves not replaced; RE-COLD-STORE empty destinations; Plane B/C SLOT |
 
 Hash / fork / export neighbors (extend these rather than adding marketing-string tests): `verify-act-receipt.mjs`, `verify-session.mjs`, `verify-4dmap.mjs` (`card_export` / `card_import`), `verify-no-lie.mjs` (hash break), `verify-cite.mjs`.
