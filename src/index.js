@@ -5096,11 +5096,21 @@ async function handleRequest(request, env, ctx) {
         const heads = await anchor.collectHeads(env, { ...deps, agentHourlyTip, version: RUNTIME_VERSION, gitSha: meta.git_sha || (env && env.GIT_SHA) || null, versionId: meta.version_id || null });
         // AZRT-KEYS-1.0 (additive): the held receipt key's public parts, so the witness records each key epoch.
         heads.receipt_key = await (await import("./keys-manifest.js")).receiptKeyHead(env);
-        // RIB-048 / RIB-049: additive fields the witness can copy. Not a signature. Not live.
+        // RIB-048 / RIB-049: compare the running digest and the held key to the verified witness statement.
+        // No artifact digest or no receipt key on that statement stays not_checked (ok null), never a pass.
+        const { readGroupD } = await import("./group-d.js");
         const { buildAttestHead } = await import("./build-attest.js");
-        const { secondMintWitnessFragment } = await import("./second-mint.js");
-        heads.build_attest = buildAttestHead(meta);
-        heads.second_mint = secondMintWitnessFragment();
+        const { secondMintHead } = await import("./second-mint.js");
+        const groupd = await readGroupD(fetch);
+        heads.build_attest = buildAttestHead(meta, {
+          witnessed: groupd.log_ok ? groupd.attest : null,
+          checked: groupd.checked,
+        });
+        heads.second_mint = await secondMintHead({
+          witnessedKeyId: groupd.log_ok ? groupd.receipt_key_id : null,
+          attemptedKeyId: heads.receipt_key && heads.receipt_key.key_id,
+          checked: groupd.checked,
+        });
         return asHead(request, json(heads, 200, hdrs));
       }
       if (url.pathname === "/v1/anchor/row") {

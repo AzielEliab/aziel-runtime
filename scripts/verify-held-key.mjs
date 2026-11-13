@@ -142,6 +142,11 @@ async function chain(signer, k = 2) {
   assert.equal(on.signing, true); assert.equal(on.public_key, A.pub);
   assert.equal(on.trusted, false); assert.equal(on.key_source, "published (self, unpinned)");
   assert.doesNotMatch(JSON.stringify(on), new RegExp(A.priv.slice(0, 24)));
+  // The session door checks the held key against the verified witness statement. Seed the matching
+  // key so this in-process key is the witnessed key (a different id is KEY-SECOND-MINT and does not sign).
+  const { resetAnchorMemo, seedAnchorMemo } = await import("../src/anchor.js");
+  resetAnchorMemo();
+  seedAnchorMemo("anchors", { ok: true, n: 1, latest: { statement: { n: 1, receipt_key: { key_id: await keyIdOf(A.pub) } } }, entries: [] });
   const open = await (await handler(new Request("https://rt.example/v1/session/open", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }), env)).json();
   assert.equal(open.receipt.signature.alg, "Ed25519", JSON.stringify(open.receipt.signature));
   assert.equal(open.receipt.signature.key_id, await keyIdOf(A.pub)); n++;

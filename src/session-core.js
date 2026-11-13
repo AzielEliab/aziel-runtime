@@ -165,6 +165,8 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     defaultOutcome: extra && extra.outcome ? extra.outcome : "completed",
   });
   if (!link.ok) throw sessionError(link.status || 400, "bad_attempt_link", link.error);
+  const attestFromRequest = Boolean(extra && extra.attestFromRequest);
+  const witnessedAttest = extra ? extra.witnessedAttest : undefined;
   const rest = extra && typeof extra === "object" ? { ...extra } : {};
   for (const key of [
     "request_id",
@@ -181,6 +183,8 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     "writer_epoch",
     "writer_fence",
     "build_attest",
+    "witnessedAttest",
+    "attestFromRequest",
   ]) {
     delete rest[key];
   }
@@ -191,7 +195,7 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
   let buildAttest = null;
   if (event === "exec") {
     const { assertBuildAttestForExec } = await import("./build-attest.js");
-    const attest = await assertBuildAttestForExec(session);
+    const attest = await assertBuildAttestForExec(session, attestFromRequest ? { witnessed: witnessedAttest ?? null } : undefined);
     if (!attest.allowed) {
       throw sessionError(409, attest.code, attest.message, { executed: false, build_attest: attest.view, written: false });
     }
@@ -488,6 +492,13 @@ export function mergePolicy(current, incoming) {
     // RIB-044: resume refuses unless a witness statement covers the freeze head.
     next.resume_strict = incoming.resume_strict === true;
   }
+  if (incoming.build_attest_strict !== undefined) {
+    // RIB-048: no witnessed build attestation refuses before exec. One-way within the session.
+    if (current && current.build_attest_strict === true && incoming.build_attest_strict !== true) {
+      throw sessionError(409, "BUILD-ATTEST-POLICY-DOWNGRADE", "This session requires a witnessed build attestation. That cannot be turned off mid-session; open a new session. Policy unchanged.", { spec: "AZRT-BUILD-ATTEST-1.0" });
+    }
+    next.build_attest_strict = incoming.build_attest_strict === true;
+  }
   if (incoming.kv_increment !== undefined) {
     next.kv_increment = incoming.kv_increment === true;
   }
@@ -726,7 +737,7 @@ export async function recordIntent(session, args, nowIso) {
   }
 }
 
-async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null, writerEpoch = null }, nowIso) {
+async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null, writerEpoch = null, witnessedAttest = undefined, attestFromRequest = false }, nowIso) {
   // AZRT-SCHEMA-PIN-1.0: the open receipt pinned the tools/list schema; drift stops the session.
   const pinned = (session.receipts || [])[0] && session.receipts[0].schema_hash;
   if (pinned && schemaHash && pinned !== schemaHash) {
@@ -755,8 +766,9 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
     throw sessionError(409, "SPEC-STALE", "The issuer marked this run's spec stale. Nothing ran.", { executed: false, stale_at_seq: state.stale_at_seq });
   }
   // RIB-048: bindings are checked before exec. No attestation is not_checked, never a pass.
+  // A request passes its own statement. The isolate note is only for a direct call.
   const { assertBuildAttestForExec } = await import("./build-attest.js");
-  const attest = await assertBuildAttestForExec(session);
+  const attest = await assertBuildAttestForExec(session, attestFromRequest ? { witnessed: witnessedAttest ?? null } : undefined);
   if (!attest.allowed) throw sessionError(409, attest.code, attest.message, { executed: false, build_attest: attest.view, written: false });
   session._build_attest = attest.view;
   const bytes = new TextEncoder().encode(payloadText).length;
@@ -804,7 +816,7 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
   return { intent, payload };
 }
 
-export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine, request_id, attempt_n, parent_receipt_id, correlation_id, outcome, additive }, nowIso) {
+export async function commitExec(session, { intent, status, latencyMs, requestDigest, responseDigest, error, upstream, responseBytes, contentType, engine, request_id, attempt_n, parent_receipt_id, correlation_id, outcome, additive, witnessedAttest, attestFromRequest = false }, nowIso) {
   requireOpen(session, nowIso);
   if (session && session.writer_stopped) {
     const err = sessionError(409, "SESSION-STOPPED", "The runtime stopped this session. Stopping a run does not undo an external effect. Nothing was sealed.", { executed: false });
@@ -913,6 +925,7 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       correlation_id,
       outcome: outcome || (error || Number(status) >= 400 ? "failed" : "completed"),
     },
+    ...(attestFromRequest ? { attestFromRequest: true, witnessedAttest } : {}),
   });
   session.pending_intent = null;
   return receipt;

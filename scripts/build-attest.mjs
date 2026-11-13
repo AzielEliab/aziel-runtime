@@ -11,7 +11,7 @@
  */
 import { createHash } from "node:crypto";
 import { execSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { artifactDigestFromEntries, checkBuildAttest } from "../src/build-attest.js";
 
 const FILES = ["package.json", "package-lock.json", "src/build-attest.js", "src/build-meta.js"];
@@ -68,7 +68,17 @@ const body = {
   note: "Same source revision, same digest. Not a signed attestation. Not live. Cap-7 is not ICANN. Paid satellite stays HELD.",
 };
 
-if (process.argv.includes("--mismatch")) {
+if (process.argv.includes("--emit")) {
+  const file = new URL("../src/build-bundle-digest.js", import.meta.url);
+  writeFileSync(file, `/**
+ * Artifact digest emitted by scripts/build-attest.mjs --emit.
+ * This file is not an input to the digest. Not a deploy var. Not a signature.
+ * Author: Aziel Eliab.
+ */
+export const BUILD_BUNDLE_DIGEST = "${artifact_digest}";
+`);
+  console.log(JSON.stringify({ ok: true, emitted: "src/build-bundle-digest.js", artifact_digest, signed: false, live: false }));
+} else if (process.argv.includes("--mismatch")) {
   const flipped = listed.map((e, i) => (i === 0 ? { ...e, sha256: "0".repeat(64) } : e));
   const flippedDigest = await artifactDigestFromEntries(flipped);
   const verdict = checkBuildAttest({

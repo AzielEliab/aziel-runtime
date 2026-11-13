@@ -69,7 +69,7 @@ const cache = new WeakMap();
 const NO_KEY = Object.freeze({ ok: false, reason: "no receipt signing key provisioned; receipts are hash-linked and sealed, not signed" });
 
 /** Load the provisioned key. Never generates one. Cached per env object (default epochs only). */
-export async function heldSignerFromEnv(env, { epochs } = {}) {
+export async function heldSignerFromEnv(env, { epochs, witnessedKeyId, tip } = {}) {
   if (!env || typeof env !== "object") return NO_KEY;
   let loaded;
   if (epochs !== undefined) loaded = await load(env, epochs);
@@ -79,8 +79,15 @@ export async function heldSignerFromEnv(env, { epochs } = {}) {
     cache.set(env, loaded);
   }
   // RIB-049: a loaded key that is not the witnessed key is a second mint. No key is generated here.
+  // witnessedKeyId undefined uses the isolate note; null means this call saw no witnessed id.
   const { gateSecondMint } = await import("./second-mint.js");
-  return gateSecondMint(loaded);
+  return gateSecondMint(loaded, { tip, witnessedKeyId });
+}
+
+/** Public parts of the held key, without the second-mint gate. Publishing the key is not signing. */
+export async function publishedReceiptKey(env) {
+  const loaded = await load(env);
+  return loaded && loaded.ok ? loaded.provenance : null;
 }
 
 async function load(env, epochs = RECEIPT_KEY_EPOCHS) {
