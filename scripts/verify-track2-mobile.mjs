@@ -220,7 +220,7 @@ try {
   const denied = await phone.openSession(node.base);
   assert.equal(denied.ok, false);
   assert.equal(denied.code, "MESH-PEER-NOT-ALLOWED");
-  node.track2.allowSession(phone.handle);
+  node.track2.allowSession(phone.public_key);
   const opened = await phone.openSession(node.base);
   assert.equal(opened.ok, true, opened.message || opened.code);
   assert.equal(opened.peer_tunnel, "LIVE-when-session");

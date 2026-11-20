@@ -29,13 +29,43 @@ import { notifyCarrierContact, notifyPeerContact } from "../auto-update/adopt.js
 import { D2D_MOBILE_CLIENT, D2D_STORE_FORWARD } from "../d2d-carriers.js";
 import { locksetHash } from "../lockset.js";
 import { judgeEquivocation, neighborPhoenix, partitionRejoin, tickAccepts } from "../split-wires.js";
+import { carrierForBearer } from "../transport/carriers.js";
 import { negotiateBearer, negotiateRouteClass } from "../transport/routing.js";
+import { peerKeyPin } from "../transport/sealed-frame.js";
 import { classifyPeerUrl, isLanHost, isLoopbackHost, natPunchRequest } from "./bearers.js";
 import { peerFetch } from "./local-tls.js";
 import { canonicalStatement, hashStatement } from "./codec.js";
 import { openCiphertext, sealPlaintext } from "./e2e.js";
 import { canonicalHandle, generateEd25519, generateX25519, publicKeyMatchesHandle, signObject, verifyObject } from "./identity.js";
 import { FED_SPEC, MAX_CIPHERTEXT_BYTES, ROSTER_CAP, ZERO_HASH } from "./spec.js";
+
+/** Fields covered by the session signature. frame_v and carrier are included when the frame carries them. */
+export function peerShareSignBody(envelope) {
+  const body = {
+    v: envelope.v,
+    kind: envelope.kind,
+    plane: envelope.plane,
+    session_id: envelope.session_id,
+    to_session: envelope.to_session,
+    seq: envelope.seq,
+    nonce: envelope.nonce,
+    eph_public_key: envelope.eph_public_key,
+    ciphertext: envelope.ciphertext,
+    route_class: envelope.route_class,
+  };
+  if (envelope.frame_v != null) body.frame_v = envelope.frame_v;
+  if (envelope.carrier) body.carrier = envelope.carrier;
+  return body;
+}
+
+function allowPins(list) {
+  const out = [];
+  for (const item of Array.isArray(list) ? list : []) {
+    const pin = peerKeyPin(item);
+    if (pin) out.push(pin);
+  }
+  return out;
+}
 
 export const TRACK2_SPEC = "D2D-CARRIERS-1.0";
 export const TRACK2_AUTHOR = "Aziel Eliab";
@@ -378,6 +408,8 @@ function sealedItem(row) {
     nonce: row.nonce || null,
     eph_public_key: row.eph_public_key || null,
     ciphertext: row.ciphertext,
+    frame_v: row.frame_v == null ? null : row.frame_v,
+    carrier: row.carrier || null,
     tip_hash: row.tip_hash,
     plane: TRACK2_PLANE,
     offered_to: row.offered_to || null,
@@ -414,6 +446,8 @@ async function hashSealed(fields) {
     nonce: fields.nonce || "",
     eph_public_key: fields.eph_public_key || "",
     ciphertext: fields.ciphertext,
+    ...(fields.frame_v == null ? {} : { frame_v: fields.frame_v }),
+    ...(fields.carrier ? { carrier: fields.carrier } : {}),
   });
 }
 
@@ -638,9 +672,9 @@ export function createTrack2(opts = {}) {
     receipts: [],
     receipt_tip: ZERO_HASH,
     allow: new Set(),
-    // AZRT-MESH-PEER-DENY-1.0 (RIB-024): peer sessions are deny-by-default. Only handles the local
-    // operator put on this allowlist may open or accept a session. Discovery alone is not consent.
-    session_allow: new Set((Array.isArray(opts.sessionAllow || opts.session_allow) ? opts.sessionAllow || opts.session_allow : []).map((h) => String(h).trim()).filter(Boolean)),
+    // AZRT-MESH-PEER-DENY-1.0: deny-by-default. The pin is sha256 of the peer public key.
+    // An 11-character handle is not stored.
+    session_allow: new Set(allowPins(opts.sessionAllow || opts.session_allow)),
     partition: { partitioned: false, own_tip: null, rejoined: false, merged: false },
     phoenix: {
       phase: "idle",
@@ -1009,22 +1043,29 @@ export function createTrack2(opts = {}) {
         peers: [...state.roster.values()].map(publicPeer),
       });
     },
-    /** Local operator step: allow peer sessions with this handle (deny-by-default otherwise). */
-    allowSession(peerHandle) {
-      const handle = String(peerHandle || "").trim();
-      if (!handle) return fail("FED-MESH-BAD-HANDLE", "Give a peer handle to allow.");
-      state.session_allow.add(handle);
-      return ok({ op: "peer_session_allow", handle, allowlist: [...state.session_allow], spec: MESH_PEER_DENY_SPEC });
+    /** Local operator step: pin sha256 of the peer public key. A handle is refused. */
+    allowSession(peerKey) {
+      const pin = peerKeyPin(peerKey);
+      if (!pin) {
+        return fail("MESH-PEER-KEY-REQUIRED", "Allowlists pin the sha256 of the peer public key. An 11-character handle is not a pin.", {
+          spec: MESH_PEER_DENY_SPEC,
+          deny_by_default: true,
+          handle_bits: 55,
+        });
+      }
+      state.session_allow.add(pin);
+      return ok({ op: "peer_session_allow", public_key_sha256: pin, allowlist: [...state.session_allow], spec: MESH_PEER_DENY_SPEC, pinned: "sha256" });
     },
-    revokeSession(peerHandle) {
-      const handle = String(peerHandle || "").trim();
-      state.session_allow.delete(handle);
-      return ok({ op: "peer_session_revoke", handle, allowlist: [...state.session_allow], spec: MESH_PEER_DENY_SPEC });
+    revokeSession(peerKey) {
+      const pin = peerKeyPin(peerKey);
+      if (pin) state.session_allow.delete(pin);
+      return ok({ op: "peer_session_revoke", public_key_sha256: pin || null, allowlist: [...state.session_allow], spec: MESH_PEER_DENY_SPEC });
     },
     async offer(peerHandle, routeOpts = {}) {
       const handle = String(peerHandle || "").trim();
-      if (!state.session_allow.has(handle)) return peerDenied(handle);
       const peer = state.roster.get(handle);
+      const pin = peer && peerKeyPin(peer.public_key);
+      if (!pin || !state.session_allow.has(pin)) return peerDenied(handle);
       if (!peer || peer.verified !== true || peer.mutual !== true || peer.presence === "isolated") {
         return fail("MESH-NO-ROUTE", "No admitted discovered peer for that handle.", { handle });
       }
@@ -1081,7 +1122,8 @@ export function createTrack2(opts = {}) {
       });
     },
     async accept(offer) {
-      if (!offer || !state.session_allow.has(String(offer.handle || "").trim())) return peerDenied(offer && offer.handle);
+      const pin = offer && peerKeyPin(offer.node_public_key);
+      if (!offer || !pin || !state.session_allow.has(pin)) return peerDenied(offer && offer.handle);
       const checked = await verifyOffer(state, offer);
       if (!checked.ok) return checked;
       const signing = await generateEd25519();
@@ -1533,6 +1575,8 @@ export function createTrack2(opts = {}) {
         seq,
         recipientEncPublicKey: row.peer_session_enc_public_key,
         plaintext: String(plaintext ?? ""),
+        carrier: carrierForBearer(row.bearer_mode),
+        route_class: row.route_class,
       });
       if (!sealed) return fail("AZP-REFUSE", "Session seal failed. Fail closed.");
       row.sendSeq = seq;
@@ -1548,18 +1592,7 @@ export function createTrack2(opts = {}) {
         route_class: row.route_class,
         ...sealed,
       };
-      envelope.session_sig = await signObject(row.signPrivate, {
-        v: envelope.v,
-        kind: envelope.kind,
-        plane: envelope.plane,
-        session_id: envelope.session_id,
-        to_session: envelope.to_session,
-        seq: envelope.seq,
-        nonce: envelope.nonce,
-        eph_public_key: envelope.eph_public_key,
-        ciphertext: envelope.ciphertext,
-        route_class: envelope.route_class,
-      });
+      envelope.session_sig = await signObject(row.signPrivate, peerShareSignBody(envelope));
       return ok({
         op: "peer_send",
         envelope,
@@ -1729,18 +1762,7 @@ export function createTrack2(opts = {}) {
       if (refusal && !(keyMatches && plausible)) return refusal;
       state.signatureChecks += 1;
       try {
-        signed = await verifyObject(envelope.session_public_key, {
-          v: envelope.v,
-          kind: envelope.kind,
-          plane: envelope.plane,
-          session_id: envelope.session_id,
-          to_session: envelope.to_session,
-          seq: envelope.seq,
-          nonce: envelope.nonce,
-          eph_public_key: envelope.eph_public_key,
-          ciphertext: envelope.ciphertext,
-          route_class: envelope.route_class,
-        }, envelope.session_sig);
+        signed = await verifyObject(envelope.session_public_key, peerShareSignBody(envelope), envelope.session_sig);
       } catch {
         return this.failUnverified(source, "FED-MESH-BAD-SEQ", "Share seq is not a canonical integer. The watermark did not move.", {
           plaintext: null,
@@ -1833,6 +1855,9 @@ export function createTrack2(opts = {}) {
         nonce: envelope.nonce,
         eph_public_key: envelope.eph_public_key,
         ciphertext: envelope.ciphertext,
+        frame_v: envelope.frame_v,
+        carrier: envelope.carrier,
+        route_class: envelope.route_class,
       });
       const ciphertext_sha256 = await sha256Hex(String(envelope.ciphertext || ""));
       const ciphertext_bytes = new TextEncoder().encode(String(envelope.ciphertext || "")).byteLength;
@@ -1950,7 +1975,7 @@ export function createTrack2(opts = {}) {
           integrity: false,
         });
       }
-      const allowed = this.allowSession(peer.handle);
+      const allowed = this.allowSession(peer.public_key);
       if (!allowed.ok) return allowed;
       const offered = await this.offer(peer.handle, { directUrl: `${base}/v1/fed-mesh/direct` });
       if (!offered.ok) return offered;
@@ -2101,6 +2126,8 @@ export function createTrack2(opts = {}) {
         nonce: item.nonce || null,
         eph_public_key: item.eph_public_key || null,
         ciphertext: item.ciphertext,
+        frame_v: item.frame_v == null ? null : item.frame_v,
+        carrier: item.carrier || null,
         tip_hash: state.tip_hash,
         fixture: state.fixture === true,
       };
@@ -2367,6 +2394,8 @@ export function createTrack2(opts = {}) {
         nonce: item.nonce,
         eph_public_key: item.eph_public_key,
         ciphertext: item.ciphertext,
+        frame_v: item.frame_v,
+        carrier: item.carrier,
       });
       if (text == null) return fail("FED-MESH-TAMPER", "Sealed share did not open.");
       if (poisonText(text)) {
@@ -2671,6 +2700,7 @@ export async function deliverThreeLocal(origin, mid, dest, plaintext) {
     seq: origin.state.seq,
     recipientEncPublicKey: dest.state.identity.enc_public_key,
     plaintext: String(plaintext ?? ""),
+    carrier: "lan",
   });
   if (!sealed) return fail("AZP-REFUSE", "Seal to the final receiver failed.");
   const queued = await origin.enqueue({ to: c, via: b, seq: origin.state.seq, ...sealed });

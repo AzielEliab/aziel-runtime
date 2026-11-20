@@ -1,0 +1,33 @@
+{
+  "spec": "AZRT-SEALED-FRAME-1.0",
+  "note": "qnm-node interop. Test key only. Version 2 binds the header as additional data. Version 1 has no additional data.",
+  "cap7_is_icann": false,
+  "paid_sat": "HELD",
+  "v2": {
+    "from": "#7KHJM3S4YDQ",
+    "to": "#83TGR7JVYAE",
+    "seq": 1,
+    "carrier": "lan",
+    "route_class": "direct",
+    "plaintext": "a-to-b-only",
+    "recipient_enc_public_key": "9ITURoucWVMDqcLSaUUCOzBH3wca8ynZDtZjRtkTRVQ",
+    "recipient_enc_pkcs8": "MC4CAQAwBQYDK2VuBCIEIBj7ktOHnrNHBdC4Qq3sVgXJjDH7srWefO4baQFO195B",
+    "nonce": "L0A26zk6GZrjKFf8",
+    "eph_public_key": "gWsiDYNoOk2Yjt9FzMJTKJJwDdgHC5XT0CaXMQ5EDxk",
+    "ciphertext": "k-pPlm44w3SMslZ0p9kkliPSQDm0JKIEX_qo",
+    "frame_v": 2,
+    "spec": "AZRT-SEALED-FRAME-1.0",
+    "aad": "{\"v\":2,\"spec\":\"AZRT-SEALED-FRAME-1.0\",\"carrier\":\"lan\",\"from\":\"#7KHJM3S4YDQ\",\"to\":\"#83TGR7JVYAE\",\"seq\":1,\"eph_public_key\":\"gWsiDYNoOk2Yjt9FzMJTKJJwDdgHC5XT0CaXMQ5EDxk\",\"nonce\":\"L0A26zk6GZrjKFf8\",\"route_class\":\"direct\"}"
+  },
+  "v1": {
+    "from": "#7KHJM3S4YDQ",
+    "to": "#83TGR7JVYAE",
+    "seq": 2,
+    "plaintext": "legacy",
+    "recipient_enc_public_key": "9ITURoucWVMDqcLSaUUCOzBH3wca8ynZDtZjRtkTRVQ",
+    "nonce": "eJe6fRWfduLX6kpS",
+    "eph_public_key": "RZCs_ix1KNjhihR9Ss7BAEp-KhLlWmwrn4_WqqK77Ss",
+    "ciphertext": "XkhLuEoATGH96XEVyCD7OxiJAbTCqw",
+    "frame_v": 1
+  }
+}

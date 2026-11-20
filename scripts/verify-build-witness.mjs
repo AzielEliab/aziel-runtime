@@ -39,7 +39,7 @@ const chk = (anchors, live) => checkBuildWitness(anchors, live, { now: NOW });
   assert.equal(liveLacks.status, "failed"); assert.equal(liveLacks.code, "BUILD-WITNESS-MISMATCH");
   assert.deepEqual(liveLacks.diffs, [{ field: "version_id", witnessed: VID, live: null }]);
   const full = chk(log(row(1, both())), liveBuildOf({ git_sha: SHA.toUpperCase(), version_id: VID }));
-  assert.equal(full.status, "verified"); assert.equal(full.ok, true); n++;
+  assert.equal(full.status, "self_consistent"); assert.equal(full.ok, true); assert.equal(full.independent, false); n++;
 }
 // (2) once a statement carries a build, an unknown live build is a mismatch, never 200.
 {
@@ -140,7 +140,7 @@ const chk = (anchors, live) => checkBuildWitness(anchors, live, { now: NOW });
   const heads = await (await handler(new Request("https://rt.example/v1/anchor/heads"), env)).json();
   assert.equal(heads.build.git_sha, meta.git_sha); assert.equal(heads.build.version_id, meta.version_id);
   const good = await call(env, both(meta.git_sha, meta.version_id));
-  assert.equal(good.body.build_witness.status, "verified", JSON.stringify(good.body.build_witness));
+  assert.equal(good.body.build_witness.status, "self_consistent", JSON.stringify(good.body.build_witness));
   assert.equal(good.body.latest.runtime_check.ok, true, JSON.stringify(good.body.latest.runtime_check));
   assert.equal(good.status, 200); assert.equal(good.body.code, "ANCHOR-OK");
   const bad = await call(env, both(SHA2, VID2));

@@ -5,7 +5,8 @@
  * The attestation is produced by scripts/build-attest.mjs and is meant to be signed outside
  * this runtime (CI OIDC / the witness). This module never signs it. Before exec, the runtime
  * compares its running artifact digest to the newest witnessed attestation.
- *   verified     digests match
+ *   verified       witnessed digest matches a CI provenance digest and is not this runtime's self-claim
+ *   self_consistent  witnessed digest equals the runtime's own published digest (not an independent proof)
  *   failed       BUILD-ATTEST-MISMATCH (one changed byte fails)
  *   not_checked  no witnessed attestation: ok null, live false, never a pass; strict mode refuses
  *   live         true only when this comparison decided verified or failed
@@ -62,6 +63,8 @@ export function attestFromStatement(statement) {
       : null,
     authorization_epoch: Number.isInteger(raw.authorization_epoch) ? raw.authorization_epoch : null,
     digest: HEX64.test(String(raw.digest || "")) ? String(raw.digest).toLowerCase() : null,
+    attest_source: raw.attest_source === "ci-provenance" ? "ci-provenance" : null,
+    ci_bundle_sha256: HEX64.test(String(raw.ci_bundle_sha256 || "")) ? String(raw.ci_bundle_sha256).toLowerCase() : null,
   };
 }
 
@@ -109,7 +112,9 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
   }
   const diffs = [];
   const liveDigest = HEX64.test(String(runningDigest || "")) ? String(runningDigest).toLowerCase() : null;
-  if (!liveDigest || liveDigest !== witnessed.artifact_digest) {
+  const ci = witnessed.ci_bundle_sha256 && HEX64.test(witnessed.ci_bundle_sha256) ? witnessed.ci_bundle_sha256 : null;
+  const distinctCi = witnessed.attest_source === "ci-provenance" && ci && witnessed.artifact_digest === ci && ci !== liveDigest;
+  if (!distinctCi && (!liveDigest || liveDigest !== witnessed.artifact_digest)) {
     diffs.push({ field: "artifact_digest", witnessed: witnessed.artifact_digest, live: liveDigest });
   }
   if (witnessed.authorization_epoch != null && authorization && witnessed.authorization_epoch !== authorization.writer_epoch) {
@@ -128,17 +133,37 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
     };
     return { allowed: false, code: "BUILD-ATTEST-MISMATCH", message: "Running artifact does not match the witnessed build attestation. Nothing ran.", view };
   }
+  if (distinctCi) {
+    return {
+      allowed: true,
+      view: {
+        ...base,
+        live: true,
+        ok: true,
+        status: "verified",
+        code: "BUILD-ATTEST-OK",
+        independent: true,
+        source_revision: witnessed.source_revision || null,
+        artifact_digest: witnessed.artifact_digest,
+        ci_bundle_sha256: ci,
+        builder_identity,
+        note: "Matched a CI provenance digest. This is not the runtime's own published digest.",
+      },
+    };
+  }
   return {
     allowed: true,
     view: {
       ...base,
-      live: true,
-      ok: true,
-      status: "verified",
-      code: "BUILD-ATTEST-OK",
+      live: false,
+      ok: null,
+      status: "self_consistent",
+      code: "BUILD-ATTEST-SELF-CONSISTENT",
+      independent: false,
       source_revision: witnessed.source_revision || null,
       artifact_digest: witnessed.artifact_digest,
       builder_identity,
+      note: "The witnessed digest equals this runtime's own published digest. That is self-consistent, not a CI attestation.",
     },
   };
 }
@@ -188,7 +213,9 @@ export function buildAttestHead(meta = {}, { witnessed = null, checked = false }
     live: decided,
     checked: checked === true,
     source_revision: (meta && meta.git_sha) || (witnessed && witnessed.source_revision) || null,
-    artifact_digest: running,
+    artifact_digest: view.status === "verified" && view.artifact_digest ? view.artifact_digest : running,
+    self_claim_digest: running,
+    artifact_kind: view.status === "verified" ? "ci-bundle" : "source-manifest",
     builder_identity: witnessed && witnessed.builder_identity ? witnessed.builder_identity : null,
     builder_identity_note: "Builder identity is taken only from a witnessed attestation (CI workflow + run id), never from a deploy var.",
     witnessed: witnessed
@@ -198,8 +225,12 @@ export function buildAttestHead(meta = {}, { witnessed = null, checked = false }
           builder_identity: witnessed.builder_identity || null,
         }
       : null,
-    note: decided
-      ? "Compared the running artifact digest to the witnessed attestation. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD."
-      : "No witnessed artifact digest, so this is not a pass. artifact_digest is published for the witness to copy. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD.",
+    note: view.status === "verified"
+      ? "Matched a CI provenance digest that is not this runtime's self-claim. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD."
+      : view.status === "self_consistent"
+        ? "The witnessed digest equals this runtime's own published source-manifest digest. That is self-consistent, not a CI attestation. Cap-7 is not ICANN. Paid satellite stays HELD."
+        : view.status === "failed"
+          ? "The witnessed digest does not match. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD."
+          : "No witnessed artifact digest, so this is not a pass. self_claim_digest is the source-manifest digest, not the built bundle. Cap-7 is not ICANN. Paid satellite stays HELD.",
   };
 }

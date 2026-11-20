@@ -5110,6 +5110,7 @@ async function handleRequest(request, env, ctx) {
           witnessedKeyId: groupd.log_ok ? groupd.receipt_key_id : null,
           attemptedKeyId: heads.receipt_key && heads.receipt_key.key_id,
           checked: groupd.checked,
+          logOk: groupd.log_ok,
         });
         return asHead(request, json(heads, 200, hdrs));
       }

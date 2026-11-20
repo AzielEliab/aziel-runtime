@@ -54,7 +54,7 @@ export function challengePath(who, scope = "agent") {
   return `/v1/mesh/agents/challenge?scope=${encodeURIComponent(scope)}&subject_public_key=${encodeURIComponent(who.public_key)}`;
 }
 export async function sealBox({ from, to, toEncPublicKey, plaintext, n }) {
-  const sealed = await sealPlaintext({ fromHandle: from, toHandle: to, seq: n, recipientEncPublicKey: toEncPublicKey, plaintext });
+  const sealed = await sealPlaintext({ fromHandle: from, toHandle: to, seq: n, recipientEncPublicKey: toEncPublicKey, plaintext, version: 1 });
   if (!sealed) throw new Error("seal failed");
   return { alg: ALG, eph_public_key: sealed.eph_public_key, nonce: sealed.nonce, ciphertext: sealed.ciphertext };
 }
@@ -77,7 +77,7 @@ export async function openMessage(me, msg) {
   const { sig, ...st } = msg.statement;
   if (!msg.sender_public_key || !(await verifyObject(msg.sender_public_key, st, sig))) return { verdict: "failed", why: "sender signature" };
   if ((await sha256Hex(canonicalize(msg.box))) !== st.box_sha256) return { verdict: "failed", why: "box hash" };
-  const text = await openCiphertext({ encPrivateKey: me.encPrivateKey, fromHandle: st.from, toHandle: st.to, seq: st.nonce, nonce: msg.box.nonce, eph_public_key: msg.box.eph_public_key, ciphertext: msg.box.ciphertext });
+  const text = await openCiphertext({ encPrivateKey: me.encPrivateKey, fromHandle: st.from, toHandle: st.to, seq: st.nonce, nonce: msg.box.nonce, eph_public_key: msg.box.eph_public_key, ciphertext: msg.box.ciphertext, frame_v: 1 });
   return text == null ? { verdict: "failed", why: "decrypt" } : { verdict: "verified", plaintext: text };
 }
 

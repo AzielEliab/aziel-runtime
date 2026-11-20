@@ -121,7 +121,7 @@ n++;
   // append-only: entries that existed at review time keep their place and bytes; new ones only append.
   const fp = (e) => createHash("sha256").update(JSON.stringify(e)).digest("hex");
   const REVIEWED_EPOCHS = []; // sha256(JSON) of each RECEIPT_KEY_EPOCHS entry, in order; append when adding one
-  const REVIEWED_PINNED = []; // same for PINNED_RECEIPT_KEYS
+  const REVIEWED_PINNED = ["d4d569170d4e6d0c91507d68be08e9fabda3171cc22a33a42def9e8cf936288e"]; // sha256(JSON) of each PINNED_RECEIPT_KEYS entry, in order
   assert.ok(rs.RECEIPT_KEY_EPOCHS.length >= REVIEWED_EPOCHS.length && REVIEWED_EPOCHS.every((h, i) => fp(rs.RECEIPT_KEY_EPOCHS[i]) === h), "RECEIPT_KEY_EPOCHS is append-only");
   assert.ok(rs.PINNED_RECEIPT_KEYS.length >= REVIEWED_PINNED.length && REVIEWED_PINNED.every((h, i) => fp(rs.PINNED_RECEIPT_KEYS[i]) === h), "PINNED_RECEIPT_KEYS is append-only");
   assert.ok(Object.isFrozen(rs.RECEIPT_KEY_EPOCHS) && Object.isFrozen(rs.PINNED_RECEIPT_KEYS));
