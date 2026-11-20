@@ -3,4 +3,4 @@
  * This file is not an input to the digest. Not a deploy var. Not a signature.
  * Author: Aziel Eliab.
  */
-export const BUILD_BUNDLE_DIGEST = "64c2601346ce313e6498b64da4efa957b32147535e9c01ea2d4125f480fca414";
+export const BUILD_BUNDLE_DIGEST = "1986c92a719a2428d2e7683fbb92adf6cc6c44c258d07ddcb5fd3329aa5bbca7";
