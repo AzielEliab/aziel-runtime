@@ -84,8 +84,12 @@ export function keyClass(key) {
 
 function flagged(obj) {
   if (!obj || typeof obj !== "object" || Array.isArray(obj)) return false;
-  if (obj.pii === true || obj.gated === true) return true;
-  return obj.sensitivity === "gated" || obj.sensitivity === "pii";
+  try {
+    if (obj.pii === true || obj.gated === true) return true;
+    return obj.sensitivity === "gated" || obj.sensitivity === "pii";
+  } catch {
+    return false;
+  }
 }
 
 /** True when text still carries a secret-shaped token. */
@@ -133,25 +137,61 @@ function jsonOrNull(value) {
   }
 }
 
+const CLOSED = "[REDACTED:closed]";
+
+function readProp(obj, key) {
+  try {
+    return { ok: true, value: obj[key] };
+  } catch {
+    return { ok: false, value: undefined };
+  }
+}
+
 export function redactValue(value, depth = 0) {
+  try {
+    return redactValueInner(value, depth);
+  } catch {
+    return CLOSED;
+  }
+}
+
+function redactValueInner(value, depth) {
   if (value == null || typeof value === "boolean" || typeof value === "number") return value;
-  if (typeof value === "bigint") return "[REDACTED:closed]";
+  if (typeof value === "bigint") return CLOSED;
   if (typeof value === "string") return redactLogText(value);
-  if (depth > 32) return "[REDACTED:closed]";
-  if (Array.isArray(value)) return value.map((item) => redactValue(item, depth + 1));
+  if (depth > 32) return CLOSED;
+  if (Array.isArray(value)) {
+    const items = [];
+    for (let i = 0; i < value.length; i++) {
+      const got = readProp(value, i);
+      items.push(got.ok ? redactValue(got.value, depth + 1) : CLOSED);
+    }
+    return items;
+  }
   if (typeof value !== "object") return value;
   const flag = flagged(value);
   const out = {};
-  for (const key of Object.keys(value)) {
+  let keys;
+  try {
+    keys = Object.keys(value);
+  } catch {
+    return CLOSED;
+  }
+  for (const key of keys) {
+    const got = readProp(value, key);
+    if (!got.ok) {
+      out[key] = CLOSED;
+      continue;
+    }
+    const child = got.value;
     const cls = keyClass(key);
-    const child = value[key];
     if (typeof child === "bigint") {
-      out[key] = cls ? marker(cls, child.toString()) : "[REDACTED:closed]";
+      out[key] = CLOSED;
       continue;
     }
     if (cls && (typeof child === "string" || (child && typeof child === "object"))) {
       const raw = typeof child === "string" ? child : jsonOrNull(child);
-      out[key] = raw == null ? "[REDACTED:closed]" : marker(cls, raw);
+      out[key] = raw == null ? CLOSED : marker(cls, raw);
       continue;
     }
     if (flag && typeof child === "string" && !HEX64.test(child) && !REDACT_MARK.test(child)) {
@@ -163,6 +203,43 @@ export function redactValue(value, depth = 0) {
   const packed = jsonOrNull(out);
   if (packed == null || leakScan(packed)) return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
   return out;
+}
+
+/** Drop every result_taint in place so the live response object cannot keep a forged mark. */
+export function purgeResultTaint(value, depth = 0) {
+  if (!value || typeof value !== "object" || depth > 32) return value;
+  if (Array.isArray(value)) {
+    for (let i = 0; i < value.length; i++) {
+      try {
+        purgeResultTaint(value[i], depth + 1);
+      } catch {
+        value[i] = CLOSED;
+      }
+    }
+    return value;
+  }
+  try {
+    delete value.result_taint;
+  } catch {
+    /* a sealed field still gets overwritten by the caller */
+  }
+  let keys = [];
+  try {
+    keys = Object.keys(value);
+  } catch {
+    return value;
+  }
+  for (const key of keys) {
+    if (key === "result_taint") continue;
+    let child;
+    try {
+      child = value[key];
+    } catch {
+      continue;
+    }
+    if (child && typeof child === "object") purgeResultTaint(child, depth + 1);
+  }
+  return value;
 }
 
 /** Drop every result_taint so a tool cannot supply its own trust mark. */

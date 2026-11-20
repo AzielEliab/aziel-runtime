@@ -87,7 +87,18 @@ const PASS = "hunter2-password-value";
   assert.equal(withBig.n, "[REDACTED:closed]");
   assert.equal(withBig.ok, true);
   assert.equal(withBig.nested.count, "[REDACTED:closed]");
-  assert.match(withBig.password, /^\[REDACTED:password:[a-f0-9]{16}\]$/);
+  assert.equal(withBig.password, "[REDACTED:closed]");
+  const leak = "super-secret-token-value-in-getter";
+  const tricky = {};
+  Object.defineProperty(tricky, "password", {
+    enumerable: true,
+    get() {
+      throw new Error(leak);
+    },
+  });
+  const closedGetter = redactValue(tricky);
+  assert.equal(closedGetter.password, "[REDACTED:closed]");
+  assert.equal(JSON.stringify(closedGetter).includes(leak), false);
   assert.equal(JSON.stringify(withBig).includes("1n"), false);
   assert.doesNotThrow(() => redactValue({ items: [1n, { token: 9n }] }));
   check(true, "redaction");
@@ -98,11 +109,21 @@ const PASS = "hunter2-password-value";
   const dir = await mkdtemp(join(tmpdir(), "obs-log-"));
   const file = join(dir, "node.log");
   const log = cappedLogger(file, 4096);
-  log("startup", { password: PASS, msg: SECRET });
+  const big = 123456789012345678901234567890n;
+  const boom = {};
+  Object.defineProperty(boom, "token", {
+    enumerable: true,
+    get() {
+      throw new Error(SECRET);
+    },
+  });
+  assert.doesNotThrow(() => log("startup", { password: PASS, msg: SECRET }, big, boom));
   const text = await readFile(file, "utf8");
   assert.equal(text.includes(PASS), false);
   assert.equal(text.includes(SECRET), false);
+  assert.equal(text.includes(String(big)), false);
   assert.match(text, /\[REDACTED:password:/);
+  assert.match(text, /\[REDACTED:closed\]/);
   await rm(dir, { recursive: true, force: true });
 
   const store = new MemoryStore();
@@ -264,6 +285,12 @@ const PASS = "hunter2-password-value";
   assert.equal(packedMcp.includes('"policy":true'), false);
   assert.equal(packedMcp.includes('"operator":true'), false);
   assert.equal(String(attacked.text).includes('"TRUSTED"'), false);
+  const http = { ...attacked.envelope, infra: { fraggate: { ran: true } } };
+  assert.equal(http.result_taint.trust, "UNTRUSTED");
+  assert.equal(http.result_taint.policy, false);
+  assert.equal(http.result_taint.operator, false);
+  assert.equal(JSON.stringify(http).includes('"TRUSTED"'), false);
+  assert.equal(attacked.envelope.result_taint, http.result_taint);
   check(true, "taint");
 }
 

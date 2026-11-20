@@ -488,22 +488,30 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
-  // AZRT-UNTRUSTED-RESULT-1.0. A tool cannot mint its own trust mark.
-  // Strip every result_taint, hash that body, then stamp the runtime mark.
+  // AZRT-UNTRUSTED-RESULT-1.0. Always overwrite result_taint. No !result_taint gate.
+  // HTTP /v1/fraggate/call returns out.envelope. MCP structuredContent is that
+  // envelope, or the display wrap of out.text when the tool sent text only.
   if (env && typeof env === "object" && !Array.isArray(env)) {
-    const clean = obs.stripResultTaint(env);
-    const taint = await obs.resultTaint({ tool: name, body: clean });
-    if (out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope)) {
-      out.envelope = { ...obs.stripResultTaint(out.envelope), result_taint: taint };
+    const live = out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope) ? out.envelope : null;
+    if (live && live !== env) obs.purgeResultTaint(live);
+    obs.purgeResultTaint(env);
+    const body = live || env;
+    const taint = await obs.resultTaint({ tool: name, body });
+    try {
+      body.result_taint = taint;
+    } catch {
+      if (live) out.envelope = { ...obs.stripResultTaint(body), result_taint: taint };
     }
     if (typeof out.text === "string") {
       try {
         const parsed = JSON.parse(out.text);
         if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-          out.text = JSON.stringify({ ...obs.stripResultTaint(parsed), result_taint: taint }, null, 2);
+          obs.purgeResultTaint(parsed);
+          parsed.result_taint = taint;
+          out.text = JSON.stringify(parsed, null, 2);
         }
       } catch {
-        /* non-JSON text stays as is */
+        if (!live) out.text = JSON.stringify(body, null, 2);
       }
     }
   }
