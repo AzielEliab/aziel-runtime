@@ -280,6 +280,20 @@ Ack and resolution clocks are not fields on these rows. They are a separate kind
 
 ---
 
+## 11. Counterparty, calibration, and portable receipts (not live)
+
+Kind stays `aziel-runtime.receipt`. New events `counterparty`, `probe`, and `aer` are additive rows on the session chain. Old chains that lack them verify as before (`status: "absent"`). No signature field is added. No key is minted.
+
+| Event | Spec | What is sealed |
+|-------|------|----------------|
+| `counterparty` | AZRT-COUNTERPARTY-RECEIPT-1.0 (RIB-021) | Counterparty statement bound to an earlier policy-gated exec. `signed: false`. |
+| `probe` | AZRT-CALIBRATION-PROBE-1.0 (RIB-022) | Pre-registered wrong premise, then `premise × response × verdict`. |
+| `aer` | AZRT-AER1-EXPORT-1.0 (RIB-025, `draft-zambo-aer1-08`) | Portable receipt. Canonical bytes cover tool call, inputs, and outputs. |
+
+`GET /v1/session/{id}/aer` requires no account. `aer1_conformance` is `draft-zambo-aer1-08` with kit `v1.4.0` result `43/43`. `aer1_chain_corpus` is `not_in_v1.4.0_tag`. Paper: [AZRT-RIB-021-022-025](../designs/AZRT-RIB-021-022-025.md).
+
+---
+
 ## 10. Ack and resolution clocks (AZRT-ACK-CLOCK-1.0, not live)
 
 Kind: `aziel-runtime.ack-clock`. Spec: `AZRT-ACK-CLOCK-1.0`. Code: `src/ack-clock.js`. Tests: `scripts/verify-ack-clocks.mjs`. Paper: [AZRT-ACK-CLOCK-1.0](../designs/AZRT-ACK-CLOCK-1.0.md).
