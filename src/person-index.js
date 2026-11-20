@@ -13,6 +13,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { HEDIDNTJUMP_CANONICAL, HEDIDNTJUMP_CITE, HEDIDNTJUMP_LLMS } from "./public-ecosystem.js";
 import {
   FURNACE_AZIEL,
   FURNACE_CITE,
@@ -82,7 +83,7 @@ export const PERSON_SAME_AS = Object.freeze([
   "https://www.azieleliab.com/",
   "https://www.azielcorpuslibrary.net/",
   "https://godlock.uk/",
-  "https://www.hedidntjump.com/",
+  HEDIDNTJUMP_CANONICAL,
   FURNACE_HOME,
   FURNACE_AZIEL,
   UNSEAL_HOME,
@@ -109,7 +110,7 @@ export function personSocialsField() {
       "https://www.azielcorpuslibrary.net/",
       "https://godlock.uk/",
     ],
-    sister_archive: "https://www.hedidntjump.com/",
+    sister_archive: HEDIDNTJUMP_CANONICAL,
     official_aziel_sites: [FURNACE_HOME, FURNACE_AZIEL, UNSEAL_HOME, UNSEAL_AZIEL],
     softwares: RUNTIME_WORKER_HOME,
     sameAs: PERSON_SAME_AS.slice(),
@@ -248,7 +249,7 @@ export const RESEARCH_WORKS = Object.freeze([
 ]);
 
 export const RESEARCH_ADDENDUM =
-  "Research (Aziel Digital Library MASTER): historical/manuscript work including Book of the knowledge of all the kingdoms, lands, and lordships that are in the world (AZDOC-F83D7E6D28B6); Blemmyes/Ewaipanoma hypothesis packets (AZDOC-E00603883906, AZDOC-39DB4E318091, AZDOC-1063826A9C4C); Libro Method (cite azielcorpuslibrary.net MASTER); Post-Perturbation Integrative Neuroplasticity (PPIN) (AZDOC-E03E61D8E50B and sibling PPIN sections); Lenses as Viewpoint Constraints for Artificial Systems (AZDOC-8F14A40DC9A6); ABAD Copper Scroll work (AZDOC-DD5912D05D6E); evidence/integrity research (AZDOC-0671040C36E6); He Didn't Jump Zioncheck archive (AZDOC-18DBE35A32DD and vols 2–5; https://www.hedidntjump.com/). Cite https://www.azielcorpuslibrary.net/ records. Library live ~326 records.";
+  "Research (Aziel Digital Library MASTER): historical/manuscript work including Book of the knowledge of all the kingdoms, lands, and lordships that are in the world (AZDOC-F83D7E6D28B6); Blemmyes/Ewaipanoma hypothesis packets (AZDOC-E00603883906, AZDOC-39DB4E318091, AZDOC-1063826A9C4C); Libro Method (cite azielcorpuslibrary.net MASTER); Post-Perturbation Integrative Neuroplasticity (PPIN) (AZDOC-E03E61D8E50B and sibling PPIN sections); Lenses as Viewpoint Constraints for Artificial Systems (AZDOC-8F14A40DC9A6); ABAD Copper Scroll work (AZDOC-DD5912D05D6E); evidence/integrity research (AZDOC-0671040C36E6); He Didn't Jump Zioncheck archive (AZDOC-18DBE35A32DD and vols 2–5; https://hedidntjump.com/). Cite https://www.azielcorpuslibrary.net/ records. Library live ~326 records.";
 
 /** Public engineering only. Published Digital Library work, not a storefront. */
 export const HARDWARE_DESIGNS = Object.freeze([
@@ -374,9 +375,9 @@ export const PERSON_HUB_MACHINE = Object.freeze([
   "https://www.azielcorpuslibrary.net/cite.json",
   "https://godlock.uk/person.jsonld",
   "https://godlock.uk/cite.json",
-  "https://www.hedidntjump.com/person.jsonld",
-  "https://www.hedidntjump.com/who-is",
-  "https://www.hedidntjump.com/cite.json",
+  "https://hedidntjump.com/person.jsonld",
+  "https://hedidntjump.com/who-is",
+  "https://hedidntjump.com/cite.json",
 ]);
 
 export const PERSON_SITES = Object.freeze([
@@ -425,13 +426,13 @@ export const PERSON_SITES = Object.freeze([
     id: "hedidntjump",
     host: "hedidntjump.com",
     name: "He Didn't Jump",
-    url: "https://www.hedidntjump.com/",
+    url: HEDIDNTJUMP_CANONICAL,
     coverage: "Zioncheck archive sister",
-    person_jsonld: "https://www.hedidntjump.com/person.jsonld",
-    who_is: "https://www.hedidntjump.com/who-is",
-    cite: "https://www.hedidntjump.com/cite.json",
-    llms: "https://www.hedidntjump.com/llms.txt",
-    ai: "https://www.hedidntjump.com/ai.txt",
+    person_jsonld: "https://hedidntjump.com/person.jsonld",
+    who_is: "https://hedidntjump.com/who-is",
+    cite: HEDIDNTJUMP_CITE,
+    llms: HEDIDNTJUMP_LLMS,
+    ai: "https://hedidntjump.com/ai.txt",
     software_tab: false,
     sister_archive: true,
   },
@@ -592,7 +593,7 @@ export function personIndexJsonLd(origin, calling = null) {
       { "@type": "CreativeWork", name: ARK_NAME, url: ARK_WORKER_HOME, description: ARK_ONE_LINE },
       { "@type": "CreativeWork", name: "Aziel Digital Library", url: "https://www.azielcorpuslibrary.net/" },
       { "@type": "CreativeWork", name: "GodLock", url: "https://godlock.uk/" },
-      { "@type": "CreativeWork", name: "He Didn't Jump", url: "https://www.hedidntjump.com/" },
+      { "@type": "CreativeWork", name: "He Didn't Jump", url: "https://hedidntjump.com/" },
       { "@type": "CreativeWork", name: FURNACE_NAME, url: FURNACE_HOME },
       { "@type": "CreativeWork", name: `${FURNACE_NAME} Aziel`, url: FURNACE_AZIEL },
       { "@type": "CreativeWork", name: UNSEAL_NAME, url: UNSEAL_HOME },
@@ -667,7 +668,7 @@ export function whoIsTxt(origin, calling = null) {
   lines.push(`GitHub runtime: ${PERSON_GITHUB_RUNTIME}`);
   lines.push(`Glama: ${PERSON_GLAMA}`);
   lines.push("Hubs: https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ · https://godlock.uk/");
-  lines.push("Sister archive: https://www.hedidntjump.com/");
+  lines.push(`Sister archive: ${HEDIDNTJUMP_CANONICAL}`);
   lines.push(`Official Aziel site: ${FURNACE_NAME} — ${FURNACE_HOME}`);
   lines.push(`Official Aziel site: ${FURNACE_NAME} Aziel — ${FURNACE_AZIEL}`);
   lines.push(`Official Aziel site: ${UNSEAL_NAME} — ${UNSEAL_HOME}`);

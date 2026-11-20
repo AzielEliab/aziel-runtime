@@ -60,7 +60,7 @@ assert.deepEqual(ICANN_HUB_HOSTS, [
   "https://www.azieleliab.com/",
   "https://www.azielcorpuslibrary.net/",
   "https://godlock.uk/",
-  "https://www.hedidntjump.com/",
+  "https://hedidntjump.com/",
 ]);
 assert.equal(MIRAGEGRID_WORKER_ORIGIN, MIRAGEGRID_APP_ORIGIN);
 assert.equal(MIRAGEGRID_APP_ORIGIN, "https://miragegrid.vibelock.workers.dev");
@@ -193,7 +193,7 @@ assert.deepEqual(
   ["azbooth", "azflag", "azstandby"],
 );
 assert.equal(cite.shuffle.sites.find((s) => s.id === "azshift").az_display_name, "AZ.HeDidntJump.AZ");
-assert.match(cite.shuffle.sites.find((s) => s.id === "azshift").aligns_to, /^https:\/\/www\.hedidntjump\.com\/$/);
+assert.match(cite.shuffle.sites.find((s) => s.id === "azshift").aligns_to, /^https:\/\/hedidntjump\.com\/$/);
 assert.ok(cite.shuffle.sites.every((s) => s.hosted_status === "live" && s.is_live_door === false && s.design_of === "hub_designs" && s.internet_reachable === false));
 assert.ok(cite.shuffle.sites.every((s) => s.id.startsWith("az") && s.mesh_name.endsWith(".az")));
 
