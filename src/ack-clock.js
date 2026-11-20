@@ -10,7 +10,11 @@
  * Every reassign bumps a handoff count. Past two is flagged.
  * RIB-065 + RIB-067: the item keeps total age. A reopen bumps a count (the second
  * flags) and starts its own re-resolve timer on a row linked to the original.
- * The same requester and issue key inside the window is a reopen, not a new item.
+ * The same requester and issue key inside the window matches the existing item.
+ * Twitter backlog RIB-058 (@smperng): that match seals intake_proposed first.
+ * The item re-enters only after intake_confirmed. intake_rejected does not
+ * re-enter. AZRT-ANCHOR-COVERAGE-1.0 also uses the label RIB-058 for its
+ * verifier cron. That cron is a different module and is unchanged.
  *
  * Not signed. Not LIVE. Not a Softwares card. Not an MCP tool. Not a public door.
  * Cap-7 and `.aziel` on a row are names only. Cap-7 is not ICANN. Paid satellite
@@ -45,6 +49,9 @@ export const EVENTS = Object.freeze([
   "resolved",
   "reopen",
   "intake_linked",
+  "intake_proposed",
+  "intake_confirmed",
+  "intake_rejected",
 ]);
 
 const ITEM_RE = /^[A-Za-z0-9_.:-]{1,80}$/;
@@ -207,6 +214,8 @@ export function projectItems(receipts) {
           handoff_flagged: false,
           reopen_count: 0,
           reopen_flagged: false,
+          intake_state: null,
+          intake_proposal_hash: null,
           re_resolve_started_ms: null,
           resolved_ms: null,
           resolution_ms: null,
@@ -266,7 +275,7 @@ export function projectItems(receipts) {
       item.resolution_ms = rec.resolution_ms;
       item.re_resolve_ms = rec.re_resolve_ms == null ? null : rec.re_resolve_ms;
       item.status = "resolved";
-    } else if (rec.event === "reopen" || rec.event === "intake_linked") {
+    } else if (rec.event === "reopen" || rec.event === "intake_linked" || rec.event === "intake_confirmed") {
       item.reopen_count = rec.reopen_count;
       item.reopen_flagged = rec.reopen_flagged === true;
       item.re_resolve_started_ms = rec.re_resolve_started_ms;
@@ -276,6 +285,22 @@ export function projectItems(receipts) {
       item.handoff_count = rec.handoff_count;
       item.handoff_flagged = rec.handoff_flagged === true;
       item.status = "reopened";
+      if (rec.event === "intake_confirmed" || rec.event === "intake_linked") {
+        item.intake_state = "confirmed";
+        item.intake_proposal_hash = null;
+      }
+    } else if (rec.event === "intake_proposed") {
+      item.intake_state = "proposed";
+      item.intake_proposal_hash = rec.hash;
+      item.intake_proposed_ms = rec.ts_ms;
+      item.reopen_count = rec.reopen_count;
+      item.reopen_flagged = rec.reopen_flagged === true;
+    } else if (rec.event === "intake_rejected") {
+      item.intake_state = "rejected";
+      item.intake_proposal_hash = null;
+      item.intake_rejected_ms = rec.ts_ms;
+      item.reopen_count = rec.reopen_count;
+      item.reopen_flagged = rec.reopen_flagged === true;
     }
   }
   return items;
@@ -372,11 +397,12 @@ export async function openItem(ledger, input = {}) {
   const items = projectItems(ledger.receipts);
   const match = findIntake(items, requesterKey, issueKey, now, windowMs);
   if (match) {
-    return sealReopen(ledger, match, now, {
-      event: "intake_linked",
-      forced: true,
+    const pending = openProposal(ledger.receipts, match.item_id);
+    if (pending) return pendingResult(ledger, pending);
+    return sealProposal(ledger, match, now, {
       window_ms: windowMs,
       match: "same_requester_same_issue_inside_window",
+      matched_receipt_hash: latestItemHash(ledger.receipts, match.item_id),
     });
   }
   let itemId = input.item_id == null || input.item_id === "" ? newItemId() : String(input.item_id).trim();
@@ -452,11 +478,17 @@ async function sealReopen(ledger, item, now, extra) {
     forced: extra.forced === true,
     window_ms: extra.window_ms == null ? null : extra.window_ms,
     match: extra.match == null ? null : extra.match,
-    refused_new_item: extra.event === "intake_linked",
+    refused_new_item: extra.event === "intake_linked" || extra.event === "intake_confirmed",
+    ...(extra.proposal_hash ? { proposal_hash: extra.proposal_hash } : {}),
+    ...(extra.intake_state ? { intake_state: extra.intake_state } : {}),
+    ...(extra.reenters === true ? { reenters: true } : {}),
   });
   return done(ledger, [rec], {
-    linked: extra.event === "intake_linked",
+    linked: extra.event === "intake_linked" || extra.event === "intake_confirmed",
     new_item: false,
+    pending: false,
+    reentered: extra.reenters === true,
+    intake_state: extra.intake_state || null,
     item_id: item.item_id,
   });
 }
@@ -467,6 +499,162 @@ export async function reopen(ledger, input = {}) {
   const gate = requireItem(ledger, input.item_id, now);
   if (!gate.ok) return gate;
   return sealReopen(ledger, gate.item, now, { event: "reopen", forced: false, window_ms: null, match: null });
+}
+
+function latestItemHash(receipts, itemId) {
+  let hash = null;
+  for (const rec of receipts || []) {
+    if (rec && rec.item_id === itemId && typeof rec.hash === "string") hash = rec.hash;
+  }
+  return hash;
+}
+
+function openProposal(receipts, itemId) {
+  let open = null;
+  for (const rec of receipts || []) {
+    if (!rec || rec.item_id !== itemId) continue;
+    if (rec.event === "intake_proposed") open = rec;
+    else if (
+      (rec.event === "intake_confirmed" || rec.event === "intake_rejected") &&
+      open &&
+      rec.proposal_hash === open.hash
+    ) {
+      open = null;
+    }
+  }
+  return open;
+}
+
+function pendingResult(ledger, proposal) {
+  return {
+    ok: true,
+    spec: ACK_CLOCK_SPEC,
+    spec_status: SPEC_STATUS,
+    live: false,
+    signed: false,
+    written: false,
+    pending: true,
+    intake_state: "proposed",
+    linked: false,
+    new_item: false,
+    reentered: false,
+    item_id: proposal.item_id,
+    receipt: proposal,
+    receipts: [],
+    item: itemView(ledger, proposal.item_id),
+  };
+}
+
+async function sealProposal(ledger, item, now, extra) {
+  const matched = extra.matched_receipt_hash;
+  if (!matched) return fail("ACK-BAD-INPUT", "the matched item has no sealed receipt");
+  const rec = await append(ledger, {
+    event: "intake_proposed",
+    intake_state: "proposed",
+    reenters: false,
+    ts: new Date(now).toISOString(),
+    ts_ms: now,
+    item_id: item.item_id,
+    requester: item.requester,
+    requester_key: item.requester_key,
+    issue: item.issue,
+    issue_key: item.issue_key,
+    reopen_count: item.reopen_count,
+    reopen_flagged: item.reopen_flagged === true,
+    original_receipt_hash: item.original_receipt_hash,
+    matched_receipt_hash: matched,
+    resolution_started_ms: item.resolution_started_ms,
+    resolution_restarted: false,
+    opened_ms: item.opened_ms,
+    total_age_ms: age(item, now),
+    handoff_count: item.handoff_count,
+    handoff_flagged: item.handoff_flagged === true,
+    stops_clock: false,
+    forced: false,
+    window_ms: extra.window_ms,
+    match: extra.match,
+    refused_new_item: true,
+  });
+  return done(ledger, [rec], {
+    linked: false,
+    new_item: false,
+    pending: true,
+    intake_state: "proposed",
+    reentered: false,
+    item_id: item.item_id,
+  });
+}
+
+function proposalGate(ledger, input) {
+  if (!ledger || !Array.isArray(ledger.receipts)) return fail("ACK-BAD-INPUT", "ledger is required");
+  const now = parseTime(input.now);
+  const gate = requireItem(ledger, input.item_id, now);
+  if (!gate.ok) return gate;
+  if (typeof input.proposal_hash !== "string" || !/^[a-f0-9]{64}$/.test(input.proposal_hash)) {
+    return fail("INTAKE-PROPOSAL-MISMATCH", "confirm or reject must name the open proposal hash");
+  }
+  const proposal = openProposal(ledger.receipts, gate.item.item_id);
+  if (!proposal) return fail("INTAKE-NOT-PROPOSED", "no open intake proposal for this item");
+  if (input.proposal_hash !== proposal.hash) {
+    return fail("INTAKE-PROPOSAL-MISMATCH", "confirm or reject must name the open proposal hash");
+  }
+  if (now < proposal.ts_ms) return fail("ACK-BAD-TIME", "decision is before the proposal");
+  return { ok: true, now, item: gate.item, proposal };
+}
+
+/** Seal intake_confirmed and re-enter the matched item. A proposal that is still open is required. */
+export async function confirmIntake(ledger, input = {}) {
+  const gate = proposalGate(ledger, input);
+  if (!gate.ok) return gate;
+  return sealReopen(ledger, gate.item, gate.now, {
+    event: "intake_confirmed",
+    forced: true,
+    window_ms: gate.proposal.window_ms,
+    match: gate.proposal.match,
+    proposal_hash: gate.proposal.hash,
+    intake_state: "confirmed",
+    reenters: true,
+  });
+}
+
+/** Seal intake_rejected. The item does not re-enter and reopen_count stays put. */
+export async function rejectIntake(ledger, input = {}) {
+  const gate = proposalGate(ledger, input);
+  if (!gate.ok) return gate;
+  const item = gate.item;
+  const rec = await append(ledger, {
+    event: "intake_rejected",
+    intake_state: "rejected",
+    reenters: false,
+    proposal_hash: gate.proposal.hash,
+    ts: new Date(gate.now).toISOString(),
+    ts_ms: gate.now,
+    item_id: item.item_id,
+    requester: item.requester,
+    requester_key: item.requester_key,
+    issue: item.issue,
+    issue_key: item.issue_key,
+    reopen_count: item.reopen_count,
+    reopen_flagged: item.reopen_flagged === true,
+    original_receipt_hash: item.original_receipt_hash,
+    resolution_started_ms: item.resolution_started_ms,
+    resolution_restarted: false,
+    opened_ms: item.opened_ms,
+    total_age_ms: age(item, gate.now),
+    handoff_count: item.handoff_count,
+    handoff_flagged: item.handoff_flagged === true,
+    stops_clock: false,
+    refused_new_item: true,
+    match: gate.proposal.match,
+  });
+  return done(ledger, [rec], {
+    linked: false,
+    new_item: false,
+    pending: false,
+    reentered: false,
+    intake_state: "rejected",
+    item_id: item.item_id,
+  });
 }
 
 export async function humanAck(ledger, input = {}) {
@@ -775,6 +963,7 @@ export async function verifyAckChain(receipts) {
   const starts = new Map();
   const handoffs = new Map();
   const reopens = new Map();
+  const openProp = new Map();
   const seenPage = new Set();
   for (let i = 0; i < list.length; i++) {
     const rec = list[i];
@@ -828,12 +1017,35 @@ export async function verifyAckChain(receipts) {
       if (rec.handoff_count !== n) errors.push({ seq: rec.seq, error: "handoff_count" });
       if (rec.handoff_flagged !== n > HANDOFF_FLAG_AFTER) errors.push({ seq: rec.seq, error: "handoff_flag" });
     }
-    if (rec.event === "reopen" || rec.event === "intake_linked") {
+    if (rec.event === "reopen" || rec.event === "intake_linked" || rec.event === "intake_confirmed") {
       const n = (reopens.get(rec.item_id) || 0) + 1;
       reopens.set(rec.item_id, n);
       if (rec.reopen_count !== n) errors.push({ seq: rec.seq, error: "reopen_count" });
       if (rec.reopen_flagged !== n >= REOPEN_FLAG_AT) errors.push({ seq: rec.seq, error: "reopen_flag" });
       if (!rec.original_receipt_hash) errors.push({ seq: rec.seq, error: "reopen_link" });
+    }
+    if (rec.event === "intake_proposed") {
+      if (rec.intake_state !== "proposed" || rec.reenters === true || rec.refused_new_item !== true) {
+        errors.push({ seq: rec.seq, error: "intake_state" });
+      }
+      if (rec.reopen_count !== (reopens.get(rec.item_id) || 0)) errors.push({ seq: rec.seq, error: "reopen_count" });
+      if (openProp.has(rec.item_id)) errors.push({ seq: rec.seq, error: "intake_state" });
+      const prior = list.slice(0, i).filter((row) => row && row.item_id === rec.item_id).map((row) => row.hash);
+      if (!prior.includes(rec.matched_receipt_hash)) errors.push({ seq: rec.seq, error: "intake_match" });
+      openProp.set(rec.item_id, rec.hash);
+    }
+    if (rec.event === "intake_confirmed") {
+      if (rec.intake_state !== "confirmed" || rec.reenters !== true || rec.proposal_hash !== openProp.get(rec.item_id)) {
+        errors.push({ seq: rec.seq, error: "intake_state" });
+      }
+      openProp.delete(rec.item_id);
+    }
+    if (rec.event === "intake_rejected") {
+      if (rec.intake_state !== "rejected" || rec.reenters === true || rec.proposal_hash !== openProp.get(rec.item_id)) {
+        errors.push({ seq: rec.seq, error: "intake_state" });
+      }
+      if (rec.reopen_count !== (reopens.get(rec.item_id) || 0)) errors.push({ seq: rec.seq, error: "reopen_count" });
+      openProp.delete(rec.item_id);
     }
     if (rec.event === "page_delivered" && rec.cause === "open") {
       if (seenPage.has(rec.item_id)) errors.push({ seq: rec.seq, error: "second_open" });

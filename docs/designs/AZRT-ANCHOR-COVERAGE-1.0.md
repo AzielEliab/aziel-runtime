@@ -42,7 +42,7 @@ Each check carries its own `every_ms` and `deadline_ms`. After the first verifie
 
 ## RIB-062 and RIB-063 — kill-to-page
 
-`createWriter().kill` seals a `writer_death` receipt, then the writer is dead (a later verifier slot does not seal). The outside checker pages when the shelf beat is past its deadline. `killToPage` measures the writer-death receipt time to the first named human-ack receipt. `KILL-TO-PAGE-OVER-BUDGET` fails when that gap exceeds the budget even if the page already fired. A human ack is a named seal, not a read receipt.
+`createWriter().kill` seals a `writer_death` receipt, then the writer is dead (a later verifier slot does not seal). The outside checker pages when the shelf beat is past its deadline. `killToPage` measures the writer-death receipt time to the first named human-ack receipt. `KILL-TO-PAGE-OVER-BUDGET` fails when that gap exceeds the budget even if the page already fired. A human ack is a named seal, not a read receipt. The page signal is in-process (`checkDeadman`, or `scripts/anchor-coverage-outside.mjs` reading a heartbeat file). No external pager transport is wired. `external_pager` stays `not_live` and `pager_transport` stays null until a transport is actually connected.
 
 ## Honesty
 

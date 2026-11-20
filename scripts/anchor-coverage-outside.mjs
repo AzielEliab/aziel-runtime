@@ -46,6 +46,8 @@ export function checkFile({ path, now = Date.now(), deadlineMs, read = readHeart
     paid_sat: "HELD",
     ...(unreadable ? { unreadable } : {}),
     ...page,
+    external_pager: "not_live",
+    pager_transport: null,
   };
 }
 
