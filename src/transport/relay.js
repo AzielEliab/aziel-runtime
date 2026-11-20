@@ -1,6 +1,8 @@
 /**
- * Dumb relay. It stores and forwards opaque envelopes.
+ * Dumb relay for AZP-NS-1.0 envelopes. It stores and forwards opaque envelopes.
  * It has no decryption key and no long-term user identity.
+ * This file is not FED-MESH-ENVELOPE-2 and not AZRT-SEALED-FRAME-1.0.
+ * The mesh relay that also accepts FED-MESH-ENVELOPE-2 is src/fed-mesh/relay.js.
  * Author: Aziel Eliab only.
  */
 

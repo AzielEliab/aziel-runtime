@@ -348,6 +348,7 @@ export function frameAad(header) {
   });
 }
 
+/** AZRT-SEALED-FRAME-1.0 only. Not FED-MESH-ENVELOPE-2 and not AZP-NS-1.0. */
 async function sealPlaintext({ fromHandle, toHandle, seq, recipientEncPublicKey, plaintext, carrier = "lan", route_class = "" }) {
   const eph = await generateX25519();
   const key = await sharedKey(eph.privateKey, recipientEncPublicKey, fromHandle, toHandle, seq);

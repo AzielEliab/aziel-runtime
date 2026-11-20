@@ -1,6 +1,14 @@
 {
   "spec": "AZRT-SEALED-FRAME-1.0",
-  "note": "qnm-node interop. Test key only. Version 2 binds the header as additional data. Version 1 has no additional data.",
+  "note": "AZRT-SEALED-FRAME-1.0 test vector only. It is not wire-identical to FED-MESH-ENVELOPE-2 or AZP-NS-1.0. Version 2 binds this frame's own header as additional data. Version 1 has no additional data.",
+  "wire_relation": {
+    "azrt_sealed_frame": "AZRT-SEALED-FRAME-1.0",
+    "fed_mesh": "FED-MESH-1.0",
+    "fed_mesh_envelope": "FED-MESH-ENVELOPE-2",
+    "azp_ns": "AZP-NS-1.0",
+    "wire_identical": false,
+    "note": "AZRT-SEALED-FRAME-1.0, FED-MESH-ENVELOPE-2, and AZP-NS-1.0 are different wires. This object does not claim they share version, AAD, or KDF bytes."
+  },
   "cap7_is_icann": false,
   "paid_sat": "HELD",
   "v2": {

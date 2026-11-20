@@ -5,7 +5,7 @@
  * The attestation is produced by scripts/build-attest.mjs and is meant to be signed outside
  * this runtime (CI OIDC / the witness). This module never signs it. Before exec, the runtime
  * compares its running artifact digest to the newest witnessed attestation.
- *   verified       witnessed digest matches a CI provenance digest and is not this runtime's self-claim
+ *   verified       running digest equals the CI digest AND running GIT_SHA equals the witnessed git_sha
  *   self_consistent  witnessed digest equals the runtime's own published digest (not an independent proof)
  *   failed       BUILD-ATTEST-MISMATCH (one changed byte fails)
  *   not_checked  no witnessed attestation: ok null, live false, never a pass; strict mode refuses
@@ -50,10 +50,14 @@ export function attestFromStatement(statement) {
   const artifact_digest = typeof raw.artifact_digest === "string" ? raw.artifact_digest.toLowerCase() : "";
   if (!HEX64.test(artifact_digest)) return null;
   const builder = raw.builder_identity && typeof raw.builder_identity === "object" ? raw.builder_identity : null;
+  const sourceText = typeof raw.source_revision === "string" && raw.source_revision.trim() ? raw.source_revision.trim() : null;
+  const gitText = typeof raw.git_sha === "string" && raw.git_sha.trim() ? raw.git_sha.trim() : null;
+  const source_revision = sourceText ?? gitText;
+  const git_sha = cleanGitSha(gitText) || cleanGitSha(sourceText);
   return {
     spec: BUILD_ATTEST_SPEC,
-    source_revision: typeof raw.source_revision === "string" ? raw.source_revision : null,
-    git_sha: /^[a-f0-9]{7,40}$/.test(String(raw.git_sha || "").trim().toLowerCase()) ? String(raw.git_sha).trim().toLowerCase() : null,
+    source_revision,
+    git_sha,
     artifact_digest,
     build_environment: raw.build_environment && typeof raw.build_environment === "object" ? raw.build_environment : null,
     builder_identity: builder
@@ -187,6 +191,23 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
         builder_identity,
       });
       return { allowed: false, code: "BUILD-ATTEST-MISMATCH", message: "Running authorization does not match the witnessed build attestation. Nothing ran.", view };
+    }
+    if (!witnessedGit || witnessedGit !== runningSha) {
+      const view = {
+        ...base,
+        live: false,
+        ok: null,
+        verified: false,
+        status: "ci_witnessed",
+        code: "BUILD-ATTEST-CI-WITNESSED",
+        ci_bundle_sha256: ci,
+        artifact_digest: witnessed.artifact_digest,
+        source_revision: witnessed.source_revision || null,
+        git_sha: witnessedGit,
+        builder_identity,
+        reason: "The CI digest matches the running digest, and the witnessed git_sha is not bound to the running GIT_SHA. That is not a pass.",
+      };
+      return { allowed: false, code: view.code, message: "CI provenance is not bound to the running GIT_SHA. Nothing ran.", view };
     }
     return {
       allowed: true,

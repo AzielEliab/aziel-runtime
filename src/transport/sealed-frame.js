@@ -1,10 +1,16 @@
 /**
- * AZRT-SEALED-FRAME-1.0. One frame for every carrier.
+ * AZRT-SEALED-FRAME-1.0. One frame for every carrier in this runtime.
  *
- * Version 2 binds the header as AES-GCM additional data (the envelope-v2 rule).
- * Version 1 is decrypt-only: frames sealed before this rule have no additional data.
- * A version-2 frame is never opened as version 1.
- * The allowlist pin is sha256 of the raw peer public key, not the 11-character handle.
+ * This is not wire-identical to qnm-node FED-MESH-ENVELOPE-2 and not wire-identical
+ * to AZP-NS-1.0 (src/transport/envelope-v2.js). Those three names do not share
+ * version bytes, additional-data bytes, or KDF info. No test vector proves they do.
+ * FED-MESH-1.0 remains the signed act version. FED-MESH-ENVELOPE-2 is an opaque
+ * relay label (src/fed-mesh/relay.js) and is not this frame.
+ *
+ * Version 2 binds this frame's own header as AES-GCM additional data.
+ * A missing version, version 1, and any other version are refused unless the
+ * caller sets allowV1 or allow_v1 for version 1 only.
+ * Low-order X25519 public keys and an all-zero shared secret are refused.
  * Cap-7 is not ICANN. Paid satellite stays HELD. This module sets no live flag.
  * Author: Aziel Eliab only.
  */
@@ -15,6 +21,53 @@ import { FED_SPEC } from "../fed-mesh/spec.js";
 export const SEALED_FRAME_SPEC = "AZRT-SEALED-FRAME-1.0";
 export const FRAME_V2 = 2;
 export const FRAME_V1 = 1;
+export const WIRE_RELATION = Object.freeze({
+  azrt_sealed_frame: SEALED_FRAME_SPEC,
+  fed_mesh: "FED-MESH-1.0",
+  fed_mesh_envelope: "FED-MESH-ENVELOPE-2",
+  azp_ns: "AZP-NS-1.0",
+  wire_identical: false,
+  note: "AZRT-SEALED-FRAME-1.0, FED-MESH-ENVELOPE-2, and AZP-NS-1.0 are different wires. This object does not claim they share version, AAD, or KDF bytes.",
+});
+
+const LOW_ORDER_X25519 = new Set([
+  "0000000000000000000000000000000000000000000000000000000000000000",
+  "0100000000000000000000000000000000000000000000000000000000000000",
+  "e0eb7a7c3b41b8ae1656e3faf19fc46ada098deb9c32b1fd866205165f49b800",
+  "5f9c95bca3508c24b1d0b1559c83ef5b04445cc4581c8e86d8224eddd09f1157",
+  "ecffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+  "edffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+  "eeffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff7f",
+]);
+const REPLAY_CAP = 256;
+const seenNonces = new Map();
+
+export function resetSealedReplay() {
+  seenNonces.clear();
+}
+
+function replayKey(from, to, seq, nonce) {
+  return `${from}|${to}|${seq}|${nonce}`;
+}
+
+function rememberNonce(from, to, seq, nonce) {
+  const key = replayKey(from, to, seq, nonce);
+  seenNonces.set(key, Date.now());
+  if (seenNonces.size > REPLAY_CAP) seenNonces.delete(seenNonces.keys().next().value);
+}
+
+function hexOf(bytes) {
+  let out = "";
+  for (const b of bytes) out += b.toString(16).padStart(2, "0");
+  return out;
+}
+
+function lowOrderPublic(raw) {
+  if (!raw || raw.length !== 32) return true;
+  const masked = new Uint8Array(raw);
+  masked[31] &= 0x7f;
+  return LOW_ORDER_X25519.has(hexOf(masked));
+}
 
 const CARRIERS = new Set(["lan", "relay", "photon", "bluetooth", "rf", "wifi"]);
 
@@ -66,14 +119,15 @@ export function peerKeyPin(value) {
 
 async function importXPublic(b64) {
   const raw = b64urlToBytes(b64);
-  if (!raw || raw.length !== 32) return null;
+  if (!raw || raw.length !== 32 || lowOrderPublic(raw)) return null;
   return crypto.subtle.importKey("raw", raw, { name: "X25519" }, true, []);
 }
 
 async function sharedKey(privateKey, publicB64, from, to, seq) {
   const pub = await importXPublic(publicB64);
   if (!pub) return null;
-  const bits = await crypto.subtle.deriveBits({ name: "X25519", public: pub }, privateKey, 256);
+  const bits = new Uint8Array(await crypto.subtle.deriveBits({ name: "X25519", public: pub }, privateKey, 256));
+  if (bits.every((b) => b === 0)) return null;
   const hkdf = await crypto.subtle.importKey("raw", bits, "HKDF", false, ["deriveBits"]);
   const aes = await crypto.subtle.deriveBits(
     {
@@ -172,16 +226,21 @@ async function decrypt(opts, withAad) {
 }
 
 /**
- * Open a frame. Version 2 is the default and binds the header as additional data.
- * Version 1 opens only when allowV1 is true. Any other version is refused.
+ * Open a frame. A missing version is refused. It is not treated as version 1
+ * and it is not treated as version 2. Version 1 opens only when allowV1 or
+ * allow_v1 is true. Any other version, including 99, is refused.
  */
 export async function openFrame(opts = {}) {
-  const allowV1 = opts.allowV1 === true;
-  const version = Number(opts.frame_v ?? opts.frameV ?? opts.version ?? FRAME_V2);
+  const allowV1 = opts.allowV1 === true || opts.allow_v1 === true;
+  const raw = opts.frame_v ?? opts.frameV ?? opts.version;
+  if (raw == null || raw === "") return null;
+  const version = Number(raw);
   if (!Number.isInteger(version) || (version !== FRAME_V1 && version !== FRAME_V2)) return null;
-  if (version === FRAME_V1) {
-    if (!allowV1) return null;
-    return decrypt(opts, false);
-  }
-  return decrypt(opts, true);
+  if (version === FRAME_V1 && !allowV1) return null;
+  const from = String(opts.fromHandle || opts.from || "");
+  const to = String(opts.toHandle || opts.to || "");
+  if (opts.replay !== false && seenNonces.has(replayKey(from, to, opts.seq, opts.nonce))) return null;
+  const opened = await decrypt(opts, version === FRAME_V2);
+  if (opened != null && opts.replay !== false) rememberNonce(from, to, opts.seq, opts.nonce);
+  return opened;
 }

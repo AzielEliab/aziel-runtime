@@ -24,6 +24,7 @@ import {
 import { newIssuerKey } from "../src/issuer-append.js";
 import {
   assertBuildAttestForExec,
+  attestFromStatement,
   checkBuildAttest,
   digestBytes,
   resetBuildAttestState,
@@ -104,6 +105,21 @@ n++;
   assert.equal(echo.allowed, true);
   assert.equal(echo.view.status, "verified");
   assert.equal(echo.view.verified, true);
+  const fromGit = attestFromStatement({
+    build_attest: { artifact_digest: digest, git_sha: "abc1234a", attest_source: "ci-provenance", ci_bundle_sha256: digest },
+  });
+  assert.equal(fromGit.source_revision, "abc1234a");
+  assert.equal(fromGit.git_sha, "abc1234a");
+  const noGit = checkBuildAttest({
+    runningDigest: digest,
+    runningGitSha: "abc1234a",
+    strict: true,
+    witnessed: { artifact_digest: digest, ci_bundle_sha256: digest, attest_source: "ci-provenance" },
+  });
+  assert.equal(noGit.allowed, false);
+  assert.equal(noGit.view.verified, false);
+  assert.equal(noGit.view.live, false);
+  assert.notEqual(noGit.view.status, "verified");
   const missingDigest = checkBuildAttest({
     runningDigest: null,
     strict: true,
