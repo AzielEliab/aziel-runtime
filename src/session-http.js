@@ -186,7 +186,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  GET /v1/session/{id}/tip  POST /v1/session/{id}/tip  POST /v1/session/{id}/party  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  POST /v1/session/{id}/stop  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  GET /v1/session/{id}/tip  POST /v1/session/{id}/tip  POST /v1/session/{id}/party  POST /v1/session/{id}/counterparty  POST /v1/session/{id}/probe  POST /v1/session/{id}/aer  GET /v1/session/{id}/aer  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  POST /v1/session/{id}/stop  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -245,6 +245,44 @@ export async function handleSessionRequest(request, env, deps) {
       }),
       json,
     );
+  }
+  if (action === "counterparty" && request.method === "POST") {
+    let body = {};
+    try {
+      const text = await request.text();
+      body = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    return copyJson(await stubFetch(env, id, "counterparty", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), json);
+  }
+  if (action === "probe" && request.method === "POST") {
+    let body = {};
+    try {
+      const text = await request.text();
+      body = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    return copyJson(await stubFetch(env, id, "probe", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), json);
+  }
+  if (action === "aer" && request.method === "GET") {
+    const q = url.search || "";
+    return copyJson(await stubFetch(env, id, "aer" + q, { method: "GET" }), json);
+  }
+  if (action === "aer" && request.method === "POST") {
+    let body = {};
+    try {
+      const text = await request.text();
+      body = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    const { origin: _callerOrigin, ...rest } = body;
+    return copyJson(await stubFetch(env, id, "aer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...rest, origin: url.origin }) }), json);
   }
   if (action === "close" && request.method === "POST") {
     let closeBody = {};
