@@ -125,8 +125,17 @@ function redactString(text, cls) {
  * Clean values come back unchanged. A raw secret that survives is replaced
  * by the closed marker (fail closed). Does not mutate the input.
  */
+function jsonOrNull(value) {
+  try {
+    return JSON.stringify(value);
+  } catch {
+    return null;
+  }
+}
+
 export function redactValue(value, depth = 0) {
   if (value == null || typeof value === "boolean" || typeof value === "number") return value;
+  if (typeof value === "bigint") return "[REDACTED:closed]";
   if (typeof value === "string") return redactLogText(value);
   if (depth > 32) return "[REDACTED:closed]";
   if (Array.isArray(value)) return value.map((item) => redactValue(item, depth + 1));
@@ -136,9 +145,13 @@ export function redactValue(value, depth = 0) {
   for (const key of Object.keys(value)) {
     const cls = keyClass(key);
     const child = value[key];
+    if (typeof child === "bigint") {
+      out[key] = cls ? marker(cls, child.toString()) : "[REDACTED:closed]";
+      continue;
+    }
     if (cls && (typeof child === "string" || (child && typeof child === "object"))) {
-      const raw = typeof child === "string" ? child : JSON.stringify(child);
-      out[key] = marker(cls, raw);
+      const raw = typeof child === "string" ? child : jsonOrNull(child);
+      out[key] = raw == null ? "[REDACTED:closed]" : marker(cls, raw);
       continue;
     }
     if (flag && typeof child === "string" && !HEX64.test(child) && !REDACT_MARK.test(child)) {
@@ -147,8 +160,26 @@ export function redactValue(value, depth = 0) {
     }
     out[key] = redactValue(child, depth + 1);
   }
-  const packed = JSON.stringify(out);
-  if (leakScan(packed)) return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
+  const packed = jsonOrNull(out);
+  if (packed == null || leakScan(packed)) return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
+  return out;
+}
+
+/** Drop every result_taint so a tool cannot supply its own trust mark. */
+export function stripResultTaint(value, depth = 0) {
+  if (value == null || typeof value !== "object") return value;
+  if (depth > 32) {
+    if (Array.isArray(value)) return value;
+    const shallow = { ...value };
+    delete shallow.result_taint;
+    return shallow;
+  }
+  if (Array.isArray(value)) return value.map((item) => stripResultTaint(item, depth + 1));
+  const out = {};
+  for (const key of Object.keys(value)) {
+    if (key === "result_taint") continue;
+    out[key] = stripResultTaint(value[key], depth + 1);
+  }
   return out;
 }
 

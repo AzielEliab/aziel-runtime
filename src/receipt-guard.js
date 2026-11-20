@@ -463,10 +463,10 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = await runWithCallMeta(meta, () => call());
     const produced = envelopeOf(out);
     if (produced && typeof produced === "object" && !Array.isArray(produced)) {
-      const outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: produced });
+      const producedClean = obs.stripResultTaint(produced);
+      const outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: producedClean });
       if (outputCheck && outputCheck.ok === false) {
-        const taint = await obs.resultTaint({ tool: name, body: produced });
-        const body = { ...outputCheck, result: null, result_taint: taint };
+        const body = obs.stripResultTaint({ ...outputCheck, result: null });
         out = { status: outputCheck.status || 422, text: JSON.stringify(body), envelope: body };
       }
     }
@@ -488,11 +488,24 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
-  // AZRT-UNTRUSTED-RESULT-1.0 / credential baseline / explicit tool error.
-  // Schema refusals are policy, not tool output. A tool result is tainted.
-  const schemaRefusal = env && typeof env.code === "string" && env.code.startsWith("SCHEMA-") && env.code !== "SCHEMA-OUTPUT-ABORT" && env.code !== "SCHEMA-OUTPUT-RETRY";
-  if (!schemaRefusal && env && typeof env === "object" && !env.result_taint) {
-    attachToResult(out, "result_taint", await obs.resultTaint({ tool: name, body: env }));
+  // AZRT-UNTRUSTED-RESULT-1.0. A tool cannot mint its own trust mark.
+  // Strip every result_taint, hash that body, then stamp the runtime mark.
+  if (env && typeof env === "object" && !Array.isArray(env)) {
+    const clean = obs.stripResultTaint(env);
+    const taint = await obs.resultTaint({ tool: name, body: clean });
+    if (out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope)) {
+      out.envelope = { ...obs.stripResultTaint(out.envelope), result_taint: taint };
+    }
+    if (typeof out.text === "string") {
+      try {
+        const parsed = JSON.parse(out.text);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          out.text = JSON.stringify({ ...obs.stripResultTaint(parsed), result_taint: taint }, null, 2);
+        }
+      } catch {
+        /* non-JSON text stays as is */
+      }
+    }
   }
   const touch = await obs.observeCredentialTouch({
     store: obs.mcpCredentialStore(),
