@@ -11,9 +11,10 @@ export const AUTHOR_NAME = "Aziel Eliab";
 
 export const TRADES_RUNTIME_SLUG = "trades-runtime";
 export const TRADES_RUNTIME_NAME = "Trades-Runtime";
-/** Live cite. Observed GET /v1/health on trades-runtime.vibelock.workers.dev (2026-09-27). */
-export const TRADES_RUNTIME_VERSION = "0.4.9";
+/** Live cite. Observed GET /v1/health on trades-runtime.vibelock.workers.dev (2026-11-20). */
+export const TRADES_RUNTIME_VERSION = "1.0.0";
 export const TRADES_RUNTIME_GITHUB = "https://github.com/AzielEliab/trades-runtime";
+export const TRADES_RUNTIME_GLAMA = "https://glama.ai/mcp/servers/AzielEliab/trades-runtime";
 export const TRADES_RUNTIME_ORIGIN = "https://trades-runtime.vibelock.workers.dev";
 export const TRADES_RUNTIME_HOME = `${TRADES_RUNTIME_ORIGIN}/`;
 export const TRADES_RUNTIME_MCP = `${TRADES_RUNTIME_ORIGIN}/mcp`;
@@ -25,7 +26,7 @@ export const TRADES_RUNTIME_OPENAPI = `${TRADES_RUNTIME_ORIGIN}/openapi.json`;
 export const TRADES_RUNTIME_HEALTH = `${TRADES_RUNTIME_ORIGIN}/v1/health`;
 
 export const TRADES_RUNTIME_ONE_LINE =
-  "Shadow-first local BYO runtime for HVAC/plumbing/electrical/sewer/cross-trades. BYO ServiceTitan+ProBooks. Human authority. live_backends false. https://trades-runtime.vibelock.workers.dev/";
+  "Public MCP runtime for HVAC/plumbing/electrical/sewer/cross-trades. BYO ServiceTitan+ProBooks. Human authority. live_backends false. pilot_started false. https://trades-runtime.vibelock.workers.dev/";
 
 export const SISTER_PRODUCTS_NOTE =
   "Sister products cited honestly. live_backends false. aziel-runtime fraggate_call executes Aziel Runtime catalog engines. Identity Aziel Eliab only.";
@@ -51,8 +52,10 @@ export function tradesRuntimeRecord() {
     skill: TRADES_RUNTIME_SKILL,
     openapi: TRADES_RUNTIME_OPENAPI,
     health: TRADES_RUNTIME_HEALTH,
+    glama: TRADES_RUNTIME_GLAMA,
     one_line: TRADES_RUNTIME_ONE_LINE,
     live_backends: false,
+    pilot_started: false,
     hosted_company_os: false,
     software_tab: false,
     fraggate_engine: false,
@@ -127,10 +130,12 @@ export function llmsSisterProductsBlock() {
     lines.push(`GitHub: ${p.github}`);
     lines.push(`Worker: ${p.worker}`);
     lines.push(`MCP: ${p.mcp}`);
+    lines.push(`Glama: ${p.glama}`);
     lines.push(`Download: ${p.download}`);
     lines.push(`cite.json: ${p.cite}`);
     lines.push(`llms.txt: ${p.llms}`);
     lines.push(`live_backends: ${p.live_backends}`);
+    lines.push(`pilot_started: ${p.pilot_started}`);
     lines.push("fraggate_call: false. aziel-runtime fraggate_call executes Aziel Runtime catalog engines.");
     lines.push("");
   }

@@ -63,9 +63,12 @@ Corpus counters are `GET /stats`, not `/v1/stats`. Corpus version is `GET /v1/he
 - Official site → https://www.azieleliab.com/ · Runtime hub → https://www.azieleliab.com/runtime — Person hub + Softwares + research landing
 - Aziel Corpus Library → https://www.azielcorpuslibrary.net/ — Digital Library MASTER
 - GodLock.uk → https://godlock.uk/ — GodLock challenge/score
-- He Didn't Jump (sister archive) → https://www.hedidntjump.com/ · sitemap https://www.hedidntjump.com/sitemap.xml — Zioncheck archive sister
-- The Furnace Isn't Free (official Aziel site, not a Live Node) → https://www.furnaceisntfree.com/ · Aziel https://furnaceisntfree.com/aziel/ · sitemap https://www.furnaceisntfree.com/sitemap.xml
-- TimeToUnsealTheBook (official Aziel site, handle, not a Live Node) → https://www.timetounsealthebook.net · Aziel https://timetounsealthebook.net/aziel (HTTP 200) · sitemap https://www.timetounsealthebook.net/sitemap.xml — `/aziel` on that host is HTTP 200
+- He Didn't Jump (sister archive) → https://hedidntjump.com/ · sitemap https://hedidntjump.com/sitemap.xml — Zioncheck archive sister
+- Furnace Isn't Free (official Aziel site, not a Live Node) → https://furnaceisntfree.com/ · Aziel https://furnaceisntfree.com/aziel/ · sitemap https://furnaceisntfree.com/sitemap.xml
+- Time to Unseal the Book (official Aziel site, handle, not a Live Node) → https://timetounsealthebook.net/ · Aziel https://timetounsealthebook.net/aziel (HTTP 200) · sitemap https://timetounsealthebook.net/sitemap.xml — `/aziel` on that host is HTTP 200
+- Whitestone (live pro se web app) → https://whitestone.vibelock.workers.dev/ — door is this host, not the download-tracker
+- Trades Runtime (public MCP runtime, not a Softwares engine) → https://trades-runtime.vibelock.workers.dev/ · Glama https://glama.ai/mcp/servers/AzielEliab/trades-runtime — live_backends false, pilot_started false
+- MirageGrid (mesh-only) → https://miragegrid.vibelock.workers.dev/ — public_icann false, not an ICANN registrar
 - This Worker → FragGate engine-runtime / MCP Softwares door 2.0.0-rc1 · https://aziel-runtime.vibelock.workers.dev/
 - Trades-Runtime (sister product, not a Softwares-tab engine; `fraggate_call` does not execute company ops) → https://github.com/AzielEliab/trades-runtime · Worker https://trades-runtime.vibelock.workers.dev · MCP https://trades-runtime.vibelock.workers.dev/mcp · download https://trades-runtime.vibelock.workers.dev/download
 - FragGate registry → https://github.com/AzielEliab/fraggate
@@ -86,7 +89,7 @@ Open crawl. Never `Disallow: /` for GPTBot or any listed bot.
 
 Cap-7 is the MirageGrid auto-generate **.az duplication** layer. Names inherit hub **designs** only (`docs/designs/` plus mesh-resident **azcorpus** + **azlibrary** on the library hub). It duplicates the four hub sites and shifts with StaticLock (catalog product StaticClock, slug `staticclock`) and MirageGrid cloak, paired with AZVPN. Four factory names are real duplications (`azgrid`, `azcloak`, `azvault`, `azshift`). Three are false sites (`azbooth`, `azflag`, `azstandby`). `design_of: hub_designs`. On Cap-7, `resolves_to_hub: false` and `internet_reachable: false`. Standard internet does not reach Cap-7. `name_may_change: true`. Factory duplication cite is LIVE.
 
-Internet reaches the **AZ domains** through the hub HTTPS links (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ with azcorpus+azlibrary designs · https://godlock.uk/ · https://www.hedidntjump.com/). Display names: `AZ.AzielEliab.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.Godlock.AZ`, `AZ.HeDidntJump.AZ`. Those drop-ins are `public_icann: true`, `resolves_to_hub: true`, shuffle once to one of four, stand alone, and freeze after the hubs go down. Live nodes anchor them. Cap-7 names are **not** aliases of the four ICANN hostnames. Not a fifth product. Cap-7 `public_icann: false`. `icann_tld_az: false`.
+Internet reaches the **AZ domains** through the hub HTTPS links (https://www.azieleliab.com/ · https://www.azielcorpuslibrary.net/ with azcorpus+azlibrary designs · https://godlock.uk/ · https://hedidntjump.com/). Display names: `AZ.AzielEliab.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.Godlock.AZ`, `AZ.HeDidntJump.AZ`. Those drop-ins are `public_icann: true`, `resolves_to_hub: true`, shuffle once to one of four, stand alone, and freeze after the hubs go down. Live nodes anchor them. Cap-7 names are **not** aliases of the four ICANN hostnames. Not a fifth product. Cap-7 `public_icann: false`. `icann_tld_az: false`.
 
 AI pulls name metadata from:
 
@@ -102,7 +105,7 @@ Machine field: `/cite.json` `semantic_bridge`. `/cite.json` + `GET /v1/software`
 
 ## Sister products (cite-only)
 
-Trades-Runtime 0.4.9 is a sister product, not a FragGate true-engine and not nested Softwares suite exec. The version cite is the live sister `GET /v1/health` (earlier machine cite was 0.3.3). Machine fields: `/cite.json` `sister_products` / `trades_runtime_*`, `/v1/catalog.json` `extras[]` kind `cite_only`, `/v1/software` `sister_products`, `/llms.txt` **Sister products**. `fraggate_call` does **not** execute Trades-Runtime company ops. `live_backends` false. Not a hosted company OS. Identity Aziel Eliab only.
+Trades-Runtime 1.0.0 is a sister product, not a FragGate true-engine and not nested Softwares suite exec. The version cite is the live sister `GET /v1/health` (earlier machine cites were 0.3.3 and 0.4.9). Machine fields: `/cite.json` `sister_products` / `trades_runtime_*`, `/v1/catalog.json` `extras[]` kind `cite_only`, `/v1/software` `sister_products`, `/llms.txt` **Sister products**. `fraggate_call` does **not** execute Trades-Runtime company ops. `live_backends` false. `pilot_started` false. Not a hosted company OS. Identity Aziel Eliab only.
 
 - GitHub → https://github.com/AzielEliab/trades-runtime
 - Worker → https://trades-runtime.vibelock.workers.dev

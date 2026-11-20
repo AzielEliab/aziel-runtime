@@ -229,7 +229,8 @@ assert.deepEqual(catalog.catalog_sets.softwares_not_in_software_nodes, ["whitest
 assert.deepEqual(catalog.catalog_sets.software_nodes_not_on_softwares, []);
 assert.match(catalog.count_note, /catalog_sets\.equate is false/);
 assert.match(catalog.mesh.software_nodes_note, /Whitestone is a Softwares card and is absent/);
-assert.equal(catalog.sister_products.products.find((p) => p.slug === "trades-runtime").version, "0.4.9");
+assert.equal(catalog.sister_products.products.find((p) => p.slug === "trades-runtime").version, "1.0.0");
+assert.equal(catalog.sister_products.products.find((p) => p.slug === "trades-runtime").pilot_started, false);
 assert.deepEqual(catalog.catalog_sets, runtimeManifest(origin, PRODUCTS).catalog_sets);
 assert.equal(catalog.mesh.enabled_default, true);
 assert.equal(catalog.mesh.mesh_default, "on");

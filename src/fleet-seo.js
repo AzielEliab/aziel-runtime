@@ -34,6 +34,7 @@ import {
 } from "./seo.js";
 import { PERSON_GITHUB_SECONDARY, X_HANDLE, X_URL } from "./person-index.js";
 import { TRADES_RUNTIME_MCP, TRADES_RUNTIME_ORIGIN } from "./sister-products.js";
+import { ecosystemDoorLinks } from "./public-ecosystem.js";
 
 export const AZIEL_HANDLES_PATH = "/aziel";
 export const SOFTWARE_PRETTY_PATH = "/software";
@@ -97,7 +98,7 @@ function baseOf(origin) {
 export function azielHandles(origin) {
   const base = baseOf(origin);
   const local = `${base || OFFICIAL_RUNTIME.replace(/\/$/, "")}${AZIEL_HANDLES_PATH}`;
-  return [
+  const rows = [
     { label: "azieleliab.com", href: `${AUTHOR_SITE_ORIGIN}/` },
     { label: "GitHub", href: AUTHOR_GITHUB },
     { label: "Secondary source", href: PERSON_GITHUB_SECONDARY },
@@ -117,6 +118,14 @@ export function azielHandles(origin) {
     { label: `${UNSEAL_NAME} · Aziel`, href: UNSEAL_AZIEL },
     { label: "Aziel Runtime handles", href: local },
   ];
+  const seen = new Set(rows.map((row) => String(row.href || "").replace(/\/$/, "")));
+  for (const link of ecosystemDoorLinks()) {
+    const key = String(link.url || "").replace(/\/$/, "");
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    rows.push({ label: link.label, href: link.url });
+  }
+  return rows;
 }
 
 export function tabPathsAbsolute(origin) {

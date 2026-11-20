@@ -151,7 +151,7 @@ assert.ok(citeJson.extras.some((e) => e.slug === "mesh" && e.qns_cd && e.qns_cd.
 assert.ok(citeJson.products.every((p) => p.qns_cd && p.qns_cd.spec === "QNS-CD-1.0"));
 
 const sitemap = await (await get("/sitemap.xml")).text();
-assert.match(sitemap, /QNS-CD-1\.0\.md/);
+assert.doesNotMatch(sitemap, /QNS-CD-1\.0\.md/);
 assert.match(sitemap, /\/v1\/qns/);
 
 const openapi = await (await get("/openapi.json")).json();
