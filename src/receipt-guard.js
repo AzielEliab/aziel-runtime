@@ -452,11 +452,24 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     }
   }
   const meta = { goal_key: goal ? goal.key : null, context, schema_hash: schemaHash || null };
+  const obs = await import("./run-observability.js");
   let out;
+  const inputCheck = drift ? null : await obs.validateToolInvocation({ name, args: src, phase: "input" });
   if (drift) {
     out = { status: 409, text: JSON.stringify(drift, null, 2), envelope: { ...drift } };
+  } else if (inputCheck && inputCheck.ok === false) {
+    out = { status: inputCheck.status || 400, text: JSON.stringify(inputCheck), envelope: inputCheck };
   } else {
     out = await runWithCallMeta(meta, () => call());
+    const produced = envelopeOf(out);
+    if (produced && typeof produced === "object" && !Array.isArray(produced)) {
+      const producedClean = obs.stripResultTaint(produced);
+      const outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: producedClean });
+      if (outputCheck && outputCheck.ok === false) {
+        const body = obs.stripResultTaint({ ...outputCheck, result: null });
+        out = { status: outputCheck.status || 422, text: JSON.stringify(body), envelope: body };
+      }
+    }
   }
   const env = envelopeOf(out);
   let code = refusalCodeOf(env, out);
@@ -475,5 +488,49 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
+  // AZRT-UNTRUSTED-RESULT-1.0. Always overwrite result_taint. No !result_taint gate.
+  // HTTP /v1/fraggate/call returns out.envelope. MCP structuredContent is that
+  // envelope, or the display wrap of out.text when the tool sent text only.
+  if (env && typeof env === "object" && !Array.isArray(env)) {
+    const live = out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope) ? out.envelope : null;
+    if (live && live !== env) obs.purgeResultTaint(live);
+    obs.purgeResultTaint(env);
+    const body = live || env;
+    const taint = await obs.resultTaint({ tool: name, body });
+    try {
+      body.result_taint = taint;
+    } catch {
+      if (live) out.envelope = { ...obs.stripResultTaint(body), result_taint: taint };
+    }
+    if (typeof out.text === "string") {
+      try {
+        const parsed = JSON.parse(out.text);
+        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+          obs.purgeResultTaint(parsed);
+          parsed.result_taint = taint;
+          out.text = JSON.stringify(parsed, null, 2);
+        }
+      } catch {
+        if (!live) out.text = JSON.stringify(body, null, 2);
+      }
+    }
+  }
+  const touch = await obs.observeCredentialTouch({
+    store: obs.mcpCredentialStore(),
+    identity: src.identity,
+    value: src,
+  });
+  if (touch.baselineView) attachToResult(out, "credential_baseline", touch.baselineView);
+  if (touch.anomaly) attachToResult(out, "credential_anomaly", touch.anomaly);
+  const after = envelopeOf(out);
+  const failed = (after && after.ok === false) || (out && Number(out.status) >= 400);
+  if (failed && after && !after.tool_error) {
+    const toolErr = obs.explicitToolError({
+      status: out && out.status,
+      error: after.message || after.error || null,
+      code: after.code,
+    });
+    if (toolErr) attachToResult(out, "tool_error", toolErr);
+  }
   return out;
 }

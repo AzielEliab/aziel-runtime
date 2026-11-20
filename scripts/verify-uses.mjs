@@ -490,7 +490,7 @@ const softwaresCall = await jsonReq(detailHttp, "/mcp", {
     jsonrpc: "2.0",
     id: 1,
     method: "tools/call",
-    params: { name: "Softwares", arguments: { slug: "foldlock" } },
+    params: { name: "Softwares", arguments: {} },
   }),
 });
 assert.equal(softwaresCall.status, 200);
