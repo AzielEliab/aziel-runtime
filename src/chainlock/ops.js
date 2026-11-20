@@ -348,6 +348,8 @@ export function latticeRefuse(code) {
 }
 
 export async function composeChainlockStamp(src, { prev, rows = null, latticeTips: tips = null, hasOffline = null, tiebreakPrev = null, hasSynced = null, harnessIssuer = null, writerFence = null } = {}) {
+  const { redactValue } = await import("../run-observability.js");
+  src = redactValue(src && typeof src === "object" ? src : {});
   const chain = String((src && (src.c || src.chain)) || "session").trim() || "session";
   const subject = clip(src && (src.s || src.subject), SUBJECT_CAP);
   const fact = clip(src && (src.f || src.fact), FACT_CAP);
@@ -451,7 +453,8 @@ export function isPreventedShaped(src) {
 
 export async function append(storeOrEnv, input = {}, options = {}) {
   const store = storeFor(storeOrEnv);
-  const src = input && typeof input === "object" ? { ...input } : {};
+  const { redactValue } = await import("../run-observability.js");
+  const src = redactValue(input && typeof input === "object" ? { ...input } : {});
   if (src.anchor == null) {
     // AZRT-ANCHOR-1.0: record the newest verified witness statement (absent when unknown).
     const anchor = anchorRefNow();

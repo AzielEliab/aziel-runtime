@@ -736,7 +736,9 @@ const noProductMcp = await mcp(contractEnv, "tools/call", {
   arguments: { node_id: "need-prod", confirm: true },
 }, 20);
 assert.equal(noProductMcp.result.isError, true);
-assert.equal(noProductMcp.result.structuredContent.result.code, "MESH-BAD-INPUT");
+assert.equal(noProductMcp.result.structuredContent.code, "SCHEMA-INPUT-RETRY");
+assert.equal(noProductMcp.result.structuredContent.disposition, "retry");
+assert.equal(noProductMcp.result.structuredContent.executed, false);
 
 const badNode = await postJson(contractEnv, "/v1/mesh/join", { product: "godlock", node_id: "NO-UPPER" });
 assert.equal(badNode.status, 400);

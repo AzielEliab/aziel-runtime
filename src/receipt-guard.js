@@ -452,11 +452,24 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     }
   }
   const meta = { goal_key: goal ? goal.key : null, context, schema_hash: schemaHash || null };
+  const obs = await import("./run-observability.js");
   let out;
+  const inputCheck = drift ? null : await obs.validateToolInvocation({ name, args: src, phase: "input" });
   if (drift) {
     out = { status: 409, text: JSON.stringify(drift, null, 2), envelope: { ...drift } };
+  } else if (inputCheck && inputCheck.ok === false) {
+    out = { status: inputCheck.status || 400, text: JSON.stringify(inputCheck), envelope: inputCheck };
   } else {
     out = await runWithCallMeta(meta, () => call());
+    const produced = envelopeOf(out);
+    if (produced && typeof produced === "object" && !Array.isArray(produced)) {
+      const outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: produced });
+      if (outputCheck && outputCheck.ok === false) {
+        const taint = await obs.resultTaint({ tool: name, body: produced });
+        const body = { ...outputCheck, result: null, result_taint: taint };
+        out = { status: outputCheck.status || 422, text: JSON.stringify(body), envelope: body };
+      }
+    }
   }
   const env = envelopeOf(out);
   let code = refusalCodeOf(env, out);
@@ -475,5 +488,28 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
+  // AZRT-UNTRUSTED-RESULT-1.0 / credential baseline / explicit tool error.
+  // Schema refusals are policy, not tool output. A tool result is tainted.
+  const schemaRefusal = env && typeof env.code === "string" && env.code.startsWith("SCHEMA-") && env.code !== "SCHEMA-OUTPUT-ABORT" && env.code !== "SCHEMA-OUTPUT-RETRY";
+  if (!schemaRefusal && env && typeof env === "object" && !env.result_taint) {
+    attachToResult(out, "result_taint", await obs.resultTaint({ tool: name, body: env }));
+  }
+  const touch = await obs.observeCredentialTouch({
+    store: obs.mcpCredentialStore(),
+    identity: src.identity,
+    value: src,
+  });
+  if (touch.baselineView) attachToResult(out, "credential_baseline", touch.baselineView);
+  if (touch.anomaly) attachToResult(out, "credential_anomaly", touch.anomaly);
+  const after = envelopeOf(out);
+  const failed = (after && after.ok === false) || (out && Number(out.status) >= 400);
+  if (failed && after && !after.tool_error) {
+    const toolErr = obs.explicitToolError({
+      status: out && out.status,
+      error: after.message || after.error || null,
+      code: after.code,
+    });
+    if (toolErr) attachToResult(out, "tool_error", toolErr);
+  }
   return out;
 }

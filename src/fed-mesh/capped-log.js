@@ -16,6 +16,7 @@
  * Author: Aziel Eliab. SPDX-License-Identifier: Apache-2.0
  */
 import { closeSync, constants, fchmodSync, fstatSync, lstatSync, openSync, renameSync, writeSync } from "node:fs";
+import { redactLogText, redactValue } from "../run-observability.js";
 
 const NOFOLLOW = constants.O_NOFOLLOW || 0;
 
@@ -135,7 +136,7 @@ export function cappedLogger(file, maxBytes = LOG_DEFAULT_BYTES) {
   const cap = capOf(maxBytes);
   const { state, put } = makeSink(file, cap);
   const log = (...parts) => {
-    const line = `${parts.map((p) => (typeof p === "string" ? p : JSON.stringify(p))).join(" ")}\n`;
+    const line = redactLogText(`${parts.map((p) => (typeof p === "string" ? p : JSON.stringify(redactValue(p)))).join(" ")}\n`);
     put(fitLine(line, cap));
   };
   Object.defineProperty(log, "refused", { get: () => state.refused });
