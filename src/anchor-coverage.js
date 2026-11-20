@@ -51,6 +51,8 @@ export const HONESTY = Object.freeze({
   cap7_is_public_internet: false,
   paid_sat: "HELD",
   aziel_names: "names-only",
+  external_pager: "not_live",
+  pager_transport: null,
 });
 
 /** One schedule row per check. The deadline is that check's own, not a shared clock. */
@@ -616,7 +618,22 @@ export async function runKillToPageDrill({ store, shelf, deathAt = Date.now(), a
     pageFired: page.page === true,
     budgetMs,
   });
-  return { spec: COVERAGE_SPEC, live: false, signed: false, beat, killed, writerBeat, runtimeBeat, page, verifier_after_kill: after, ack, metric };
+  return {
+    spec: COVERAGE_SPEC,
+    live: false,
+    signed: false,
+    external_pager: "not_live",
+    pager_transport: null,
+    page_signal: "in_process",
+    beat,
+    killed,
+    writerBeat,
+    runtimeBeat,
+    page,
+    verifier_after_kill: after,
+    ack,
+    metric,
+  };
 }
 
 export async function coverageView(store, { env = null, now = Date.now(), log = currentOutsideAnchorLog(), schedule = COVERAGE_SCHEDULE } = {}) {
