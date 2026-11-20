@@ -5073,7 +5073,7 @@ async function handleRequest(request, env, ctx) {
         ? { spec: rs.HELD_KEY_SPEC, signing: true, alg: "Ed25519", ...held.provenance, sig_domain: rs.SIG_DOMAIN, pinned: (await rs.trustedReceiptKeys(null)).map((k) => k.key_id),
             ...(await (async () => { const pinnedIds = (await rs.trustedReceiptKeys(null)).map((k) => k.key_id); const isPinned = pinnedIds.includes(held.provenance.key_id); return { trusted: isPinned, key_source: isPinned ? "pinned" : "published (self, unpinned)" }; })()),
             note: "Session receipts minted while this key is held carry an Ed25519 signature over sig_domain + hash. Chainlock rows (refusals etc.) are not signed. The key was provisioned by the deploy side; the runtime cannot generate, rotate or export it.", signing_scope: scope }
-        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
+        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, ...(held.code ? { code: held.code } : {}), note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
       return asHead(request, json(body, 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
     }
     if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {

@@ -57,10 +57,7 @@ export async function openAct(identity, envelope) {
     eph_public_key: envelope.eph_public_key,
     ciphertext: envelope.ciphertext,
   };
-  const v2 = await openCiphertext({ ...base, frame_v: envelope.frame_v || 2, carrier: envelope.carrier || "relay", route_class: envelope.route_class || "" });
-  if (v2 != null) return v2;
-  if (envelope.frame_v === 2) return null;
-  return openCiphertext({ ...base, frame_v: 1 });
+  return openCiphertext({ ...base, frame_v: 2, carrier: envelope.carrier || "relay", route_class: envelope.route_class || "" });
 }
 
 export async function actHash(envelope) {

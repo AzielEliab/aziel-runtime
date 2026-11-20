@@ -19,7 +19,11 @@ export const FRAME_V1 = 1;
 const CARRIERS = new Set(["lan", "relay", "photon", "bluetooth", "rf", "wifi"]);
 
 export function frameHeader(opts = {}) {
-  const carrier = CARRIERS.has(opts.carrier) ? opts.carrier : "lan";
+  const named = opts.carrier == null || opts.carrier === "" ? "lan" : String(opts.carrier);
+  if (!CARRIERS.has(named)) {
+    return { ok: false, code: "SEALED-FRAME-CARRIER", message: `Unknown carrier "${named}".` };
+  }
+  const carrier = named;
   return {
     v: FRAME_V2,
     spec: SEALED_FRAME_SPEC,
@@ -119,6 +123,7 @@ export async function sealFrame(opts = {}) {
     nonce: nonceText,
     route_class: opts.route_class || opts.routeClass,
   });
+  if (header.ok === false) return header;
   const aad = version === FRAME_V2 ? utf8(frameAad(header)) : undefined;
   const ct = await crypto.subtle.encrypt(
     { name: "AES-GCM", iv: nonce, ...(aad ? { additionalData: aad } : {}) },
@@ -153,6 +158,7 @@ async function decrypt(opts, withAad) {
     nonce: opts.nonce,
     route_class: opts.route_class || opts.routeClass,
   });
+  if (header.ok === false) return null;
   try {
     const plain = await crypto.subtle.decrypt(
       { name: "AES-GCM", iv, ...(withAad ? { additionalData: utf8(frameAad(header)) } : {}) },
@@ -166,11 +172,16 @@ async function decrypt(opts, withAad) {
 }
 
 /**
- * Open a frame. Version 2 requires the header as additional data.
- * A missing version is version 1 (no additional data) so older shares still open.
+ * Open a frame. Version 2 is the default and binds the header as additional data.
+ * Version 1 opens only when allowV1 is true. Any other version is refused.
  */
 export async function openFrame(opts = {}) {
-  const version = Number(opts.frame_v ?? opts.frameV ?? opts.version ?? FRAME_V1);
-  if (version === FRAME_V2) return decrypt(opts, true);
-  return decrypt(opts, false);
+  const allowV1 = opts.allowV1 === true;
+  const version = Number(opts.frame_v ?? opts.frameV ?? opts.version ?? FRAME_V2);
+  if (!Number.isInteger(version) || (version !== FRAME_V1 && version !== FRAME_V2)) return null;
+  if (version === FRAME_V1) {
+    if (!allowV1) return null;
+    return decrypt(opts, false);
+  }
+  return decrypt(opts, true);
 }

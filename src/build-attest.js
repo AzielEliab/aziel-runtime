@@ -16,7 +16,7 @@
  * Receipts are hash-linked and sealed, not signed.
  * Author: Aziel Eliab.
  */
-import { BUILD_BUNDLE_DIGEST } from "./build-meta.js";
+import { BUILD_BUNDLE_DIGEST, BUILD_GIT_SHA } from "./build-meta.js";
 import { canonicalize, sha256Hex } from "./session-core.js";
 
 export const BUILD_ATTEST_SPEC = "AZRT-BUILD-ATTEST-1.0";
@@ -53,6 +53,7 @@ export function attestFromStatement(statement) {
   return {
     spec: BUILD_ATTEST_SPEC,
     source_revision: typeof raw.source_revision === "string" ? raw.source_revision : null,
+    git_sha: /^[a-f0-9]{7,40}$/.test(String(raw.git_sha || "").trim().toLowerCase()) ? String(raw.git_sha).trim().toLowerCase() : null,
     artifact_digest,
     build_environment: raw.build_environment && typeof raw.build_environment === "object" ? raw.build_environment : null,
     builder_identity: builder
@@ -85,11 +86,30 @@ export function resetBuildAttestState() {
  * Compare the running digest to the witnessed attestation.
  * `deployVars` is accepted and ignored: builder identity never comes from a deploy var.
  */
-export function checkBuildAttest({ runningDigest = null, witnessed = null, strict = false, authorization = null, deployVars = null } = {}) {
-  void deployVars;
+function cleanGitSha(value) {
+  const sha = String(value || "").trim().toLowerCase();
+  return /^[a-f0-9]{7,40}$/.test(sha) ? sha : null;
+}
+
+function mismatchView(base, extra) {
+  return {
+    ...base,
+    live: false,
+    ok: false,
+    verified: false,
+    status: "mismatch",
+    code: "BUILD-ATTEST-MISMATCH",
+    ...extra,
+  };
+}
+
+export function checkBuildAttest({ runningDigest = null, witnessed = null, strict = false, authorization = null, deployVars = null, runningGitSha = null } = {}) {
+  const gitFromVars = deployVars && (deployVars.GIT_SHA || deployVars.git_sha);
+  const runningSha = cleanGitSha(runningGitSha || gitFromVars);
   const base = {
     spec: BUILD_ATTEST_SPEC,
     signed: false,
+    verified: false,
     cap7_is_icann: CAP7_IS_ICANN,
     paid_sat: PAID_SAT,
     authorization_effective: authorization || null,
@@ -110,11 +130,85 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
     }
     return { allowed: true, view };
   }
-  const diffs = [];
   const liveDigest = HEX64.test(String(runningDigest || "")) ? String(runningDigest).toLowerCase() : null;
   const ci = witnessed.ci_bundle_sha256 && HEX64.test(witnessed.ci_bundle_sha256) ? witnessed.ci_bundle_sha256 : null;
-  const distinctCi = witnessed.attest_source === "ci-provenance" && ci && witnessed.artifact_digest === ci && ci !== liveDigest;
-  if (!distinctCi && (!liveDigest || liveDigest !== witnessed.artifact_digest)) {
+  const fromCi = witnessed.attest_source === "ci-provenance" && ci && witnessed.artifact_digest === ci;
+  const witnessedGit = cleanGitSha(witnessed.git_sha);
+  const gitMismatch = Boolean(witnessedGit) && witnessedGit !== runningSha;
+  if (gitMismatch) {
+    const view = mismatchView(base, {
+      diffs: [{ field: "git_sha", witnessed: witnessedGit, live: runningSha }],
+      source_revision: witnessed.source_revision || null,
+      git_sha: witnessedGit,
+      builder_identity,
+      reason: "Witnessed git_sha does not match the running GIT_SHA.",
+    });
+    return { allowed: false, code: "BUILD-ATTEST-MISMATCH", message: "Running GIT_SHA does not match the witnessed build attestation. Nothing ran.", view };
+  }
+  if (fromCi) {
+    if (!liveDigest || liveDigest !== ci) {
+      const missing = !liveDigest;
+      const view = missing
+        ? {
+            ...base,
+            live: false,
+            ok: null,
+            verified: false,
+            status: "ci_witnessed",
+            code: "BUILD-ATTEST-CI-WITNESSED",
+            ci_bundle_sha256: ci,
+            artifact_digest: witnessed.artifact_digest,
+            source_revision: witnessed.source_revision || null,
+            git_sha: witnessedGit,
+            builder_identity,
+            reason: "A CI provenance digest is witnessed and the running build digest is missing. That is not a pass.",
+          }
+        : mismatchView(base, {
+            diffs: [{ field: "artifact_digest", witnessed: ci, live: liveDigest }],
+            ci_bundle_sha256: ci,
+            artifact_digest: witnessed.artifact_digest,
+            source_revision: witnessed.source_revision || null,
+            git_sha: witnessedGit,
+            builder_identity,
+            reason: "The running build digest does not match the witnessed CI provenance digest.",
+          });
+      return {
+        allowed: false,
+        code: view.code,
+        message: missing
+          ? "Strict check: running build digest is missing. Nothing ran."
+          : "Running artifact does not match the witnessed CI provenance digest. Nothing ran.",
+        view,
+      };
+    }
+    if (witnessed.authorization_epoch != null && authorization && witnessed.authorization_epoch !== authorization.writer_epoch) {
+      const view = mismatchView(base, {
+        diffs: [{ field: "authorization_epoch", witnessed: witnessed.authorization_epoch, live: authorization.writer_epoch ?? null }],
+        builder_identity,
+      });
+      return { allowed: false, code: "BUILD-ATTEST-MISMATCH", message: "Running authorization does not match the witnessed build attestation. Nothing ran.", view };
+    }
+    return {
+      allowed: true,
+      view: {
+        ...base,
+        live: true,
+        ok: true,
+        verified: true,
+        status: "verified",
+        code: "BUILD-ATTEST-OK",
+        independent: true,
+        source_revision: witnessed.source_revision || null,
+        git_sha: witnessedGit,
+        artifact_digest: ci,
+        ci_bundle_sha256: ci,
+        builder_identity,
+        note: "The running build digest matches the witnessed CI provenance digest.",
+      },
+    };
+  }
+  const diffs = [];
+  if (!liveDigest || liveDigest !== witnessed.artifact_digest) {
     diffs.push({ field: "artifact_digest", witnessed: witnessed.artifact_digest, live: liveDigest });
   }
   if (witnessed.authorization_epoch != null && authorization && witnessed.authorization_epoch !== authorization.writer_epoch) {
@@ -125,31 +219,15 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
       ...base,
       live: true,
       ok: false,
+      verified: false,
       status: "failed",
       code: "BUILD-ATTEST-MISMATCH",
       diffs,
       source_revision: witnessed.source_revision || null,
+      git_sha: witnessedGit,
       builder_identity,
     };
     return { allowed: false, code: "BUILD-ATTEST-MISMATCH", message: "Running artifact does not match the witnessed build attestation. Nothing ran.", view };
-  }
-  if (distinctCi) {
-    return {
-      allowed: true,
-      view: {
-        ...base,
-        live: true,
-        ok: true,
-        status: "verified",
-        code: "BUILD-ATTEST-OK",
-        independent: true,
-        source_revision: witnessed.source_revision || null,
-        artifact_digest: witnessed.artifact_digest,
-        ci_bundle_sha256: ci,
-        builder_identity,
-        note: "Matched a CI provenance digest. This is not the runtime's own published digest.",
-      },
-    };
   }
   return {
     allowed: true,
@@ -157,10 +235,12 @@ export function checkBuildAttest({ runningDigest = null, witnessed = null, stric
       ...base,
       live: false,
       ok: null,
+      verified: false,
       status: "self_consistent",
       code: "BUILD-ATTEST-SELF-CONSISTENT",
       independent: false,
       source_revision: witnessed.source_revision || null,
+      git_sha: witnessedGit,
       artifact_digest: witnessed.artifact_digest,
       builder_identity,
       note: "The witnessed digest equals this runtime's own published digest. That is self-consistent, not a CI attestation.",
@@ -186,6 +266,7 @@ export async function assertBuildAttestForExec(session, opts) {
   const strict = Boolean(session && session.policy && session.policy.build_attest_strict === true);
   return checkBuildAttest({
     runningDigest: runningBundleDigest(),
+    runningGitSha: BUILD_GIT_SHA,
     witnessed,
     strict,
     authorization,
@@ -202,6 +283,7 @@ export function buildAttestHead(meta = {}, { witnessed = null, checked = false }
   const running = runningBundleDigest();
   const verdict = checkBuildAttest({
     runningDigest: running,
+    runningGitSha: (meta && (meta.git_sha || meta.GIT_SHA)) || BUILD_GIT_SHA,
     witnessed,
     strict: false,
     deployVars: meta,

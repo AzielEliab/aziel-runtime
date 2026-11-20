@@ -77,7 +77,7 @@ export async function openMessage(me, msg) {
   const { sig, ...st } = msg.statement;
   if (!msg.sender_public_key || !(await verifyObject(msg.sender_public_key, st, sig))) return { verdict: "failed", why: "sender signature" };
   if ((await sha256Hex(canonicalize(msg.box))) !== st.box_sha256) return { verdict: "failed", why: "box hash" };
-  const text = await openCiphertext({ encPrivateKey: me.encPrivateKey, fromHandle: st.from, toHandle: st.to, seq: st.nonce, nonce: msg.box.nonce, eph_public_key: msg.box.eph_public_key, ciphertext: msg.box.ciphertext, frame_v: 1 });
+  const text = await openCiphertext({ encPrivateKey: me.encPrivateKey, fromHandle: st.from, toHandle: st.to, seq: st.nonce, nonce: msg.box.nonce, eph_public_key: msg.box.eph_public_key, ciphertext: msg.box.ciphertext, frame_v: 1, allowV1: true });
   return text == null ? { verdict: "failed", why: "decrypt" } : { verdict: "verified", plaintext: text };
 }
 

@@ -82,7 +82,7 @@ export async function verifyKeyRotation({ old_public_key, new_public_key, old_si
 }
 
 /** Refuse a new held key when an older key is listed and the statement is missing or incomplete. */
-export async function admitReplacement({ env, heldPublic, epochs, statement, rootPubkeys } = {}) {
+export async function admitReplacement({ env, heldPublic, epochs, statement, rootPubkeys, pinnedKeys = [] } = {}) {
   const roots = operatorRootPubkeys(env, rootPubkeys);
   const doc = readStatement(env, statement);
   if (!roots.length) {
@@ -108,6 +108,10 @@ export async function admitReplacement({ env, heldPublic, epochs, statement, roo
   for (const e of epochs || []) {
     if (e && e.public_key && (await keyIdOf(e.public_key)) === oldId) listed = true;
   }
-  if (!listed) return { ok: false, code: "KEY-ROTATION-OLD-KEY", reason: "the old key in the statement is not the listed retired key" };
+  let oldIsPinned = false;
+  for (const k of pinnedKeys || []) {
+    if ((await keyIdOf(k)) === oldId) oldIsPinned = true;
+  }
+  if (!listed && !oldIsPinned) return { ok: false, code: "KEY-ROTATION-OLD-KEY", reason: "the old key in the statement is not the pinned key or a listed retired key" };
   return { ok: true, code: "KEY-ROTATION-OK", spec: ROTATION_SPEC };
 }

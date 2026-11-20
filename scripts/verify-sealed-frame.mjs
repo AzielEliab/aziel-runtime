@@ -99,8 +99,35 @@ const legacy = await openFrame({
   nonce: v1.nonce,
   eph_public_key: v1.eph_public_key,
   ciphertext: v1.ciphertext,
+  frame_v: 1,
+  allowV1: true,
 });
 assert.equal(legacy, "legacy");
+const v1Default = await openFrame({
+  encPrivateKey: b.encPrivateKey,
+  fromHandle: a.handle,
+  toHandle: b.handle,
+  seq: 2,
+  nonce: v1.nonce,
+  eph_public_key: v1.eph_public_key,
+  ciphertext: v1.ciphertext,
+  frame_v: 1,
+});
+assert.equal(v1Default, null, "version 1 is refused unless allowV1 is set");
+assert.equal(await openFrame({
+  encPrivateKey: b.encPrivateKey,
+  fromHandle: a.handle,
+  toHandle: b.handle,
+  seq: 2,
+  nonce: v1.nonce,
+  eph_public_key: v1.eph_public_key,
+  ciphertext: v1.ciphertext,
+  frame_v: 99,
+  allowV1: true,
+}), null, "unknown version is refused even when allowV1 is set");
+const badCarrier = frameHeader({ carrier: "carrier-pigeon", fromHandle: a.handle, toHandle: b.handle, seq: 1 });
+assert.equal(badCarrier.ok, false);
+assert.equal(badCarrier.code, "SEALED-FRAME-CARRIER");
 const legacyAsV2 = await openFrame({
   encPrivateKey: b.encPrivateKey,
   fromHandle: a.handle,

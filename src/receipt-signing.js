@@ -92,6 +92,10 @@ export async function heldSignerFromEnv(env, { epochs, witnessedKeyId, tip, witn
       reason: "witness log could not be read; refusing to sign",
     };
   }
+  if (loaded && loaded.ok) {
+    const blocked = await replacementVerdict(env, loaded.provenance.public_key, epochs === undefined ? RECEIPT_KEY_EPOCHS : epochs, { statement, rootPubkeys });
+    if (blocked) return blocked;
+  }
   // RIB-049: a loaded key that is not the witnessed key is a second mint. No key is generated here.
   // witnessedKeyId undefined uses the isolate note; null means this call saw no witnessed id.
   const { gateSecondMint } = await import("./second-mint.js");
@@ -131,8 +135,6 @@ async function load(env, epochs = RECEIPT_KEY_EPOCHS, opts = {}) {
   // Self-check: the held private key must match the published public key, or nothing is signed.
   const probe = SIG_DOMAIN + "0".repeat(64);
   if (!(await verifyRaw(pub, probe, await sign(probe)))) return { ok: false, reason: "RECEIPT_SIGNING_KEY does not match RECEIPT_SIGNING_PUBLIC_KEY; not signing" };
-  const blocked = await replacementVerdict(env, String(pub).trim(), epochs, opts);
-  if (blocked) return blocked;
   const att = String(env.RECEIPT_KEY_ATTESTATION_SHA256 || "").toLowerCase();
   return {
     ok: true,
@@ -160,19 +162,14 @@ export function sigCommitFor(signer = active) {
   return signer && signer.ok ? { spec: HELD_KEY_SPEC, key_id: signer.provenance.key_id } : { spec: HELD_KEY_SPEC, mode: "none" };
 }
 
-/** A listed older key plus a different held key needs a dual signature. The pinned key does not. */
+/** A held key other than the pinned live key needs a dual signature, even when the retired list is empty. */
 async function replacementVerdict(env, pub, epochs, opts) {
-  let other = false;
   const pubId = await keyIdOf(pub);
-  for (const e of epochs || []) {
-    if (e && e.public_key && (await keyIdOf(e.public_key)) !== pubId) other = true;
-  }
-  if (!other) return null;
-  for (const k of opts.pinned || PINNED_RECEIPT_KEYS) {
+  for (const k of PINNED_RECEIPT_KEYS) {
     if ((await keyIdOf(k)) === pubId) return null;
   }
   const { admitReplacement } = await import("./receipt-key-guard.js");
-  const verdict = await admitReplacement({ env, heldPublic: pub, epochs, statement: opts.statement, rootPubkeys: opts.rootPubkeys });
+  const verdict = await admitReplacement({ env, heldPublic: pub, epochs, statement: opts.statement, rootPubkeys: opts.rootPubkeys, pinnedKeys: PINNED_RECEIPT_KEYS });
   return verdict && verdict.ok ? null : verdict;
 }
 

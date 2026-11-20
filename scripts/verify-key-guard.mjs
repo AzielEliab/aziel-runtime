@@ -76,8 +76,12 @@ const accepted = await heldSignerFromEnv(
 assert.equal(accepted.ok, true, JSON.stringify(accepted));
 assert.equal(accepted.provenance.public_key, newKey.pub);
 
-const pinnedStillSigns = await heldSignerFromEnv(envNew, { epochs: [], pinned: [newKey.pub] });
-assert.equal(pinnedStillSigns.ok, true);
+const swapped = await heldSignerFromEnv(envNew, { epochs: [] });
+assert.equal(swapped.ok, false);
+assert.equal(swapped.code, "KEY-ROTATION-NO-ROOT");
+assert.equal(swapped.sign, undefined);
+const swappedDefault = await heldSignerFromEnv(envNew);
+assert.equal(swappedDefault.code, "KEY-ROTATION-NO-ROOT");
 
 // Unreadable witness log refuses signing. A readable log with no key id does not.
 const witnessOff = await heldSignerFromEnv(envNew, { witnessLogOk: false });
