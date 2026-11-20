@@ -463,7 +463,7 @@ import {
 } from "./ai-clients.js";
 import { finishWithUse, peekUsesTotal, readUses, requestForUseCount } from "./uses.js";
 import { rectifyUsesBody } from "./uses-rectify.js";
-import { softwareMeterRoster } from "./software-meters.js";
+import { SERVICE_BINDING_OVERRIDES, serviceBindingName, softwareMeterRoster } from "./software-meters.js";
 import {
   SOFTWARE_FRAMING,
   WORKER_ONLY_PRODUCTS,
@@ -3467,12 +3467,10 @@ async function combinedOpenApi(request, env) {
 
 // A binding name must be a JS identifier, so a slug that starts with a digit
 // gets a spelled-out name. Must match [[services]] binding in wrangler.toml.
-export const BINDING_NAME_OVERRIDES = Object.freeze({ "4dmap": "FOURDMAP" });
+export const BINDING_NAME_OVERRIDES = SERVICE_BINDING_OVERRIDES;
 
 export function bindingName(product) {
-  const slug = String(product.slug || "");
-  if (Object.prototype.hasOwnProperty.call(BINDING_NAME_OVERRIDES, slug)) return BINDING_NAME_OVERRIDES[slug];
-  return slug.toUpperCase().replace(/-/g, "_");
+  return serviceBindingName(product);
 }
 
 function withUpstreamHeaders(init) {
@@ -5324,7 +5322,17 @@ async function handleRequest(request, env, ctx) {
       const meters = softwareMeterRoster(PRODUCTS, WORKER_ONLY_PRODUCTS).meters;
       const uses = await cachedUses(light ? "light" : "full", async () => {
         const raw = await readUses(env, { light, budget_ms: 8_000, maps: "snapshot" });
-        return rectifyUsesBody(raw, { meters, siteLive, fetchImpl: env && env.USES_VIEWS_FETCH, now: Date.now() });
+        return rectifyUsesBody(raw, {
+          meters,
+          siteLive,
+          bindFetch: (product) => {
+            const bind = env && env[bindingName(product)];
+            if (!bind || typeof bind.fetch !== "function") return null;
+            return (request) => bind.fetch(request);
+          },
+          fetchImpl: env && env.USES_VIEWS_FETCH,
+          now: Date.now(),
+        });
       }, { floor: statsFloorFor(env) });
       // Option A: do not start buildUsesSnapshot here. A stale map (maps_refresh "due")
       // stays the last snapshot. The odd-minute tether cron rebuilds it. N concurrent
