@@ -153,7 +153,7 @@ export class RuntimeSession {
       // RIB-042: use the provisioned receipt key if one is held (never generated here).
       // A witnessed key id from this request is passed in. It does not stick after the request.
       const { heldSignerFromEnv, setActiveReceiptSigner } = await import("./receipt-signing.js");
-      const signerOpts = { witnessedKeyId: view.log_ok ? view.receipt_key_id : null };
+      const signerOpts = { witnessedKeyId: view.log_ok ? view.receipt_key_id : null, witnessLogOk: view.log_ok };
       setActiveReceiptSigner(await heldSignerFromEnv(this.env, signerOpts));
       const url = new URL(request.url);
       const action = url.pathname.replace(/^\//, "") || "status";

@@ -26,8 +26,8 @@ Receipts minted while a provisioned key is held are signed. All other receipts s
 sealed, not signed, and say so.
 
 **Verify** (`receipt_signatures` in the session verify): signatures are checked against trusted keys,
-which are `PINNED_RECEIPT_KEYS` (in code, none pinned yet) plus this deploy's published, unpinned
-`RECEIPT_SIGNING_PUBLIC_KEY`. These fail closed:
+which are `PINNED_RECEIPT_KEYS` (the published receipt public key) plus this deploy's
+`RECEIPT_SIGNING_PUBLIC_KEY` when that key is not the pin. These fail closed:
 - `RECEIPT-SIG-MISSING`: sig_commit names a key but the signature is absent or null (strip / swap downgrade)
 - `RECEIPT-SIG-DOWNGRADE`: a legacy or unsigned receipt after the first signed one
 - `RECEIPT-SIG-BAD`, `RECEIPT-KEY-UNTRUSTED`, `RECEIPT-KEY-ID-MISMATCH`
@@ -99,9 +99,11 @@ reviewed entry; there is no outside record of the list until the aziel-anchors p
     registry fetch), public key first.
   - **Confirm:** it polls `/v1/receipt-key` for the new key_id and prints only the public key and key_id.
 
-**Rotation path and backup.** Changing the key means a new pair plus one PR that appends the old **public** key
-to `RECEIPT_KEY_EPOCHS`. The old private key is never needed again, so **no copy or backup of the private key is
-kept**, encrypted or otherwise.
+**Rotation path and backup.** Changing the key means a new pair, a PR that appends the old **public** key
+to `RECEIPT_KEY_EPOCHS`, and a replacement statement signed by the old key and by an operator root key in
+`OPERATOR_ROOT_PUBKEY`. If that root set is empty, replacement is refused. A retired-list edit alone is refused.
+The old private key is not kept after it has signed that statement. **No copy or backup of the private key is
+kept**, encrypted or otherwise. Root key generation is operator work and is not done in this repo.
 - Gap: once that epoch PR is deployed the runtime stops signing with the old key, and until
   `--apply --next-epoch` sets the new one, new receipts are unsigned (`mode:"none"` with the reason). A session
   whose earlier receipts carry a signature then fails `RECEIPT-SIG-DOWNGRADE` for those rows. Keep the gap short, or

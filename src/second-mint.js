@@ -127,8 +127,22 @@ export async function gateSecondMint(signer, { tip = null, witnessedKeyId: overr
  * No witnessed key, or no held key to compare, stays not_checked (ok null). A match is status none.
  * A mismatch publishes a preview hash (attempt 1, tip zero). That hash is not the signing-path row.
  */
-export async function secondMintHead({ witnessedKeyId: witnessed = null, attemptedKeyId = null, checked = false } = {}) {
+export async function secondMintHead({ witnessedKeyId: witnessed = null, attemptedKeyId = null, checked = false, logOk } = {}) {
   const base = { spec: SECOND_MINT_SPEC, signed: false, checked: checked === true, cap7_is_icann: false, paid_sat: "HELD" };
+  if (logOk === false && attemptedKeyId) {
+    return {
+      ...base,
+      status: "refused",
+      ok: false,
+      live: false,
+      code: "KEY-WITNESS-UNREADABLE",
+      checked: false,
+      witnessed_key_id: null,
+      refused_key_id: attemptedKeyId,
+      refusal_receipt_hash: null,
+      reason: "witness log could not be read; signing is refused",
+    };
+  }
   if (!witnessed) {
     return {
       ...base,
