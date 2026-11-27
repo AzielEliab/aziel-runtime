@@ -205,9 +205,27 @@ function redactValueInner(value, depth) {
   return out;
 }
 
-/** result_taint, RESULT_TAINT, Result_Taint, resultTaint, result-taint, and the same with extra _ or -. */
+const ZERO_WIDTH = /[\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g;
+/** Lowercase homoglyphs that still look like Latin after NFKC. */
+const CONFUSABLE = Object.freeze({
+  "\u0430": "a", "\u0435": "e", "\u0456": "i", "\u0457": "i", "\u0455": "s",
+  "\u0442": "t", "\u043e": "o", "\u0440": "p", "\u0441": "c", "\u0443": "y",
+  "\u04cf": "l", "\u0131": "i", "\u026a": "i", "\u029f": "l", "\u2113": "l",
+  "\u03b1": "a", "\u03b5": "e", "\u03b9": "i", "\u03af": "i", "\u03bf": "o",
+  "\u03c1": "p", "\u03c4": "t", "\u043d": "h", "\u04bb": "h",
+});
+
+/** Fold a key to comparable letters: NFKC, no marks, no zero-width, no space/dot/_/-. */
+export function normalizeTaintKey(key) {
+  const raw = String(key).normalize("NFKC").replace(/\p{M}/gu, "").replace(ZERO_WIDTH, "").toLowerCase();
+  let folded = "";
+  for (const ch of raw) folded += CONFUSABLE[ch] || ch;
+  return folded.replace(/[\s._-]+/gu, "");
+}
+
+/** result_taint in any case, separator, homoglyph, or zero-width spelling. */
 export function isForgedTaintKey(key) {
-  return String(key).replace(/[-_]/g, "").toLowerCase() === "resulttaint";
+  return normalizeTaintKey(key) === "resulttaint";
 }
 
 /**
@@ -329,6 +347,38 @@ export function purgeResultTaint(value, depth = 0) {
   } catch {
     return CLOSED;
   }
+}
+
+/**
+ * Fresh plain object for a tool result. Arrays and primitives are wrapped as
+ * `{ result, result_taint }` so the runtime mark is always at the top.
+ * The returned object is never the tool's object.
+ */
+export async function mintPlainEnvelope(source, tool) {
+  let clean;
+  try {
+    clean = stripResultTaint(source);
+  } catch {
+    clean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
+  }
+  const body = Array.isArray(clean) || clean == null || typeof clean !== "object"
+    ? { result: clean }
+    : clean;
+  let taint;
+  try {
+    taint = await resultTaint({ tool: tool || "tool", body });
+  } catch {
+    taint = {
+      spec: RESULT_TAINT_SPEC,
+      trust: "UNTRUSTED",
+      source_boundary: `tool-result:${tool || "tool"}`,
+      sha256: "0".repeat(64),
+      bytes: 0,
+      policy: false,
+      operator: false,
+    };
+  }
+  return { ...body, result_taint: taint };
 }
 
 export function assertNoGatedLeak(text, samples) {

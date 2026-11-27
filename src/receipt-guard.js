@@ -436,6 +436,35 @@ export function innerOpRefusal(env) {
 }
 
 /**
+ * Replace a tool result with a new plain object. Arrays and primitives are
+ * wrapped so the runtime taint is always a top-level field. Text-only plain
+ * objects stay without an envelope so the display wrap can nest `result`.
+ * The tool's object is never the value returned.
+ */
+async function installPlainEnvelope(out, obs, name) {
+  if (!out || typeof out !== "object") return;
+  const hadEnvelope = Object.prototype.hasOwnProperty.call(out, "envelope") && out.envelope !== undefined;
+  let source;
+  let parsed = false;
+  if (hadEnvelope) {
+    source = out.envelope;
+    parsed = true;
+  } else if (typeof out.text === "string") {
+    try {
+      source = JSON.parse(out.text);
+      parsed = true;
+    } catch {
+      parsed = false;
+    }
+  }
+  if (!parsed) return;
+  const minted = await obs.mintPlainEnvelope(source, name);
+  const forceEnvelope = hadEnvelope || Array.isArray(source) || source == null || typeof source !== "object";
+  if (forceEnvelope) out.envelope = minted;
+  out.text = JSON.stringify(minted, null, 2);
+}
+
+/**
  * Wrap one MCP tools/call. call() runs the existing door unchanged.
  */
 export async function guardToolCall({ store, request, name, args, schemaHash, call, runtimeEnv = null }) {
@@ -477,6 +506,7 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
       }
     }
   }
+  await installPlainEnvelope(out, obs, name);
   const env = envelopeOf(out);
   let code = refusalCodeOf(env, out);
   // RIB-018 addendum: an op that refuses inside an accepted door envelope (e.g. memory lattice-learn
@@ -494,25 +524,10 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
-  // AZRT-UNTRUSTED-RESULT-1.0. Never return the tool's object. A fresh plain
-  // object carries the runtime taint. Accessors, Proxies, and toJSON stay behind.
-  // Text-only tools keep envelope unset so the display wrap still nests result.
-  if (env && typeof env === "object" && !Array.isArray(env)) {
-    const hadEnvelope = out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope);
-    let clean;
-    try {
-      clean = obs.stripResultTaint(hadEnvelope ? out.envelope : env);
-    } catch {
-      clean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
-    }
-    if (!clean || typeof clean !== "object" || Array.isArray(clean)) {
-      clean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
-    }
-    const taint = await obs.resultTaint({ tool: name, body: clean });
-    const minted = { ...clean, result_taint: taint };
-    if (hadEnvelope) out.envelope = minted;
-    out.text = JSON.stringify(minted, null, 2);
-  }
+  // AZRT-UNTRUSTED-RESULT-1.0. Mint again so attachments are inside a new
+  // plain object. Arrays stay wrapped; text-only objects stay unwrapped so
+  // the display envelope can still nest result.
+  await installPlainEnvelope(out, obs, name);
   const touch = await obs.observeCredentialTouch({
     store: obs.mcpCredentialStore(),
     identity: src.identity,
