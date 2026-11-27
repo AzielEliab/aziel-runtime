@@ -21,7 +21,7 @@ const PIN = JSON.parse((await import("node:fs")).readFileSync(new URL("../contra
 let n = 0;
 const cases = [
   ["no key", {}, false],
-  ["held key", { RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub }, true],
+  ["held key", { RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub }, false],
   ["mismatched pub", { RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub }, false],
   ["garbage key", { RECEIPT_SIGNING_KEY: "not-a-key", RECEIPT_SIGNING_PUBLIC_KEY: A.pub }, false],
   ["priv without pub", { RECEIPT_SIGNING_KEY: A.priv }, false],

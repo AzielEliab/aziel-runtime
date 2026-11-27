@@ -1,13 +1,13 @@
---- a/scripts/witness.mjs	2026-11-13 10:59:36.154909492 +0000
-+++ b/scripts/witness.mjs	2026-11-13 10:59:36.158909463 +0000
+--- a/scripts/witness.mjs
++++ b/scripts/witness.mjs
 @@ -38,7 +38,10 @@
  const sameHeads = last && canonicalize(last.statement.heads.chains) === canonicalize(heads.chains) && canonicalize(last.statement.heads.stores) === canonicalize(heads.stores) &&
    canonicalize(headsOnly(last.statement.external)) === canonicalize(headsOnly(external)) &&
    // AZRT-KEYS-1.0: a receipt key change (new epoch) is anchored even when no head moved.
 -  canonicalize(last.statement.receipt_key ?? null) === canonicalize(heads.receipt_key ?? null);
 +  canonicalize(last.statement.receipt_key ?? null) === canonicalize(heads.receipt_key ?? null) &&
-+  // RIB-048 / RIB-049: a new artifact digest or second-mint fragment is anchored even when no head moved.
-+  canonicalize(last.statement.build_attest ?? null) === canonicalize(heads.build_attest ?? null) &&
++  // build_attest comes from the CI provenance file, never from heads.build_attest.
++  canonicalize(last.statement.build_attest ?? null) === canonicalize(ciBuildAttest()) &&
 +  canonicalize(last.statement.second_mint ?? null) === canonicalize(heads.second_mint ?? null);
  // RIB-041: a redeploy (new git_sha / version_id) is anchored even when no head moved.
  const build = buildOf(heads);
@@ -16,10 +16,40 @@
    // Additive (AZRT-KEYS-1.0): the runtime's held receipt key (public parts) or null, so each receipt key
    // epoch is recorded in this signed log. Statements before this field verify unchanged.
    receipt_key: heads.receipt_key ?? null,
-+  // Additive (RIB-048 / RIB-049): artifact digest and second-mint fragment copied from heads.
-+  // Null is not a pass. Statements before these fields verify unchanged.
-+  build_attest: heads.build_attest ?? null,
++  // CI provenance only. heads.build_attest is the runtime self-claim and is not copied.
++  // The runtime marks this verified only when the digest matches the CI file and is not that self-claim.
++  build_attest: ciBuildAttest(),
 +  second_mint: heads.second_mint ?? null,
    independent,
    external,
    witness: { repo: "AzielEliab/aziel-anchors", run_id: process.env.GITHUB_RUN_ID || null, key: "keys/witness.pub" },
+@@ -100,6 +107,29 @@
+ console.log(`anchored n=${statement.n} ${statement_hash} chains=${heads.chains.length} tsa=${Boolean(tsa)} rekor=${rekor ? rekor.log_index : null}`);
+ 
+ function headsOnly(ext) {
++  return headsOnlyInner(ext);
++}
++
++function ciBuildAttest() {
++  try {
++    const path = process.env.CI_PROVENANCE_PATH || "provenance/bundle.json";
++    const doc = JSON.parse(fs.readFileSync(path, "utf8"));
++    const digest = String(doc.bundle_sha256 || "").toLowerCase();
++    if (!/^[a-f0-9]{64}$/.test(digest)) return null;
++    const selfClaim = heads && heads.build_attest && String(heads.build_attest.artifact_digest || "").toLowerCase();
++    if (selfClaim && digest === selfClaim) return null;
++    return {
++      attest_source: "ci-provenance",
++      artifact_digest: digest,
++      ci_bundle_sha256: digest,
++      git_sha: typeof doc.git_sha === "string" ? doc.git_sha : null,
++    };
++  } catch {
++    return null;
++  }
++}
++
++function headsOnlyInner(ext) {
+   const o = {};
+   for (const [k, v] of Object.entries(ext || {})) o[k] = v && v.anchored ? v.head : null;
+   return o;
