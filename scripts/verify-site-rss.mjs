@@ -1,0 +1,188 @@
+/**
+ * Public RSS feed. Dates come from the GitHub release, the Softwares catalog,
+ * and RIB source lines. A date that is not recorded is not published.
+ * Author: Aziel Eliab. Identity is Aziel Eliab only.
+ */
+import assert from "node:assert/strict";
+import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { shouldIncrementUse } from "../src/uses.js";
+import {
+  RELEASE_PUBLISHED_AT,
+  RIB_RECORDS,
+  SITE_RSS_ALIAS,
+  SITE_RSS_PATH,
+  calendarDay,
+  rfc822Utc,
+  siteRssItems,
+  siteRssStaticLastmod,
+} from "../src/site-rss.js";
+
+const handler = (await import("../src/index.js")).default.fetch;
+const origin = "https://aziel-runtime.example";
+
+function get(path, env = {}, headers) {
+  return handler(new Request(origin + path, { headers }), env);
+}
+
+function itemsFrom(xml) {
+  const out = [];
+  for (const match of xml.matchAll(/<item>([\s\S]*?)<\/item>/g)) {
+    const block = match[1];
+    const grab = (tag) => {
+      const found = block.match(new RegExp(`<${tag}(?: [^>]*)?>([\\s\\S]*?)</${tag}>`));
+      return found ? found[1] : null;
+    };
+    out.push({
+      title: grab("title"),
+      link: grab("link"),
+      guid: grab("guid"),
+      pubDate: grab("pubDate"),
+      category: grab("category"),
+      description: grab("description"),
+    });
+  }
+  return out;
+}
+
+const tagIso = execFileSync("git", ["log", "-1", "--format=%cI", "v2.0.0-rc1"], { encoding: "utf8" }).trim();
+const tagDay = new Date(tagIso).toISOString().slice(0, 10);
+assert.equal(tagDay, "2026-09-11");
+assert.equal(RELEASE_PUBLISHED_AT, "2026-09-11T01:23:57Z");
+assert.equal(calendarDay(RELEASE_PUBLISHED_AT.slice(0, 10)), tagDay);
+assert.equal(rfc822Utc(RELEASE_PUBLISHED_AT), "Fri, 11 Sep 2026 01:23:57 GMT");
+
+for (const row of RIB_RECORDS) {
+  const line = readFileSync(new URL("../" + row.source, import.meta.url), "utf8").split(/\n/)[row.line - 1];
+  assert.ok(line.includes(row.date), `${row.source}:${row.line} records ${row.date}`);
+  for (const id of row.ribs) assert.ok(line.includes(id), `${row.source}:${row.line} names ${id}`);
+  if (row.date_role === "reinforced date") assert.match(line, /reinforced 2026-10-08/);
+  if (row.date_role === "follow-up review date") assert.match(line, /follow-up \(AZBot review, 2026-10-19\)/);
+  assert.equal(calendarDay(row.date), row.date);
+}
+
+assert.equal(siteRssStaticLastmod(), "2026-10-30");
+assert.equal(calendarDay("2026-13-40"), null);
+assert.equal(calendarDay("not-a-date"), null);
+assert.equal(calendarDay(""), null);
+
+const dropped = siteRssItems({ origin, updatedAt: "not-a-date", softwareCount: 42 });
+assert.equal(dropped.some((item) => item.kind === "software"), false);
+assert.equal(dropped.filter((item) => item.kind === "release").length, 1);
+assert.equal(dropped.filter((item) => item.kind === "rib").length, RIB_RECORDS.length);
+
+const impossible = siteRssItems({ origin, updatedAt: "2026-13-40", softwareCount: 42 });
+assert.equal(impossible.some((item) => item.kind === "software"), false);
+
+const blank = siteRssItems({ origin, updatedAt: null, softwareCount: null });
+assert.equal(blank.some((item) => item.kind === "software"), false);
+
+const catalog = siteRssItems({ origin, updatedAt: "2026-11-02", softwareCount: 42 });
+assert.equal(catalog[0].kind, "software");
+assert.equal(catalog[0].iso, "2026-11-02T00:00:00Z");
+assert.match(catalog[0].description, /42 Softwares/);
+assert.match(catalog[0].description, /not a separate release date/);
+assert.equal(catalog.at(-1).kind, "release");
+assert.equal(catalog.at(-1).iso, RELEASE_PUBLISHED_AT);
+assert.equal(catalog.at(-1).clock, undefined);
+
+const rssRes = await get(SITE_RSS_PATH);
+assert.equal(rssRes.status, 200);
+assert.match(rssRes.headers.get("content-type") || "", /^application\/rss\+xml; charset=utf-8$/);
+const rss = await rssRes.text();
+assert.match(rss, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+assert.match(rss, /<rss version="2\.0"/);
+assert.match(rss, /<title>Aziel Runtime<\/title>/);
+assert.match(rss, new RegExp(`<link>${origin}/</link>`));
+assert.match(rss, new RegExp(`<atom:link href="${origin}${SITE_RSS_PATH}" rel="self" type="application/rss\\+xml"/>`));
+
+const feedRes = await get(SITE_RSS_ALIAS);
+assert.equal(feedRes.status, 200);
+assert.equal(await feedRes.text(), rss);
+
+const headRes = await handler(new Request(origin + SITE_RSS_PATH, { method: "HEAD" }), {});
+assert.equal(headRes.status, 200);
+assert.match(headRes.headers.get("content-type") || "", /^application\/rss\+xml; charset=utf-8$/);
+assert.equal(await headRes.text(), "");
+
+const posted = await handler(new Request(origin + SITE_RSS_PATH, { method: "POST" }), {});
+assert.equal(posted.status, 404);
+
+const items = itemsFrom(rss);
+assert.ok(items.length >= 1 + RIB_RECORDS.length);
+const guids = new Set();
+for (const item of items) {
+  assert.ok(item.title);
+  assert.ok(item.link);
+  assert.ok(item.guid);
+  assert.ok(item.pubDate);
+  assert.ok(["release", "software", "rib"].includes(item.category));
+  assert.equal(guids.has(item.guid), false);
+  guids.add(item.guid);
+  assert.doesNotMatch(item.description, /&(?!amp;|lt;|gt;|quot;)/);
+}
+assert.equal(items.at(-1).category, "release");
+assert.equal(items.at(-1).pubDate, "Fri, 11 Sep 2026 01:23:57 GMT");
+assert.equal(items.at(-1).link, "https://github.com/AzielEliab/aziel-runtime/releases/tag/v2.0.0-rc1");
+assert.match(items.at(-1).description, /published_at 2026-09-11T01:23:57Z/);
+assert.doesNotMatch(items.at(-1).description, /00:00:00 GMT/);
+
+const software = items.find((item) => item.category === "software");
+assert.ok(software);
+assert.equal(software.pubDate, "Wed, 30 Sep 2026 00:00:00 GMT");
+assert.equal(software.link, `${origin}/v1/software`);
+assert.match(software.description, /Catalog updated_at 2026-09-30/);
+assert.match(software.description, /00:00:00 GMT because the source recorded a calendar day/);
+const softwareJson = await (await get("/v1/software")).json();
+assert.equal(softwareJson.updated_at, "2026-09-30");
+assert.match(software.description, new RegExp(`${softwareJson.count} Softwares`));
+
+for (const row of RIB_RECORDS) {
+  const item = items.find((entry) => entry.guid === `aziel-runtime:rib:${row.id}`);
+  assert.ok(item, row.id);
+  assert.equal(item.category, "rib");
+  assert.equal(item.link, row.link);
+  assert.equal(item.pubDate, rfc822Utc(`${row.date}T00:00:00Z`));
+  for (const id of row.ribs) assert.match(item.description, new RegExp(id));
+  assert.match(item.description, new RegExp(row.date_role.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.match(item.description, /00:00:00 GMT because the source recorded a calendar day/);
+}
+
+const stamped = await get(SITE_RSS_PATH, { UPDATED_AT: "2026-11-02T08:15:00Z" });
+const stampedItems = itemsFrom(await stamped.text());
+assert.equal(stampedItems[0].category, "software");
+assert.equal(stampedItems[0].pubDate, "Mon, 02 Nov 2026 00:00:00 GMT");
+assert.match(stampedItems[0].description, /Catalog updated_at 2026-11-02/);
+assert.doesNotMatch(stampedItems[0].description, /08:15:00/);
+
+const refused = await get(SITE_RSS_PATH, { UPDATED_AT: "not-a-date" });
+const refusedItems = itemsFrom(await refused.text());
+assert.equal(refusedItems.some((item) => item.category === "software"), false);
+
+assert.equal(shouldIncrementUse("GET", SITE_RSS_PATH), false);
+assert.equal(shouldIncrementUse("GET", SITE_RSS_ALIAS), false);
+
+const home = await (await get("/")).text();
+assert.match(home, new RegExp(`rel="alternate" type="application/rss\\+xml" href="${origin}${SITE_RSS_PATH}"`));
+assert.match(home, new RegExp(`href="${origin}${SITE_RSS_PATH}">/rss.xml</a>`));
+
+const softwareHtml = await (
+  await get("/v1/software", {}, { accept: "text/html" })
+).text();
+assert.match(softwareHtml, new RegExp(`rel="alternate" type="application/rss\\+xml" href="${origin}${SITE_RSS_PATH}"`));
+assert.match(softwareHtml, /href="\/rss\.xml">rss<\/a>/);
+
+const llms = await (await get("/llms.txt")).text();
+assert.match(llms, new RegExp(`RSS: ${origin}${SITE_RSS_PATH}`));
+
+const sitemap = await (await get("/sitemap.xml")).text();
+assert.match(sitemap, new RegExp(`<loc>${origin}${SITE_RSS_PATH}</loc>`));
+
+const openapi = await (await get("/openapi.json")).json();
+assert.ok(openapi.paths[SITE_RSS_PATH]?.get);
+assert.match(openapi.paths[SITE_RSS_PATH].get.summary, /GET \/feed\.xml is the same document/);
+
+const health = await (await get("/v1/health")).json();
+assert.equal(health.rss, SITE_RSS_PATH);
+
+console.log(`ok site-rss: ${items.length} items (release, Softwares catalog, ${RIB_RECORDS.length} dated RIB notes)`);
