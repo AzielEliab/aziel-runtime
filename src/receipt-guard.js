@@ -463,10 +463,16 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = await runWithCallMeta(meta, () => call());
     const produced = envelopeOf(out);
     if (produced && typeof produced === "object" && !Array.isArray(produced)) {
-      const producedClean = obs.stripResultTaint(produced);
+      let producedClean;
+      try {
+        producedClean = obs.stripResultTaint(produced);
+      } catch {
+        producedClean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
+      }
       const outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: producedClean });
       if (outputCheck && outputCheck.ok === false) {
-        const body = obs.stripResultTaint({ ...outputCheck, result: null });
+        const body = { ...obs.stripResultTaint(outputCheck), result: null };
+        delete body.result_taint;
         out = { status: outputCheck.status || 422, text: JSON.stringify(body), envelope: body };
       }
     }
@@ -488,32 +494,24 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
-  // AZRT-UNTRUSTED-RESULT-1.0. Always overwrite result_taint. No !result_taint gate.
-  // HTTP /v1/fraggate/call returns out.envelope. MCP structuredContent is that
-  // envelope, or the display wrap of out.text when the tool sent text only.
+  // AZRT-UNTRUSTED-RESULT-1.0. Never return the tool's object. A fresh plain
+  // object carries the runtime taint. Accessors, Proxies, and toJSON stay behind.
+  // Text-only tools keep envelope unset so the display wrap still nests result.
   if (env && typeof env === "object" && !Array.isArray(env)) {
-    const live = out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope) ? out.envelope : null;
-    if (live && live !== env) obs.purgeResultTaint(live);
-    obs.purgeResultTaint(env);
-    const body = live || env;
-    const taint = await obs.resultTaint({ tool: name, body });
+    const hadEnvelope = out.envelope && typeof out.envelope === "object" && !Array.isArray(out.envelope);
+    let clean;
     try {
-      body.result_taint = taint;
+      clean = obs.stripResultTaint(hadEnvelope ? out.envelope : env);
     } catch {
-      if (live) out.envelope = { ...obs.stripResultTaint(body), result_taint: taint };
+      clean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
     }
-    if (typeof out.text === "string") {
-      try {
-        const parsed = JSON.parse(out.text);
-        if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-          obs.purgeResultTaint(parsed);
-          parsed.result_taint = taint;
-          out.text = JSON.stringify(parsed, null, 2);
-        }
-      } catch {
-        if (!live) out.text = JSON.stringify(body, null, 2);
-      }
+    if (!clean || typeof clean !== "object" || Array.isArray(clean)) {
+      clean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
     }
+    const taint = await obs.resultTaint({ tool: name, body: clean });
+    const minted = { ...clean, result_taint: taint };
+    if (hadEnvelope) out.envelope = minted;
+    out.text = JSON.stringify(minted, null, 2);
   }
   const touch = await obs.observeCredentialTouch({
     store: obs.mcpCredentialStore(),

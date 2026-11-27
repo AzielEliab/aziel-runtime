@@ -4103,8 +4103,8 @@ async function handleMcp(request, env, origin, ctx) {
         telemetryHeaders[GLAMA_TELEMETRY_RESPONSE_HEADER] = GLAMA_TELEMETRY_RESPONSE_WORKER;
       }
       return rpcResult(id, payload, { ...wire, ...telemetryHeaders });
-    } catch (err) {
-      const text = JSON.stringify({ error: String(err.message || err) });
+    } catch {
+      const text = JSON.stringify({ ok: false, code: "LOG-LEAK-CLOSED", error: "The tool result could not be sealed." });
       return rpcResult(id, mcpCallPayload(name, { status: 400, text }, null, null), wire);
     }
   }

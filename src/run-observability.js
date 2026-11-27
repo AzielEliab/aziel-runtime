@@ -205,59 +205,130 @@ function redactValueInner(value, depth) {
   return out;
 }
 
-/** Drop every result_taint in place so the live response object cannot keep a forged mark. */
-export function purgeResultTaint(value, depth = 0) {
-  if (!value || typeof value !== "object" || depth > 32) return value;
-  if (Array.isArray(value)) {
-    for (let i = 0; i < value.length; i++) {
-      try {
-        purgeResultTaint(value[i], depth + 1);
-      } catch {
-        value[i] = CLOSED;
-      }
-    }
-    return value;
-  }
+/** result_taint, RESULT_TAINT, Result_Taint, resultTaint, result-taint, and the same with extra _ or -. */
+export function isForgedTaintKey(key) {
+  return String(key).replace(/[-_]/g, "").toLowerCase() === "resulttaint";
+}
+
+/**
+ * Plain JSON data only. No accessors, no toJSON, no Proxy identity, no taint key
+ * in any spelling. Past depth 32 the subtree is dropped so a nested forged mark
+ * cannot survive. A throwing getter becomes the closed marker. Never throws.
+ */
+export function stripResultTaint(value, depth = 0) {
   try {
-    delete value.result_taint;
+    return copyPlain(value, depth);
   } catch {
-    /* a sealed field still gets overwritten by the caller */
+    return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
   }
-  let keys = [];
+}
+
+function copyPlain(value, depth) {
+  if (value == null || typeof value === "boolean" || typeof value === "number") return value;
+  if (typeof value === "bigint") return CLOSED;
+  if (typeof value === "string") return value;
+  if (typeof value !== "object") return null;
+  if (depth > 32) return CLOSED;
+  if (Array.isArray(value)) {
+    let len = 0;
+    try {
+      len = value.length;
+    } catch {
+      return CLOSED;
+    }
+    const items = [];
+    const cap = Math.min(Number(len) || 0, 10000);
+    for (let i = 0; i < cap; i++) {
+      let child;
+      try {
+        child = value[i];
+      } catch {
+        items.push(CLOSED);
+        continue;
+      }
+      items.push(copyPlain(child, depth + 1));
+    }
+    return items;
+  }
+  let keys;
   try {
     keys = Object.keys(value);
   } catch {
-    return value;
+    return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
   }
+  const out = {};
   for (const key of keys) {
-    if (key === "result_taint") continue;
+    if (key === "toJSON" || isForgedTaintKey(key)) continue;
     let child;
     try {
       child = value[key];
     } catch {
+      out[key] = CLOSED;
       continue;
     }
-    if (child && typeof child === "object") purgeResultTaint(child, depth + 1);
-  }
-  return value;
-}
-
-/** Drop every result_taint so a tool cannot supply its own trust mark. */
-export function stripResultTaint(value, depth = 0) {
-  if (value == null || typeof value !== "object") return value;
-  if (depth > 32) {
-    if (Array.isArray(value)) return value;
-    const shallow = { ...value };
-    delete shallow.result_taint;
-    return shallow;
-  }
-  if (Array.isArray(value)) return value.map((item) => stripResultTaint(item, depth + 1));
-  const out = {};
-  for (const key of Object.keys(value)) {
-    if (key === "result_taint") continue;
-    out[key] = stripResultTaint(value[key], depth + 1);
+    if (typeof child === "function") continue;
+    out[key] = copyPlain(child, depth + 1);
   }
   return out;
+}
+
+/** In-place purge. Past depth 32 the subtree is replaced. Never throws. */
+export function purgeResultTaint(value, depth = 0) {
+  try {
+    if (!value || typeof value !== "object") return value;
+    if (depth > 32) return CLOSED;
+    if (Array.isArray(value)) {
+      let len = 0;
+      try {
+        len = value.length;
+      } catch {
+        return CLOSED;
+      }
+      const cap = Math.min(Number(len) || 0, 10000);
+      for (let i = 0; i < cap; i++) {
+        let child;
+        try {
+          child = value[i];
+        } catch {
+          try { value[i] = CLOSED; } catch { /* sealed slot */ }
+          continue;
+        }
+        const next = purgeResultTaint(child, depth + 1);
+        if (next !== child) {
+          try { value[i] = next; } catch { /* sealed slot */ }
+        }
+      }
+      return value;
+    }
+    let keys = [];
+    try {
+      keys = Object.keys(value);
+    } catch {
+      return CLOSED;
+    }
+    for (const key of keys) {
+      if (isForgedTaintKey(key)) {
+        try { delete value[key]; } catch { /* non-configurable; the copy path does not keep this object */ }
+        continue;
+      }
+      let child;
+      try {
+        child = value[key];
+      } catch {
+        try { value[key] = CLOSED; } catch { /* sealed */ }
+        continue;
+      }
+      if (child && typeof child === "object") {
+        const next = purgeResultTaint(child, depth + 1);
+        if (next !== child) {
+          try { value[key] = next; } catch { /* sealed */ }
+        }
+      }
+    }
+    return value;
+  } catch {
+    return CLOSED;
+  }
 }
 
 export function assertNoGatedLeak(text, samples) {
