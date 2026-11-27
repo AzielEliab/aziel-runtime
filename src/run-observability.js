@@ -501,7 +501,7 @@ export function hostileInput(value, depth = 0) {
   try {
     if (typeof value === "bigint") return true;
     if (value == null || typeof value !== "object") return false;
-    if (depth > 32) return false;
+    if (depth > 32) return true;
     let keys;
     try {
       keys = Object.keys(value);

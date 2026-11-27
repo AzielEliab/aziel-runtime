@@ -23,3 +23,31 @@ jobs:
 
       - name: npm test
         run: npm test
+
+  # Hash the production bundle. Dry-run only: no deploy, no new secret.
+  bundle-provenance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install
+        run: npm ci
+
+      - name: Build the worker bundle without deploying
+        run: npx wrangler deploy --dry-run --outdir dist/worker-bundle
+
+      - name: Hash the bundle
+        run: node scripts/bundle-provenance.mjs dist/worker-bundle provenance/bundle.json
+
+      - name: Publish provenance
+        uses: actions/upload-artifact@v4
+        with:
+          name: bundle-provenance
+          path: provenance/bundle.json

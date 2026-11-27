@@ -139,7 +139,7 @@ try {
   check(dialed.live === false && dialed.public_door === "FG-STUB" && dialed.updater === "OFF", "dial does not open the public door");
   const boot = await (await fetch(`${left.base}/v1/fed-mesh/bootstrap`)).json();
   check(boot.needs_starting_address === true && boot.live === false && boot.list.peers.length === 0, "GET bootstrap stays empty");
-  check(right.track2.allowSession(left.handle).ok === true, "responder allows the initiator");
+  check(right.track2.allowSession(left.public_key).ok === true, "responder allows the initiator");
   const share = "cold-start loopback share";
   const sent = await loop.deliver({ plaintext: share, peerMachineId: hostId });
   check(sent.ok === true && sent.loopback === true && sent.bearer_mode === "loopback", `loopback deliver ${sent.code} ${sent.bearer_mode}`);
@@ -288,7 +288,7 @@ if (ip && hostId) {
       check(bad.code === "COLD-START-HTTP-ONLY" && bad.fetched === false, "namespace node refuses a public URL");
       const supplied = await ask(dirA, { op: "supply", url: "http://10.88.2.2:18782/v1/fed-mesh/discover" });
       check(supplied.ok === true && supplied.lan === true && supplied.fetches === 0, "namespace supply does not dial");
-      const allowed = await ask(dirB, { op: "allow", handle: readyA.handle });
+      const allowed = await ask(dirB, { op: "allow", public_key: readyA.public_key });
       check(allowed.ok === true, "nsB allows nsA");
       const dialed = await ask(dirA, { op: "dial" });
       check(dialed.ok === true && dialed.mutual === true && dialed.loopback === false && dialed.mode === "direct-lan", `veth dial ${dialed.code} ${dialed.message}`);

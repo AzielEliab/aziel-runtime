@@ -24,6 +24,8 @@ const SKIP_SEO = new Set([
   "/robots.txt",
   "/sitemap.xml",
   "/sitemap-index.xml",
+  "/rss.xml",
+  "/feed.xml",
   "/llms.txt",
   "/ai.txt",
   "/cite.json",

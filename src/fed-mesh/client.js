@@ -33,19 +33,22 @@ export async function sealAct(identity, { to, recipientEncPublicKey, seq, prev, 
     seq,
     recipientEncPublicKey,
     plaintext,
+    carrier: "relay",
   });
   if (!sealed) return null;
   return signAct(identity, "msg", {
     to,
     seq,
     prev,
-    ...sealed,
+    nonce: sealed.nonce,
+    eph_public_key: sealed.eph_public_key,
+    ciphertext: sealed.ciphertext,
     ...(via ? { via } : {}),
   });
 }
 
 export async function openAct(identity, envelope) {
-  return openCiphertext({
+  const base = {
     encPrivateKey: identity.encPrivateKey,
     fromHandle: envelope.handle,
     toHandle: envelope.to,
@@ -53,7 +56,8 @@ export async function openAct(identity, envelope) {
     nonce: envelope.nonce,
     eph_public_key: envelope.eph_public_key,
     ciphertext: envelope.ciphertext,
-  });
+  };
+  return openCiphertext({ ...base, frame_v: 2, carrier: envelope.carrier || "relay", route_class: envelope.route_class || "" });
 }
 
 export async function actHash(envelope) {

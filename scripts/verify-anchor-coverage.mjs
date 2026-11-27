@@ -36,6 +36,7 @@ ok(fs.readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8").include
 ok(!/^COVERAGE_LIVE\s*=/m.test(fs.readFileSync(new URL("../wrangler.toml", import.meta.url), "utf8")));
 ok(C.HONESTY.signed === false && C.HONESTY.runtime_writes_witness_log === false);
 ok(C.HONESTY.cap7 === "names-only" && C.HONESTY.cap7_is_icann === false && C.HONESTY.paid_sat === "HELD");
+ok(C.HONESTY.external_pager === "not_live" && C.HONESTY.pager_transport == null, "no external pager is wired");
 ok(INTERNAL_CHAINS.includes("coverage") && !ROSTER.includes("coverage"));
 ok(!fs.readFileSync(new URL("../src/anchor-coverage.js", import.meta.url), "utf8").includes('k: "heartbeat"'));
 ok(!fs.readFileSync(new URL("./anchor-coverage-outside.mjs", import.meta.url), "utf8").includes("writer-do"));
@@ -253,6 +254,7 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   ok(fresh.page === false && fresh.checker === "outside" && fresh.cap7_is_icann === false && fresh.paid_sat === "HELD");
   const stale = outsideMain([file, "--deadline-ms", "1000", "--now", "5000"]);
   ok(stale.exit === 2 && stale.body.page === true && stale.body.live === false);
+  ok(stale.body.external_pager === "not_live" && stale.body.pager_transport == null, "the outside checker pages in-process only");
   const missing = outsideMain(["/tmp/does-not-exist-anchor-coverage-beats.json", "--now", "10"]);
   ok(missing.exit === 2 && missing.body.page === true);
 }
@@ -275,6 +277,7 @@ ok((await C.verifyOutsideLog(tampered)).code === "ANCHOR-MISMATCH");
   ok(over.verifier_after_kill.code === "WRITER-DEAD" && over.verifier_after_kill.written === false);
   ok(over.ack.ok === true && over.ack.signed === false && over.ack.name === "operator");
   ok(over.live === false && over.signed === false);
+  ok(over.external_pager === "not_live" && over.pager_transport == null && over.page_signal === "in_process", "kill-to-page does not call a live external pager");
   const within = await C.runKillToPageDrill({
     store: new MemoryStore(),
     shelf: C.createOutsideShelf(),

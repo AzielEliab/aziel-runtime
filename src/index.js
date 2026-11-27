@@ -29,6 +29,8 @@
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
  * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + furnace + unseal + live product Worker sitemaps
+ * GET  /rss.xml               RSS 2.0 at the public origin. Release, Softwares catalog date, dated RIB notes.
+ * GET  /feed.xml              301 to https://aziel-runtime.vibelock.workers.dev/rss.xml
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /.well-known/llms.txt  alias of /llms.txt
@@ -386,6 +388,7 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
+import { SITE_RSS_ALIAS, SITE_RSS_ORIGIN, SITE_RSS_PATH, siteRssStaticLastmod, siteRssXml } from "./site-rss.js";
 import { llmsCatalogSetsBlock } from "./catalog-sets.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
@@ -466,7 +469,7 @@ import {
 } from "./ai-clients.js";
 import { finishWithUse, peekUsesTotal, readUses, requestForUseCount } from "./uses.js";
 import { rectifyUsesBody } from "./uses-rectify.js";
-import { softwareMeterRoster } from "./software-meters.js";
+import { SERVICE_BINDING_OVERRIDES, serviceBindingName, softwareMeterRoster } from "./software-meters.js";
 import {
   SOFTWARE_FRAMING,
   WORKER_ONLY_PRODUCTS,
@@ -485,7 +488,7 @@ import { crossMapFields } from "./cross-map.js";
 
 export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv, AzNewsStore };
 
-const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
+const CATALOG_HOST = SITE_RSS_ORIGIN;
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
 const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
@@ -1509,6 +1512,19 @@ function xml(body, extra = {}) {
   });
 }
 
+function rssXml(body, extra = {}) {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...corsHeaders(),
+      ...securityHeaders("api"),
+      "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+      ...extra,
+      "Content-Type": "application/rss+xml; charset=utf-8",
+    },
+  });
+}
+
 function originOf(request) {
   try {
     return new URL(request.url).origin;
@@ -1750,6 +1766,7 @@ function sitemapXml(origin) {
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
     { loc: base + "/manifest.webmanifest", priority: "0.5", changefreq: "weekly" },
   ];
+  urls.push({ loc: base + SITE_RSS_PATH, priority: "0.7", changefreq: "weekly", lastmod: siteRssStaticLastmod() });
   for (const p of PRODUCTS) {
     urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
     urls.push({ loc: `${base}/p/${p.slug}`, priority: "0.8", changefreq: "weekly" });
@@ -1906,6 +1923,7 @@ function llmsTxt(origin, env = {}) {
     `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; mutual backup: live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT; SPORE-1.0 pause / preserve / wait / physical-wipe-only)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
+    `RSS: ${base}${SITE_RSS_PATH}`,
     `Primary host (discovery / install): ${RUNTIME_GLAMA}`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
     `Library cite: ${LIBRARY_CITE}`,
@@ -2308,6 +2326,7 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap-index.xml">
+<link rel="alternate" type="application/rss+xml" href="${base}${SITE_RSS_PATH}" title="Aziel Runtime">
 <link rel="alternate" type="text/plain" href="${base}/llms.txt" title="llms.txt">
 <link rel="alternate" type="text/plain" href="${base}/help.txt" title="help.txt">
 <link rel="alternate" type="text/plain" href="${base}/addendum.txt" title="addendum.txt">
@@ -3277,6 +3296,14 @@ function staticPaths(origin, env = {}) {
         responses: { "200": { description: "sitemap.xml" } },
       },
     },
+    "/rss.xml": {
+      get: {
+        operationId: "catalog_rss",
+        summary: "RSS 2.0 at the public origin. GitHub release, Softwares catalog date, and RIB notes that record a date. GET /feed.xml is a 301 to that document.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/rss+xml" } },
+      },
+    },
     "/sitemap-index.xml": {
       get: {
         operationId: "catalog_sitemap_index",
@@ -3470,12 +3497,10 @@ async function combinedOpenApi(request, env) {
 
 // A binding name must be a JS identifier, so a slug that starts with a digit
 // gets a spelled-out name. Must match [[services]] binding in wrangler.toml.
-export const BINDING_NAME_OVERRIDES = Object.freeze({ "4dmap": "FOURDMAP" });
+export const BINDING_NAME_OVERRIDES = SERVICE_BINDING_OVERRIDES;
 
 export function bindingName(product) {
-  const slug = String(product.slug || "");
-  if (Object.prototype.hasOwnProperty.call(BINDING_NAME_OVERRIDES, slug)) return BINDING_NAME_OVERRIDES[slug];
-  return slug.toUpperCase().replace(/-/g, "_");
+  return serviceBindingName(product);
 }
 
 function withUpstreamHeaders(init) {
@@ -3729,6 +3754,7 @@ function healthBody(origin, env = {}) {
     platforms_json: "/v1/platforms",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
+    rss: "/rss.xml",
     robots: "/robots.txt",
     llms: "/llms.txt",
     ai: "/ai.txt",
@@ -4486,6 +4512,27 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, xml(sitemapXml(origin), extra("/sitemap.xml")));
     }
 
+    if (url.pathname === SITE_RSS_ALIAS && (request.method === "GET" || request.method === "HEAD")) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: `${CATALOG_HOST}${SITE_RSS_PATH}`,
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (url.pathname === SITE_RSS_PATH && (request.method === "GET" || request.method === "HEAD")) {
+      const catalog = softwareCatalogBody(CATALOG_HOST, env);
+      return asHead(
+        request,
+        rssXml(
+          siteRssXml(CATALOG_HOST, { updatedAt: catalog.updated_at, softwareCount: catalog.count }),
+          linkHeaders(CATALOG_HOST, SITE_RSS_PATH),
+        ),
+      );
+    }
+
     if (url.pathname === "/sitemap-index.xml" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(request, xml(sitemapIndexXml(origin, PRODUCTS, LASTMOD), extra("/sitemap-index.xml")));
     }
@@ -5076,7 +5123,7 @@ async function handleRequest(request, env, ctx) {
         ? { spec: rs.HELD_KEY_SPEC, signing: true, alg: "Ed25519", ...held.provenance, sig_domain: rs.SIG_DOMAIN, pinned: (await rs.trustedReceiptKeys(null)).map((k) => k.key_id),
             ...(await (async () => { const pinnedIds = (await rs.trustedReceiptKeys(null)).map((k) => k.key_id); const isPinned = pinnedIds.includes(held.provenance.key_id); return { trusted: isPinned, key_source: isPinned ? "pinned" : "published (self, unpinned)" }; })()),
             note: "Session receipts minted while this key is held carry an Ed25519 signature over sig_domain + hash. Chainlock rows (refusals etc.) are not signed. The key was provisioned by the deploy side; the runtime cannot generate, rotate or export it.", signing_scope: scope }
-        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
+        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, ...(held.code ? { code: held.code } : {}), note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
       return asHead(request, json(body, 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
     }
     if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {
@@ -5113,6 +5160,7 @@ async function handleRequest(request, env, ctx) {
           witnessedKeyId: groupd.log_ok ? groupd.receipt_key_id : null,
           attemptedKeyId: heads.receipt_key && heads.receipt_key.key_id,
           checked: groupd.checked,
+          logOk: groupd.log_ok,
         });
         return asHead(request, json(heads, 200, hdrs));
       }
@@ -5327,7 +5375,17 @@ async function handleRequest(request, env, ctx) {
       const meters = softwareMeterRoster(PRODUCTS, WORKER_ONLY_PRODUCTS).meters;
       const uses = await cachedUses(light ? "light" : "full", async () => {
         const raw = await readUses(env, { light, budget_ms: 8_000, maps: "snapshot" });
-        return rectifyUsesBody(raw, { meters, siteLive, fetchImpl: env && env.USES_VIEWS_FETCH, now: Date.now() });
+        return rectifyUsesBody(raw, {
+          meters,
+          siteLive,
+          bindFetch: (product) => {
+            const bind = env && env[bindingName(product)];
+            if (!bind || typeof bind.fetch !== "function") return null;
+            return (request) => bind.fetch(request);
+          },
+          fetchImpl: env && env.USES_VIEWS_FETCH,
+          now: Date.now(),
+        });
       }, { floor: statsFloorFor(env) });
       // Option A: do not start buildUsesSnapshot here. A stale map (maps_refresh "due")
       // stays the last snapshot. The odd-minute tether cron rebuilds it. N concurrent

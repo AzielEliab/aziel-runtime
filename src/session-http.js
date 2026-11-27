@@ -5,7 +5,7 @@
  */
 
 import { anchorRefNow } from "./anchor.js";
-import { contextOf, currentSchemaHash, expectSpecOf, verdictOf } from "./receipt-guard.js";
+import { contextOf, currentSchemaHash, expectSpecOf, guardToolCall, verdictOf } from "./receipt-guard.js";
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
@@ -186,7 +186,7 @@ export async function handleSessionRequest(request, env, deps) {
     return json(
       {
         error: "not a session route",
-        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  GET /v1/session/{id}/tip  POST /v1/session/{id}/tip  POST /v1/session/{id}/party  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  POST /v1/session/{id}/stop  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
+        hint: "POST /v1/session/open  POST /v1/session/{id}/policy  POST /v1/session/{id}/exec  GET /v1/session/{id}/receipt  GET /v1/session/{id}/receipts  GET /v1/session/{id}/tip  POST /v1/session/{id}/tip  POST /v1/session/{id}/party  POST /v1/session/{id}/counterparty  POST /v1/session/{id}/probe  POST /v1/session/{id}/aer  GET /v1/session/{id}/aer  POST /v1/session/{id}/change  POST /v1/session/{id}/audit  POST /v1/session/{id}/stale  POST /v1/session/{id}/revoke  POST /v1/session/{id}/stop  GET /v1/session/{id}/spec  POST /v1/session/{id}/pause  POST /v1/session/{id}/resume  POST /v1/session/{id}/close",
       },
       404,
       extra ? extra(path) : {},
@@ -245,6 +245,44 @@ export async function handleSessionRequest(request, env, deps) {
       }),
       json,
     );
+  }
+  if (action === "counterparty" && request.method === "POST") {
+    let body = {};
+    try {
+      const text = await request.text();
+      body = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    return copyJson(await stubFetch(env, id, "counterparty", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), json);
+  }
+  if (action === "probe" && request.method === "POST") {
+    let body = {};
+    try {
+      const text = await request.text();
+      body = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    return copyJson(await stubFetch(env, id, "probe", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body) }), json);
+  }
+  if (action === "aer" && request.method === "GET") {
+    const q = url.search || "";
+    return copyJson(await stubFetch(env, id, "aer" + q, { method: "GET" }), json);
+  }
+  if (action === "aer" && request.method === "POST") {
+    let body = {};
+    try {
+      const text = await request.text();
+      body = text && text.trim() ? JSON.parse(text) : {};
+    } catch {
+      return json({ error: "invalid JSON", code: "bad_json" }, 400);
+    }
+    if (bodyHasOperatorToken(body)) return bodyTokenRefuse(json);
+    const { origin: _callerOrigin, ...rest } = body;
+    return copyJson(await stubFetch(env, id, "aer", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...rest, origin: url.origin }) }), json);
   }
   if (action === "close" && request.method === "POST") {
     let closeBody = {};
@@ -439,6 +477,32 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
   if (body.payload !== undefined && body.payload !== null && typeof body.payload !== "string" && (typeof body.payload !== "object" || Array.isArray(body.payload))) {
     return typeBad("payload", "expected object or string");
   }
+  let chainStore = null;
+  if (env && env.CHAINLOCK) {
+    const { storeFor } = await import("./chainlock/store.js");
+    chainStore = storeFor(env);
+  }
+  const guarded = await guardToolCall({
+    store: chainStore,
+    request,
+    name: "runtime_session_exec",
+    args: {
+      ...body,
+      session_id: typeof body.session_id === "string" && body.session_id ? body.session_id : id,
+    },
+    schemaHash: currentSchemaHash(),
+    runtimeEnv: env,
+    call: () => finishSessionExec(request, env, id, body, { PRODUCTS, BY_SLUG, upstreamFetch }),
+  });
+  const envBody = guarded && guarded.envelope && typeof guarded.envelope === "object"
+    ? guarded.envelope
+    : { ok: false, code: "SCHEMA-OUTPUT-ABORT", disposition: "abort" };
+  const status = Number.isInteger(guarded && guarded.status) ? guarded.status : (envBody.ok === false ? 400 : 200);
+  return json(envBody, status);
+}
+
+async function finishSessionExec(request, env, id, body, { PRODUCTS, BY_SLUG, upstreamFetch }) {
+  const json = (envelope, status) => ({ status, envelope });
   let slug = String(body.slug || body.product || "").trim().toLowerCase();
   let op = String(body.op || "").trim();
   let payload = body.payload !== undefined ? body.payload : {};

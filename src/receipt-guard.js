@@ -435,38 +435,99 @@ export function innerOpRefusal(env) {
   return { code, reason: String(r.message || r.reason || "") };
 }
 
-const ELEVATION_FIELDS = Object.freeze(["trust", "policy", "operator", "trusted", "untrusted", "privilege", "trust_level"]);
+const ELEVATED_TRUST = new Set(["TRUSTED", "HIGH", "CUSTODIAL"]);
+const ELEVATION_DEPTH = 32;
 
-function readField(obj, key) {
-  try {
-    return { ok: true, value: obj[key] };
-  } catch {
-    return { ok: false, value: undefined };
-  }
+function elevationName(key) {
+  return String(key).normalize("NFKC").toLowerCase().replace(/[\s._-]+/g, "");
+}
+
+function isResultTaintKey(key) {
+  return elevationName(key) === "resulttaint";
 }
 
 /**
  * A caller- or tool-supplied claim that it is trusted, an operator, or otherwise
- * elevated. A throwing getter is a claim too: fail closed, and do not keep the text.
+ * elevated. Nested objects and arrays are scanned. Key case does not matter
+ * (`Trust`, `POLICY`, `Operator`). A throwing getter, or a tree deeper than 32,
+ * is a claim too: fail closed, and do not keep the text.
+ * `result_taint` is not a claim; the runtime replaces that object.
  * Returns null when no elevation is present.
  */
-function selfSuppliedElevation(value) {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
-  const found = {};
-  for (const key of ELEVATION_FIELDS) {
-    const got = readField(value, key);
-    if (!got.ok) return { operatorOnly: false };
-    found[key] = got.value;
+function selfSuppliedElevation(value, depth = 0) {
+  try {
+    if (value == null || typeof value !== "object") return null;
+    if (depth > ELEVATION_DEPTH) return { operatorOnly: false };
+    let sawOperator = false;
+    let sawOther = false;
+    const note = (hit) => {
+      if (!hit) return;
+      if (hit.operatorOnly) sawOperator = true;
+      else sawOther = true;
+    };
+    if (Array.isArray(value)) {
+      let len = 0;
+      try {
+        len = value.length;
+      } catch {
+        return { operatorOnly: false };
+      }
+      const n = Number(len) || 0;
+      if (n > 10000) return { operatorOnly: false };
+      for (let i = 0; i < n; i++) {
+        let child;
+        try {
+          child = value[i];
+        } catch {
+          return { operatorOnly: false };
+        }
+        note(selfSuppliedElevation(child, depth + 1));
+        if (sawOther) return { operatorOnly: false };
+      }
+      return sawOperator ? { operatorOnly: true } : null;
+    }
+    let keys;
+    try {
+      keys = Object.keys(value);
+    } catch {
+      return { operatorOnly: false };
+    }
+    if (keys.length > 10000) return { operatorOnly: false };
+    for (const key of keys) {
+      if (isResultTaintKey(key)) continue;
+      let child;
+      try {
+        child = value[key];
+      } catch {
+        return { operatorOnly: false };
+      }
+      const name = elevationName(key);
+      if (
+        name === "trust" || name === "trustlevel" ||
+        name === "policy" || name === "policylevel" ||
+        name === "operator" || name === "operatorlevel" ||
+        name === "trusted" || name === "trustedlevel" ||
+        name === "untrusted" || name === "untrustedlevel" ||
+        name === "privilege" || name === "privilegelevel"
+      ) {
+        const word = typeof child === "string" ? child.toUpperCase() : "";
+        const trustUp = name === "trust" && word !== "" && word !== "UNTRUSTED";
+        const levelUp = name === "trustlevel" && ELEVATED_TRUST.has(word);
+        const policyUp = (name === "policy" || name === "policylevel") && child === true;
+        const operatorUp = (name === "operator" || name === "operatorlevel") && child === true;
+        const trustedUp = (name === "trusted" || name === "trustedlevel") && child === true;
+        const untrustedDown = (name === "untrusted" || name === "untrustedlevel") && child === false;
+        const privilegeUp = (name === "privilege" || name === "privilegelevel") && child != null && child !== false;
+        if (trustUp || levelUp || policyUp || trustedUp || untrustedDown || privilegeUp) sawOther = true;
+        else if (operatorUp) sawOperator = true;
+      }
+      if (child && typeof child === "object") note(selfSuppliedElevation(child, depth + 1));
+      if (sawOther) return { operatorOnly: false };
+    }
+    return sawOperator ? { operatorOnly: true } : null;
+  } catch {
+    return { operatorOnly: false };
   }
-  const trustUp = typeof found.trust === "string" && found.trust.toUpperCase() !== "UNTRUSTED";
-  const levelUp = typeof found.trust_level === "string" && found.trust_level.toUpperCase() !== "UNTRUSTED";
-  const policyUp = found.policy === true;
-  const operatorUp = found.operator === true;
-  const trustedUp = found.trusted === true;
-  const untrustedDown = found.untrusted === false;
-  const privilegeUp = found.privilege != null && found.privilege !== false;
-  if (!(trustUp || levelUp || policyUp || operatorUp || trustedUp || untrustedDown || privilegeUp)) return null;
-  return { operatorOnly: operatorUp && !trustUp && !levelUp && !policyUp && !trustedUp && !untrustedDown && !privilegeUp };
 }
 
 /** Operator elevation is allowed only when the request token matches the server secret. */
@@ -622,6 +683,19 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   const argElevation = selfSuppliedElevation(src);
   const argAllowed = argElevation ? await elevationAllowed(argElevation, request, runtimeEnv) : false;
+  let policyScreen = { ok: true, engaged: false };
+  if (!drift && !(inputCheck && inputCheck.ok === false) && !(argElevation && !argAllowed)) {
+    const { preExecScreen, policyScreened } = await import("./x-reply-policy.js");
+    if (!policyScreened()) {
+      policyScreen = await preExecScreen({
+        name,
+        args: src,
+        request,
+        env: runtimeEnv,
+        now: Date.now(),
+      });
+    }
+  }
   if (drift) {
     out = { status: 409, text: JSON.stringify(drift, null, 2), envelope: { ...drift } };
   } else if (argElevation && !argAllowed) {
@@ -629,8 +703,18 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = { status: 422, text: JSON.stringify(body), envelope: body };
   } else if (inputCheck && inputCheck.ok === false) {
     out = { status: inputCheck.status || 400, text: JSON.stringify(inputCheck), envelope: inputCheck };
+  } else if (policyScreen && policyScreen.ok === false) {
+    out = {
+      status: policyScreen.status || 403,
+      text: JSON.stringify(policyScreen.envelope, null, 2),
+      envelope: policyScreen.envelope,
+    };
   } else {
-    out = await runWithCallMeta(meta, () => call());
+    const invoke = () => runWithCallMeta(meta, () => call());
+    const { runScreened } = await import("./x-reply-policy.js");
+    out = policyScreen.engaged ? await runScreened(invoke) : await invoke();
+    if (policyScreen.engaged && policyScreen.attribution) attachToResult(out, "attribution", policyScreen.attribution);
+    if (policyScreen.engaged && policyScreen.hook_tip) attachToResult(out, "hook_tip", policyScreen.hook_tip);
     const produced = envelopeOf(out);
     const producedElevation = selfSuppliedElevation(produced);
     const producedAllowed = producedElevation ? await elevationAllowed(producedElevation, request, runtimeEnv) : false;
@@ -688,8 +772,16 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : null });
-    attachToResult(out, "refusal_receipt", receipt);
+    const alreadySealed = env && env.refusal_receipt && env.refusal_receipt.sealed === true ? env.refusal_receipt : null;
+    const policyAttr = env && env.attribution ? { attribution: env.attribution } : null;
+    const receipt = alreadySealed || await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: { ...(inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : {}), ...(policyAttr || {}) } });
+    const policyReceipt = env && env.refusal_receipt && env.refusal_receipt.hash ? env.refusal_receipt : null;
+    if (policyReceipt && (!receipt || receipt.sealed !== true)) {
+      attachToResult(out, "refusal_receipt", { ...receipt, policy_receipt: policyReceipt, h: policyReceipt.hash, hash: policyReceipt.hash });
+    } else {
+      attachToResult(out, "refusal_receipt", receipt);
+      if (policyReceipt) attachToResult(out, "policy_receipt", policyReceipt);
+    }
   } else if (prior && prior.open) {
     const follow = await sealFollow(store, { prior, goal, tool: name, slug, op, outcome: env && (env.ok === false || Number(out && out.status) >= 400) ? "error" : "accepted", code: env && env.code, args: src, context, schemaHash });
     if (follow) attachToResult(out, "follows_refusal", follow);

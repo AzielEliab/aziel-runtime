@@ -37,22 +37,29 @@ assert.equal(h.receipt_key, null); assert.ok(Array.isArray(h.chains)); n++;
 const A = await pair();
 const envA = { ...base, RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub };
 const rk = await (await get("/v1/receipt-key", envA)).json();
-assert.equal(rk.signing, true);
+assert.equal(rk.signing, false);
+assert.equal(rk.code, "KEY-ROTATION-NO-ROOT");
 const mres = await get("/.well-known/azrt-keys.json", envA);
 const mtext = await mres.text();
 m = JSON.parse(mtext);
-assert.equal(m.receipt.signing, true); assert.equal(m.receipt.current.key_id, rk.key_id); assert.equal(m.receipt.current.public_key, A.pub);
+const keyA = await rs.keyIdOf(A.pub);
+assert.equal(m.receipt.signing, false); assert.equal(m.receipt.code, "KEY-ROTATION-NO-ROOT"); assert.equal(m.receipt.current.key_id, keyA); assert.equal(m.receipt.current.public_key, A.pub);
 assert.equal(m.receipt.key_source, "published (self, unpinned)");
 h = await (await get("/v1/anchor/heads", envA)).json();
-assert.equal(h.receipt_key.key_id, rk.key_id); assert.equal(h.receipt_key.public_key, A.pub);
+assert.equal(h.receipt_key.key_id, keyA); assert.equal(h.receipt_key.public_key, A.pub);
 for (const t of [mtext, JSON.stringify(h), JSON.stringify(rk)]) { assert.ok(!t.includes(A.priv), "private key leaked"); assert.ok(!/RECEIPT_SIGNING/.test(t)); }
 assert.equal(mres.headers.get("access-control-allow-origin"), "*");
 const spec = await (await get("/openapi.json", base)).json();
 assert.ok(spec.paths["/.well-known/azrt-keys.json"] && spec.paths["/v1/keys"]); n++;
 
 // 3) retired epochs: a retired key verifies only receipts whose ts is inside its epoch.
+async function localSigner(pair) {
+  const key = await webcrypto.subtle.importKey("pkcs8", Buffer.from(pair.priv, "base64url"), { name: "Ed25519" }, false, ["sign"]);
+  const sign = async (msg) => Buffer.from(await webcrypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(msg))).toString("base64url");
+  return { ok: true, sign, provenance: { key_id: await rs.keyIdOf(pair.pub), public_key: pair.pub, provisioned_by: "test", attestation_sha256: null } };
+}
 const B = await pair();
-const sB = await rs.heldSignerFromEnv({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub });
+const sB = await localSigner(B);
 const mk = async (seq, ts) => {
   const hash = String(seq).padStart(64, "0");
   return { seq, ts, hash, sig_commit: rs.sigCommitFor(sB), signature: await rs.signatureFor(hash, sB) };
@@ -85,8 +92,10 @@ assert.ok(!/console\.log\([^)]*\bder\b/.test(src), "never prints the private key
   const { generateKeyPairSync } = await import("node:crypto");
   const { privateKey, publicKey } = generateKeyPairSync("ed25519");
   const pub = Buffer.from(publicKey.export({ format: "jwk" }).x, "base64url").toString("base64url");
-  const held = await rs.heldSignerFromEnv({ RECEIPT_SIGNING_KEY: privateKey.export({ format: "der", type: "pkcs8" }).toString("base64url"), RECEIPT_SIGNING_PUBLIC_KEY: pub });
-  assert.equal(held.ok, true); assert.equal(held.provenance.key_id, prov.keyIdOfRaw(Buffer.from(pub, "base64url")));
+  const material = { RECEIPT_SIGNING_KEY: privateKey.export({ format: "der", type: "pkcs8" }).toString("base64url"), RECEIPT_SIGNING_PUBLIC_KEY: pub };
+  const held = await rs.heldSignerFromEnv(material);
+  assert.equal(held.ok, false); assert.equal(held.code, "KEY-ROTATION-NO-ROOT");
+  assert.equal((await rs.publishedReceiptKey(material)).key_id, prov.keyIdOfRaw(Buffer.from(pub, "base64url")));
 }
 const fake = (map) => async (u) => { const p = new URL(u).pathname; return p in map ? new Response(JSON.stringify(map[p]), { status: 200 }) : new Response("nf", { status: 404 }); };
 assert.equal((await prov.preflight({ fetchImpl: fake({}) })).code, "PROVISION-CODE-NOT-DEPLOYED");
@@ -110,18 +119,18 @@ n++;
   const sig = await rs.signatureFor("a".repeat(64), refused);
   assert.equal(sig.sig, null); assert.match(sig.reason, /retired/);
   assert.equal(rs.sigCommitFor(refused).mode, "none");
-  assert.equal((await rs.heldSignerFromEnv({ ...envC }, { epochs: [] })).ok, true, "same key, not listed: signs");
+  assert.equal((await rs.heldSignerFromEnv({ ...envC }, { epochs: [] })).code, "KEY-ROTATION-NO-ROOT", "empty retired list does not let a different key sign");
   // retired wins over pinned (and over published): only inside the epoch.
   const both = await rs.trustedReceiptKeys(envC, { epochs: epC, pinned: [C.pub] });
   assert.equal(both.length, 1); assert.equal(both[0].source, "retired"); assert.equal(both[0].until, epC[0].until);
-  const sC = await rs.heldSignerFromEnv({ RECEIPT_SIGNING_KEY: C.priv, RECEIPT_SIGNING_PUBLIC_KEY: C.pub }, { epochs: [] });
+  const sC = await localSigner(C);
   const mkC = async (ts) => { const hash = "c".repeat(64); return { seq: 1, ts, hash, sig_commit: rs.sigCommitFor(sC), signature: await rs.signatureFor(hash, sC) }; };
   assert.equal((await rs.verifyReceiptSignatures([await mkC("2026-09-01T00:00:00Z")], { trusted: both })).ok, true);
   assert.equal((await rs.verifyReceiptSignatures([await mkC("2026-10-02T00:00:00Z")], { trusted: both })).errors[0].code, "RECEIPT-KEY-RETIRED", "pinning can't un-retire");
   // append-only: entries that existed at review time keep their place and bytes; new ones only append.
   const fp = (e) => createHash("sha256").update(JSON.stringify(e)).digest("hex");
   const REVIEWED_EPOCHS = []; // sha256(JSON) of each RECEIPT_KEY_EPOCHS entry, in order; append when adding one
-  const REVIEWED_PINNED = []; // same for PINNED_RECEIPT_KEYS
+  const REVIEWED_PINNED = ["d4d569170d4e6d0c91507d68be08e9fabda3171cc22a33a42def9e8cf936288e"]; // sha256(JSON) of each PINNED_RECEIPT_KEYS entry, in order
   assert.ok(rs.RECEIPT_KEY_EPOCHS.length >= REVIEWED_EPOCHS.length && REVIEWED_EPOCHS.every((h, i) => fp(rs.RECEIPT_KEY_EPOCHS[i]) === h), "RECEIPT_KEY_EPOCHS is append-only");
   assert.ok(rs.PINNED_RECEIPT_KEYS.length >= REVIEWED_PINNED.length && REVIEWED_PINNED.every((h, i) => fp(rs.PINNED_RECEIPT_KEYS[i]) === h), "PINNED_RECEIPT_KEYS is append-only");
   assert.ok(Object.isFrozen(rs.RECEIPT_KEY_EPOCHS) && Object.isFrozen(rs.PINNED_RECEIPT_KEYS));
@@ -147,11 +156,11 @@ n++;
   const noUntil = [{ public_key: D.pub, from: "2026-01-01T00:00:00Z" }];
   const t = await rs.trustedReceiptKeys(envD, { epochs: noUntil, pinned: [D.pub] });
   assert.ok(!t.some((k) => k.public_key === D.pub), "a key named by an entry without until is trusted nowhere");
-  const sD = await rs.heldSignerFromEnv({ RECEIPT_SIGNING_KEY: D.priv, RECEIPT_SIGNING_PUBLIC_KEY: D.pub }, { epochs: [] });
+  const sD = await localSigner(D);
   const hash = "d".repeat(64);
   const rec = { seq: 1, ts: "2026-09-01T00:00:00Z", hash, sig_commit: rs.sigCommitFor(sD), signature: await rs.signatureFor(hash, sD) };
   assert.equal((await rs.verifyReceiptSignatures([rec], { trusted: t })).errors[0].code, "RECEIPT-KEY-UNTRUSTED");
-  assert.equal((await rs.heldSignerFromEnv({ ...envD })).ok, true, "default (empty) epochs: signs");
+  assert.equal((await rs.heldSignerFromEnv({ ...envD })).code, "KEY-ROTATION-NO-ROOT", "default empty epochs still refuse a non-pinned key");
 }
 n++;
 console.log(`ok receipt key epochs: ${n} checks`);

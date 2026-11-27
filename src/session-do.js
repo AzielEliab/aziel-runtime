@@ -6,9 +6,12 @@
  */
 
 import {
+  applyAer,
   applyArtifactChange,
   applyAuditHealth,
   applyClose,
+  applyCounterparty,
+  applyProbe,
   applyStale,
   applyRevoke,
   applyStop,
@@ -153,7 +156,7 @@ export class RuntimeSession {
       // RIB-042: use the provisioned receipt key if one is held (never generated here).
       // A witnessed key id from this request is passed in. It does not stick after the request.
       const { heldSignerFromEnv, setActiveReceiptSigner } = await import("./receipt-signing.js");
-      const signerOpts = { witnessedKeyId: view.log_ok ? view.receipt_key_id : null };
+      const signerOpts = { witnessedKeyId: view.log_ok ? view.receipt_key_id : null, witnessLogOk: view.log_ok };
       setActiveReceiptSigner(await heldSignerFromEnv(this.env, signerOpts));
       const url = new URL(request.url);
       const action = url.pathname.replace(/^\//, "") || "status";
@@ -204,6 +207,18 @@ export class RuntimeSession {
       }
       if (action === "party" && request.method === "POST") {
         return await this.party(await readJson(request));
+      }
+      if (action === "counterparty" && request.method === "POST") {
+        return await this.counterparty(await readJson(request));
+      }
+      if (action === "probe" && request.method === "POST") {
+        return await this.probe(await readJson(request));
+      }
+      if (action === "aer" && request.method === "POST") {
+        return await this.aer(await readJson(request));
+      }
+      if (action === "aer" && request.method === "GET") {
+        return await this.aerRead(url);
       }
       if (action === "pause" && request.method === "POST") {
         return await this.pause(await readJson(request));
@@ -416,6 +431,64 @@ export class RuntimeSession {
     if (!session) return json({ error: "session not found", code: "session_not_found" }, 404);
     const { readTip } = await import("./forensic-collab.js");
     return json(readTip(session));
+  }
+
+  async counterparty(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    try {
+      const receipt = await applyCounterparty(session, new Date().toISOString(), body || {});
+      await this.save(session);
+      const verified = await verifyChainStrict(session.receipts);
+      return json({ ok: true, session: publicSession(session), receipt, counterparty: verified.counterparty, verified });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
+  }
+
+  async probe(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    try {
+      const receipt = await applyProbe(session, new Date().toISOString(), body || {});
+      await this.save(session);
+      const verified = await verifyChainStrict(session.receipts);
+      return json({ ok: true, session: publicSession(session), receipt, calibration: verified.calibration, verified });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
+  }
+
+  async aer(body = {}) {
+    const session = await this.expireIfNeeded(await this.load());
+    const { origin: _drop, ...rest } = body || {};
+    try {
+      const receipt = await applyAer(session, new Date().toISOString(), rest, body && body.origin);
+      await this.save(session);
+      const verified = await verifyChainStrict(session.receipts);
+      return json({ ok: true, session: publicSession(session), receipt, aer1: receipt.payload.aer1, verified: verified.aer1 });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
+  }
+
+  async aerRead(url) {
+    const session = await this.load();
+    if (!session) return json({ error: "session not found", code: "session_not_found", fabricated: false }, 404);
+    const { priorAer, verifySealedAer, conformanceView } = await import("./aer1-receipt.js");
+    const rows = priorAer(session.receipts).map((r) => r.payload.aer1);
+    const verified = await verifySealedAer(session.receipts);
+    const id = url.searchParams.get("id");
+    const wantWorkflow = url.searchParams.get("workflow") === "1";
+    if (id) {
+      const hit = rows.find((row) => row.receipt && row.receipt.id === id);
+      if (!hit) return json({ ok: false, code: "AER-NOT-FOUND", fabricated: false, verification_status: "unverified", account_required: false, ...conformanceView() }, 404);
+      return json({ ok: true, account_required: false, receipt: hit.receipt, entry: hit.entry, verified, ...conformanceView() });
+    }
+    const workflow = [...rows].reverse().find((row) => row.workflow)?.workflow || null;
+    if (wantWorkflow && !workflow) return json({ ok: false, code: "AER-NOT-FOUND", fabricated: false, verification_status: "unverified", account_required: false, ...conformanceView() }, 404);
+    return json({ ok: true, account_required: false, receipts: rows.map((row) => row.receipt), workflow, verified, ...conformanceView() });
   }
 
   async party(body = {}) {
