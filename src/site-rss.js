@@ -12,6 +12,8 @@
 
 export const SITE_RSS_PATH = "/rss.xml";
 export const SITE_RSS_ALIAS = "/feed.xml";
+/** Public runtime origin. The feed never copies the request host. */
+export const SITE_RSS_ORIGIN = "https://aziel-runtime.vibelock.workers.dev";
 
 const GITHUB = "https://github.com/AzielEliab/aziel-runtime";
 
@@ -156,8 +158,8 @@ export function siteRssItems({ origin, updatedAt = null, softwareCount = null } 
   return items;
 }
 
-export function siteRssXml(origin, options = {}) {
-  const base = String(origin || "").replace(/\/$/, "");
+export function siteRssXml(_origin, options = {}) {
+  const base = SITE_RSS_ORIGIN;
   const items = siteRssItems({ origin: base, ...options });
   const self = `${base}${SITE_RSS_PATH}`;
   // Newest recorded item date. Not the request clock.

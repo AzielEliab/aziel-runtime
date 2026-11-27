@@ -29,7 +29,8 @@
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
  * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + furnace + unseal + live product Worker sitemaps
- * GET  /rss.xml               RSS 2.0. Release, Softwares catalog date, dated RIB notes. /feed.xml is the same document.
+ * GET  /rss.xml               RSS 2.0 at the public origin. Release, Softwares catalog date, dated RIB notes.
+ * GET  /feed.xml              301 to https://aziel-runtime.vibelock.workers.dev/rss.xml
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /.well-known/llms.txt  alias of /llms.txt
@@ -384,7 +385,7 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
-import { SITE_RSS_ALIAS, SITE_RSS_PATH, siteRssXml } from "./site-rss.js";
+import { SITE_RSS_ALIAS, SITE_RSS_ORIGIN, SITE_RSS_PATH, siteRssStaticLastmod, siteRssXml } from "./site-rss.js";
 import { llmsCatalogSetsBlock } from "./catalog-sets.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
@@ -484,7 +485,7 @@ import { crossMapFields } from "./cross-map.js";
 
 export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv, AzNewsStore };
 
-const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
+const CATALOG_HOST = SITE_RSS_ORIGIN;
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
 const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
@@ -1762,7 +1763,7 @@ function sitemapXml(origin) {
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
     { loc: base + "/manifest.webmanifest", priority: "0.5", changefreq: "weekly" },
   ];
-  urls.push({ loc: base + SITE_RSS_PATH, priority: "0.7", changefreq: "weekly", lastmod: null });
+  urls.push({ loc: base + SITE_RSS_PATH, priority: "0.7", changefreq: "weekly", lastmod: siteRssStaticLastmod() });
   for (const p of PRODUCTS) {
     urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
     urls.push({ loc: `${base}/p/${p.slug}`, priority: "0.8", changefreq: "weekly" });
@@ -3295,7 +3296,7 @@ function staticPaths(origin, env = {}) {
     "/rss.xml": {
       get: {
         operationId: "catalog_rss",
-        summary: "RSS 2.0. GitHub release, Softwares catalog date, and RIB notes that record a date. GET /feed.xml is the same document.",
+        summary: "RSS 2.0 at the public origin. GitHub release, Softwares catalog date, and RIB notes that record a date. GET /feed.xml is a 301 to that document.",
         tags: ["catalog"],
         responses: { "200": { description: "application/rss+xml" } },
       },
@@ -4508,11 +4509,24 @@ async function handleRequest(request, env, ctx) {
       return asHead(request, xml(sitemapXml(origin), extra("/sitemap.xml")));
     }
 
-    if ((url.pathname === SITE_RSS_PATH || url.pathname === SITE_RSS_ALIAS) && (request.method === "GET" || request.method === "HEAD")) {
-      const catalog = softwareCatalogBody(origin, env);
+    if (url.pathname === SITE_RSS_ALIAS && (request.method === "GET" || request.method === "HEAD")) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: `${CATALOG_HOST}${SITE_RSS_PATH}`,
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (url.pathname === SITE_RSS_PATH && (request.method === "GET" || request.method === "HEAD")) {
+      const catalog = softwareCatalogBody(CATALOG_HOST, env);
       return asHead(
         request,
-        rssXml(siteRssXml(origin, { updatedAt: catalog.updated_at, softwareCount: catalog.count }), extra(SITE_RSS_PATH)),
+        rssXml(
+          siteRssXml(CATALOG_HOST, { updatedAt: catalog.updated_at, softwareCount: catalog.count }),
+          linkHeaders(CATALOG_HOST, SITE_RSS_PATH),
+        ),
       );
     }
 

@@ -11,11 +11,13 @@ import {
   RELEASE_PUBLISHED_AT,
   RIB_RECORDS,
   SITE_RSS_ALIAS,
+  SITE_RSS_ORIGIN,
   SITE_RSS_PATH,
   calendarDay,
   rfc822Utc,
   siteRssItems,
   siteRssStaticLastmod,
+  siteRssXml,
 } from "../src/site-rss.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -103,12 +105,18 @@ const rss = await rssRes.text();
 assert.match(rss, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
 assert.match(rss, /<rss version="2\.0"/);
 assert.match(rss, /<title>Aziel Runtime<\/title>/);
-assert.match(rss, new RegExp(`<link>${origin}/</link>`));
-assert.match(rss, new RegExp(`<atom:link href="${origin}${SITE_RSS_PATH}" rel="self" type="application/rss\\+xml"/>`));
+assert.match(rss, new RegExp(`<link>${SITE_RSS_ORIGIN}/</link>`));
+assert.match(rss, new RegExp(`<atom:link href="${SITE_RSS_ORIGIN}${SITE_RSS_PATH}" rel="self" type="application/rss\\+xml"/>`));
+assert.doesNotMatch(rss, /aziel-runtime\.example/);
+
+const forced = siteRssXml("https://evil.example", { updatedAt: "2026-09-30", softwareCount: 42 });
+assert.match(forced, new RegExp(`<link>${SITE_RSS_ORIGIN}/</link>`));
+assert.doesNotMatch(forced, /evil\.example/);
 
 const feedRes = await get(SITE_RSS_ALIAS);
-assert.equal(feedRes.status, 200);
-assert.equal(await feedRes.text(), rss);
+assert.equal(feedRes.status, 301);
+assert.equal(feedRes.headers.get("location"), `${SITE_RSS_ORIGIN}${SITE_RSS_PATH}`);
+assert.equal(await feedRes.text(), "");
 
 const headRes = await handler(new Request(origin + SITE_RSS_PATH, { method: "HEAD" }), {});
 assert.equal(headRes.status, 200);
@@ -140,7 +148,7 @@ assert.doesNotMatch(items.at(-1).description, /00:00:00 GMT/);
 const software = items.find((item) => item.category === "software");
 assert.ok(software);
 assert.equal(software.pubDate, "Wed, 30 Sep 2026 00:00:00 GMT");
-assert.equal(software.link, `${origin}/v1/software`);
+assert.equal(software.link, `${SITE_RSS_ORIGIN}/v1/software`);
 assert.match(software.description, /Catalog updated_at 2026-09-30/);
 assert.match(software.description, /00:00:00 GMT because the source recorded a calendar day/);
 const softwareJson = await (await get("/v1/software")).json();
@@ -212,11 +220,51 @@ const llms = await (await get("/llms.txt")).text();
 assert.match(llms, new RegExp(`RSS: ${origin}${SITE_RSS_PATH}`));
 
 const sitemap = await (await get("/sitemap.xml")).text();
-assert.match(sitemap, new RegExp(`<loc>${origin}${SITE_RSS_PATH}</loc>`));
+assert.match(
+  sitemap,
+  new RegExp(`<loc>${origin}${SITE_RSS_PATH}</loc>\\s*<lastmod>${siteRssStaticLastmod()}</lastmod>`),
+);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths[SITE_RSS_PATH]?.get);
-assert.match(openapi.paths[SITE_RSS_PATH].get.summary, /GET \/feed\.xml is the same document/);
+assert.match(openapi.paths[SITE_RSS_PATH].get.summary, /GET \/feed\.xml is a 301/);
+
+for (const url of [
+  "https://evil.example/rss.xml",
+  "https://aziel-runtime.vibelock.workers.dev./rss.xml",
+]) {
+  const spoofed = await handler(new Request(url, { headers: { host: "evil.example" } }), {});
+  assert.equal(spoofed.status, 200);
+  const body = await spoofed.text();
+  assert.match(body, new RegExp(`<link>${SITE_RSS_ORIGIN}/</link>`));
+  assert.match(body, new RegExp(`<atom:link href="${SITE_RSS_ORIGIN}${SITE_RSS_PATH}" rel="self"`));
+  assert.match(body, new RegExp(`<link>${SITE_RSS_ORIGIN}/v1/software</link>`));
+  assert.doesNotMatch(body, /evil\.example/);
+  assert.doesNotMatch(body, /workers\.dev\./);
+  const link = spoofed.headers.get("link") || "";
+  assert.match(link, new RegExp(SITE_RSS_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  assert.doesNotMatch(link, /evil\.example/);
+  assert.doesNotMatch(link, /workers\.dev\./);
+}
+
+const hostSpoof = await handler(
+  new Request(`${SITE_RSS_ORIGIN}${SITE_RSS_PATH}`, { headers: { host: "evil.example" } }),
+  {},
+);
+assert.equal(hostSpoof.status, 200);
+assert.doesNotMatch(await hostSpoof.text(), /evil\.example/);
+
+for (const url of ["https://evil.example/feed.xml", "https://aziel-runtime.vibelock.workers.dev./feed.xml"]) {
+  const moved = await handler(new Request(url, { headers: { host: "evil.example." } }), {});
+  assert.equal(moved.status, 301);
+  assert.equal(moved.headers.get("location"), `${SITE_RSS_ORIGIN}${SITE_RSS_PATH}`);
+}
+
+for (const path of ["/rss", "/feed"]) {
+  const other = await handler(new Request(origin + path), {});
+  assert.notEqual(other.status, 200);
+  assert.notEqual(other.headers.get("content-type"), "application/rss+xml; charset=utf-8");
+}
 
 const health = await (await get("/v1/health")).json();
 assert.equal(health.rss, SITE_RSS_PATH);
