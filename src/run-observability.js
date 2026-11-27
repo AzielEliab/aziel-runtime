@@ -138,6 +138,22 @@ function jsonOrNull(value) {
 }
 
 const CLOSED = "[REDACTED:closed]";
+/** Assignment of these names can change the receiver's prototype. They stay data-only or are dropped. */
+const PROTO_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+
+function freshObject() {
+  return {};
+}
+
+function putPlain(out, key, value) {
+  if (PROTO_KEYS.has(key)) return;
+  Object.defineProperty(out, key, {
+    value,
+    enumerable: true,
+    writable: true,
+    configurable: true,
+  });
+}
 
 function readProp(obj, key) {
   try {
@@ -170,7 +186,7 @@ function redactValueInner(value, depth) {
   }
   if (typeof value !== "object") return value;
   const flag = flagged(value);
-  const out = {};
+  const out = freshObject();
   let keys;
   try {
     keys = Object.keys(value);
@@ -178,34 +194,34 @@ function redactValueInner(value, depth) {
     return CLOSED;
   }
   for (const key of keys) {
+    if (PROTO_KEYS.has(key)) continue;
     const got = readProp(value, key);
     if (!got.ok) {
-      out[key] = CLOSED;
+      putPlain(out, key, CLOSED);
       continue;
     }
     const child = got.value;
     const cls = keyClass(key);
     if (typeof child === "bigint") {
-      out[key] = CLOSED;
+      putPlain(out, key, CLOSED);
       continue;
     }
     if (cls && (typeof child === "string" || (child && typeof child === "object"))) {
       const raw = typeof child === "string" ? child : jsonOrNull(child);
-      out[key] = raw == null ? CLOSED : marker(cls, raw);
+      putPlain(out, key, raw == null ? CLOSED : marker(cls, raw));
       continue;
     }
     if (flag && typeof child === "string" && !HEX64.test(child) && !REDACT_MARK.test(child)) {
-      out[key] = marker("pii", child);
+      putPlain(out, key, marker("pii", child));
       continue;
     }
-    out[key] = redactValue(child, depth + 1);
+    putPlain(out, key, redactValue(child, depth + 1));
   }
   const packed = jsonOrNull(out);
   if (packed == null || leakScan(packed)) return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
   return out;
 }
 
-const ZERO_WIDTH = /[\u00AD\u034F\u061C\u180E\u200B-\u200F\u202A-\u202E\u2060-\u2064\u2066-\u2069\uFEFF]/g;
 /** Lowercase homoglyphs that still look like Latin after NFKC. */
 const CONFUSABLE = Object.freeze({
   "\u0430": "a", "\u0435": "e", "\u0456": "i", "\u0457": "i", "\u0455": "s",
@@ -215,12 +231,22 @@ const CONFUSABLE = Object.freeze({
   "\u03c1": "p", "\u03c4": "t", "\u043d": "h", "\u04bb": "h",
 });
 
-/** Fold a key to comparable letters: NFKC, no marks, no zero-width, no space/dot/_/-. */
+/**
+ * Fold a key to comparable letters. NFKC first (fullwidth `＿` / `ｒ` become
+ * `_` / `r`), then drop marks, every format character (`\p{Cf}`: soft hyphen,
+ * word joiner, bidi marks, BOM), and every whitespace character. Separators
+ * `.` `_` `-` go last.
+ */
 export function normalizeTaintKey(key) {
-  const raw = String(key).normalize("NFKC").replace(/\p{M}/gu, "").replace(ZERO_WIDTH, "").toLowerCase();
+  const raw = String(key)
+    .normalize("NFKC")
+    .replace(/\p{M}/gu, "")
+    .replace(/\p{Cf}/gu, "")
+    .replace(/\s/gu, "")
+    .toLowerCase();
   let folded = "";
   for (const ch of raw) folded += CONFUSABLE[ch] || ch;
-  return folded.replace(/[\s._-]+/gu, "");
+  return folded.replace(/[._-]+/gu, "");
 }
 
 /** result_taint in any case, separator, homoglyph, or zero-width spelling. */
@@ -274,18 +300,18 @@ function copyPlain(value, depth) {
   } catch {
     return { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
   }
-  const out = {};
+  const out = freshObject();
   for (const key of keys) {
-    if (key === "toJSON" || isForgedTaintKey(key)) continue;
+    if (key === "toJSON" || isForgedTaintKey(key) || PROTO_KEYS.has(key)) continue;
     let child;
     try {
       child = value[key];
     } catch {
-      out[key] = CLOSED;
+      putPlain(out, key, CLOSED);
       continue;
     }
     if (typeof child === "function") continue;
-    out[key] = copyPlain(child, depth + 1);
+    putPlain(out, key, copyPlain(child, depth + 1));
   }
   return out;
 }
@@ -325,6 +351,7 @@ export function purgeResultTaint(value, depth = 0) {
       return CLOSED;
     }
     for (const key of keys) {
+      if (PROTO_KEYS.has(key)) continue;
       if (isForgedTaintKey(key)) {
         try { delete value[key]; } catch { /* non-configurable; the copy path does not keep this object */ }
         continue;
@@ -361,9 +388,8 @@ export async function mintPlainEnvelope(source, tool) {
   } catch {
     clean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: OBS_SPEC };
   }
-  const body = Array.isArray(clean) || clean == null || typeof clean !== "object"
-    ? { result: clean }
-    : clean;
+  const wrapped = Array.isArray(clean) || clean == null || typeof clean !== "object";
+  const body = wrapped ? { result: clean } : clean;
   let taint;
   try {
     taint = await resultTaint({ tool: tool || "tool", body });
@@ -378,7 +404,19 @@ export async function mintPlainEnvelope(source, tool) {
       operator: false,
     };
   }
-  return { ...body, result_taint: taint };
+  const minted = {};
+  let keys = [];
+  try {
+    keys = Object.keys(body);
+  } catch {
+    keys = [];
+  }
+  for (const key of keys) {
+    if (key === "result_taint" || PROTO_KEYS.has(key)) continue;
+    putPlain(minted, key, body[key]);
+  }
+  putPlain(minted, "result_taint", taint);
+  return minted;
 }
 
 export function assertNoGatedLeak(text, samples) {
