@@ -6,7 +6,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { applyOpen, canonicalize, commitExec, newSessionId, openSession, recordIntent, sha256Hex, verifyChainStrict } from "../src/session-core.js";
+import { applyOpen, applyPolicy, canonicalize, commitExec, newSessionId, openSession, recordIntent, sha256Hex, verifyChainStrict } from "../src/session-core.js";
 import { applyAer, applyCounterparty, applyProbe } from "../src/session-core.js";
 import { isSessionMutatePath } from "../src/production.js";
 import {
@@ -276,6 +276,30 @@ async function reseal(receipts) {
   assert.equal(noTok.status, 401);
   const read = await handler(new Request(`https://rt.example/v1/session/${sid}/aer`, { method: "GET" }), gated);
   assert.equal(read.status, 404, "a different session namespace has no such session; it does not invent one");
+  n++;
+}
+
+// Each of the three writers goes through preExecScreen. A missing caller is blocked
+// and the refused row carries the attribution block. The domain row is not sealed.
+{
+  const s = await fresh();
+  const act = await exec(s);
+  await applyPolicy(s, { require_agent_attribution: true, bound_agent: { agent_id: "agent_a", issuer_kind: "agent" } }, T);
+  const cases = [
+    ["counterparty", () => applyCounterparty(s, T, { issuer: "other-lab", statement: "the deploy landed", act_receipt_hash: act.hash })],
+    ["probe", () => applyProbe(s, T, { phase: "preregister", premise: "the sky is green", deliberately_wrong: true })],
+    ["aer", () => applyAer(s, T, { act_receipt_hash: act.hash, inputs_text: "{}" }, "https://rt.example")],
+  ];
+  for (const [event, run] of cases) {
+    const before = s.receipts.length;
+    await assert.rejects(run, (err) => err.code === "IDENTITY-MISSING" && err.extra.written === false && err.extra.attribution.failure === "IDENTITY-MISSING" && err.extra.refused_receipt.sealed === true);
+    assert.equal(s.receipts.length, before + 1, event);
+    assert.equal(s.receipts.at(-1).event, "refused", event);
+    assert.equal(s.receipts.at(-1).payload.attribution.failure, "IDENTITY-MISSING", event);
+    assert.equal(s.receipts.filter((row) => row.event === event).length, 0, event);
+  }
+  const chain = await verifyChainStrict(s.receipts);
+  assert.equal(chain.ok, true, JSON.stringify(chain.errors));
   n++;
 }
 

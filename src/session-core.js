@@ -540,6 +540,38 @@ export function mergePolicy(current, incoming) {
   if (incoming.wipe_on_close !== undefined) {
     next.wipe_on_close = incoming.wipe_on_close === true;
   }
+  if (incoming.require_agent_attribution !== undefined) {
+    // AZRT-AGENT-ATTR-1.0: one-way within the session. A caller cannot turn it off.
+    if (current && current.require_agent_attribution === true && incoming.require_agent_attribution !== true) {
+      throw sessionError(409, "AGENT-ATTR-POLICY-DOWNGRADE", "This session requires agent attribution on tool calls. That cannot be turned off mid-session; open a new session. Policy unchanged.", { spec: "AZRT-AGENT-ATTR-1.0" });
+    }
+    next.require_agent_attribution = incoming.require_agent_attribution === true;
+  }
+  if (incoming.bound_agent !== undefined) {
+    const b = incoming.bound_agent;
+    const idOk = b && typeof b.agent_id === "string" && /^[a-z0-9][a-z0-9._:-]{0,79}$/.test(b.agent_id);
+    const kindOk = b && (b.issuer_kind === "agent" || b.issuer_kind === "peer" || b.issuer_kind === "runtime");
+    if (!idOk || !kindOk) {
+      throw sessionError(400, "AGENT-ATTR-INVALID", "bound_agent needs agent_id and issuer_kind of agent, peer, or runtime.", { spec: "AZRT-AGENT-ATTR-1.0" });
+    }
+    next.bound_agent = { agent_id: b.agent_id, issuer_kind: b.issuer_kind };
+  }
+  if (incoming.write_ahead_limit !== undefined) {
+    if (current && current.write_ahead_limit && (incoming.write_ahead_limit == null || incoming.write_ahead_limit === false)) {
+      throw sessionError(409, "LIMIT-POLICY-DOWNGRADE", "This session journals rate limits before exec. That cannot be turned off mid-session; open a new session. Policy unchanged.", { spec: "AZRT-WRITE-AHEAD-LIMIT-1.0" });
+    }
+    if (incoming.write_ahead_limit != null && incoming.write_ahead_limit !== false) {
+      const lim = incoming.write_ahead_limit;
+      const key = lim && typeof lim.key === "string" ? lim.key : "";
+      const limit = Number(lim && lim.limit);
+      const windowMs = Number(lim && lim.windowMs);
+      const cooldownMs = lim && lim.cooldownMs == null ? 0 : Number(lim && lim.cooldownMs);
+      if (!/^[a-z0-9._:-]{1,80}$/.test(key) || !Number.isInteger(limit) || limit < 1 || limit > 100000 || !Number.isInteger(windowMs) || windowMs < 1 || windowMs > 86_400_000 || !Number.isInteger(cooldownMs) || cooldownMs < 0 || cooldownMs > 86_400_000) {
+        throw sessionError(400, "LIMIT-POLICY-INVALID", "write_ahead_limit needs key, limit, windowMs, and an optional cooldownMs.", { spec: "AZRT-WRITE-AHEAD-LIMIT-1.0" });
+      }
+      next.write_ahead_limit = { key, limit, windowMs, cooldownMs };
+    }
+  }
   if (incoming.isolate_class !== undefined) {
     next.isolate_class = ISOLATE_CLASS;
   }
@@ -684,8 +716,51 @@ export async function applyOpen(session, nowIso, extra = {}) {
 export async function applyPolicy(session, incoming, nowIso) {
   requireOpen(session, nowIso);
   requireReceiptRoom(session);
+  const { isAuditClearingWrite } = await import("./x-reply-policy.js");
+  if (isAuditClearingWrite(incoming) || isAuditClearingWrite({ op: "policy", payload: incoming })) {
+    const err = sessionError(403, "GUARDIAN-AUDIT-REFUSED", "Guardian refuses policy writes that clear, disable, or reset the audit log or guardian policy. Nothing was changed.", {
+      executed: false,
+      written: false,
+      attribution: {
+        spec: "AZRT-AGENT-ATTR-1.0",
+        agent_id: null,
+        caller_identity: null,
+        issuer_kind: null,
+        bound: false,
+        failure: "GUARDIAN-AUDIT-REFUSED",
+      },
+    });
+    const receipt = await sealSessionRefusal(session, err, { slug: "session", op: "policy", payloadText: "" }, nowIso);
+    err.extra = { ...(err.extra || {}), refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash, code: err.code } };
+    err.sessionDirty = true;
+    throw err;
+  }
   const before = session.policy;
-  session.policy = mergePolicy(before, incoming);
+  let next;
+  try {
+    next = mergePolicy(before, incoming);
+  } catch (err) {
+    if (err && (err.code === "AGENT-ATTR-POLICY-DOWNGRADE" || err.code === "LIMIT-POLICY-DOWNGRADE")) {
+      err.extra = {
+        ...(err.extra || {}),
+        executed: false,
+        written: false,
+        attribution: {
+          spec: "AZRT-AGENT-ATTR-1.0",
+          agent_id: null,
+          caller_identity: null,
+          issuer_kind: null,
+          bound: false,
+          failure: err.code,
+        },
+      };
+      const receipt = await sealSessionRefusal(session, err, { slug: "session", op: "policy", payloadText: "" }, nowIso);
+      err.extra.refused_receipt = { sealed: true, seq: receipt.seq, hash: receipt.hash, code: err.code };
+      err.sessionDirty = true;
+    }
+    throw err;
+  }
+  session.policy = next;
   const receipt = await appendReceipt(session, "policy", {
     before,
     after: session.policy,
@@ -711,6 +786,7 @@ async function sealSessionRefusal(session, err, { slug, op, payloadText, payload
   // (unknown_slug, op_not_allowed with a typed op, ...), is stored as null + a short sha256, never as text.
   const { boundedSlugOp } = await import("./receipt-guard.js");
   const b = await boundedSlugOp(String(slug || "").trim().toLowerCase() || null, String(op || "").trim() || null);
+  const attribution = (err && err.extra && err.extra.attribution) || (session && session._pending_attribution) || null;
   const receipt = await appendReceipt(session, "refused", {
     refusal: {
       spec: SESSION_REFUSAL_SPEC,
@@ -724,6 +800,7 @@ async function sealSessionRefusal(session, err, { slug, op, payloadText, payload
       payload_bytes: digest.bytes,
       executed: false,
     },
+    ...(attribution ? { attribution, agent_id: attribution.agent_id ?? null, caller_identity: attribution.caller_identity ?? null } : {}),
   }, nowIso, {
     attempt_link: { outcome: "failed" },
     ...(audit ? { audit_status: audit.audit_status, ...(audit.audit_path ? { audit_path: audit.audit_path } : {}) } : {}),
@@ -752,7 +829,33 @@ export async function recordIntent(session, args, nowIso) {
   }
 }
 
-async function recordIntentInner(session, { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null, writerEpoch = null, witnessedAttest = undefined, attestFromRequest = false }, nowIso) {
+async function recordIntentInner(session, args, nowIso) {
+  const src = args && typeof args === "object" ? args : {};
+  session._pending_attribution = null;
+  session._pending_hook_tip = null;
+  if (session.policy && session.policy.write_ahead_limit && !session._limit_journal) {
+    const { createLimitJournal } = await import("./x-reply-policy.js");
+    session._limit_journal = createLimitJournal();
+  }
+  const { preExecScreen } = await import("./x-reply-policy.js");
+  const screen = await preExecScreen({
+    name: "runtime_session_exec",
+    session,
+    args: src,
+    now: Number.isFinite(Date.parse(nowIso)) ? Date.parse(nowIso) : Date.now(),
+  });
+  if (screen.engaged && !screen.ok) {
+    throw sessionError(screen.status || 403, screen.code, screen.message, {
+      executed: false,
+      written: false,
+      attribution: screen.attribution,
+    });
+  }
+  if (screen.engaged && screen.ok) {
+    session._pending_attribution = screen.attribution || null;
+    session._pending_hook_tip = screen.hook_tip || null;
+  }
+  const { slug, op, payload, payloadText, knownSlugs, banner, schemaHash, decision = null, goal = null, writerEpoch = null, witnessedAttest = undefined, attestFromRequest = false } = src;
   // AZRT-SCHEMA-PIN-1.0: the open receipt pinned the tools/list schema; drift stops the session.
   const pinned = (session.receipts || [])[0] && session.receipts[0].schema_hash;
   if (pinned && schemaHash && pinned !== schemaHash) {
@@ -820,6 +923,7 @@ async function recordIntentInner(session, { slug, op, payload, payloadText, know
     kv_note: "aziel-runtime does not increment product download counters.",
     identity: "Aziel Eliab",
     ...(approver ? { approver, goal_hash: approver.record.goal_hash } : {}),
+    ...(session._pending_attribution ? { attribution: session._pending_attribution } : {}),
     ...(banner && session.policy.lamb_banners ? { banner } : {}),
     ...(allowed.slug === "azai"
       ? { hosted_azai: "protocol mirror + Lamb check, not the local blend (azai serve)" }
@@ -927,6 +1031,14 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       engine_op: eng.engine_op || intent.op,
       ran_in: isLocal ? (eng.ran_in || "aziel-runtime") : null,
     },
+    ...(sealedIntent && sealedIntent.attribution
+      ? {
+          attribution: sealedIntent.attribution,
+          agent_id: sealedIntent.attribution.agent_id,
+          caller_identity: sealedIntent.attribution.caller_identity,
+        }
+      : {}),
+    ...(session._pending_hook_tip ? { hook_tip: session._pending_hook_tip } : {}),
   }, nowIso, {
     ...additiveReceiptFields(additiveInput),
     ...modelFields,
@@ -1050,6 +1162,48 @@ function refuseStopped(session) {
   }
 }
 
+/**
+ * Same pre-exec plane as recordIntent: preExecScreen runs before the row is appended.
+ * A refusal seals a session `refused` receipt with the attribution block and writes
+ * nothing else. An engaged allow stamps that block onto the row.
+ */
+async function screenReceiptWrite(session, name, raw, nowIso) {
+  const { preExecScreen } = await import("./x-reply-policy.js");
+  const screen = await preExecScreen({
+    name,
+    session,
+    args: raw && typeof raw === "object" ? raw : {},
+    now: Number.isFinite(Date.parse(nowIso)) ? Date.parse(nowIso) : Date.now(),
+  });
+  if (screen.engaged && !screen.ok) {
+    const err = sessionError(screen.status || 403, screen.code, screen.message, {
+      executed: false,
+      written: false,
+      attribution: screen.attribution,
+    });
+    const receipt = await sealSessionRefusal(session, err, { slug: "session", op: name, payloadText: "" }, nowIso);
+    err.extra = {
+      ...(err.extra || {}),
+      refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash, code: err.code },
+    };
+    err.sessionDirty = true;
+    throw err;
+  }
+  return screen;
+}
+
+function attributionPayload(base, screen) {
+  if (!screen || !screen.engaged || !screen.ok || !screen.attribution) return base;
+  const attribution = screen.attribution;
+  return {
+    ...base,
+    attribution,
+    agent_id: attribution.agent_id ?? null,
+    caller_identity: attribution.caller_identity ?? null,
+    ...(screen.hook_tip ? { hook_tip: screen.hook_tip } : {}),
+  };
+}
+
 /** RIB-021: seal a counterparty receipt after a policy-gated exec. Caller status is ignored. */
 export async function applyCounterparty(session, nowIso, raw) {
   if (!session) throw sessionError(404, "session_not_found", "session not found");
@@ -1060,7 +1214,8 @@ export async function applyCounterparty(session, nowIso, raw) {
   const { counterpartyRequestOf } = await import("./counterparty-receipt.js");
   const req = await counterpartyRequestOf(session.receipts, raw, nowIso);
   if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false });
-  return appendReceipt(session, "counterparty", { counterparty: req.counterparty }, nowIso, {});
+  const screen = await screenReceiptWrite(session, "counterparty", raw, nowIso);
+  return appendReceipt(session, "counterparty", attributionPayload({ counterparty: req.counterparty }, screen), nowIso, {});
 }
 
 /** RIB-022: pre-register a deliberately wrong premise, or seal premise × response × verdict later. */
@@ -1073,7 +1228,8 @@ export async function applyProbe(session, nowIso, raw) {
   const { calibrationRequestOf } = await import("./calibration-probe.js");
   const req = await calibrationRequestOf(session.receipts, raw);
   if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false });
-  return appendReceipt(session, "probe", { calibration: req.calibration }, nowIso, {});
+  const screen = await screenReceiptWrite(session, "probe", raw, nowIso);
+  return appendReceipt(session, "probe", attributionPayload({ calibration: req.calibration }, screen), nowIso, {});
 }
 
 /** RIB-025: seal one portable execution receipt onto the session chain. */
@@ -1086,7 +1242,8 @@ export async function applyAer(session, nowIso, raw, origin) {
   const { planAerSeal } = await import("./aer1-receipt.js");
   const req = await planAerSeal(session, raw, nowIso, origin || null);
   if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false });
-  return appendReceipt(session, "aer", { aer1: req.aer1 }, nowIso, {});
+  const screen = await screenReceiptWrite(session, "aer", raw, nowIso);
+  return appendReceipt(session, "aer", attributionPayload({ aer1: req.aer1 }, screen), nowIso, {});
 }
 
 /** RIB-055: seal a recorder health transition (healthy / degraded / down). Does not exec. */

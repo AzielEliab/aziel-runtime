@@ -458,6 +458,23 @@ export async function append(storeOrEnv, input = {}, options = {}) {
     if (anchor) src.anchor = anchor;
   }
   const chain = String(src.c || src.chain || "session").trim() || "session";
+  // AZRT-GUARDIAN-AUDIT-1.0: a clear / truncate / overwrite / disable / reset of the
+  // audit or receipt log is refused before any row is written. The refusal receipt
+  // is sealed on the policy chain (this function does not re-enter append).
+  {
+    const { isAuditClearingWrite, sealGuardianRefusal } = await import("../x-reply-policy.js");
+    if (isAuditClearingWrite(src)) {
+      const refusal_receipt = await sealGuardianRefusal(src);
+      return {
+        ok: false,
+        refuse: "guardian-audit",
+        code: "GUARDIAN-AUDIT-REFUSED",
+        message: "Guardian refuses writes that truncate, overwrite, clear, disable, or reset the audit log, receipt log, or guardian policy. Nothing was appended.",
+        refusal_receipt,
+        written: false,
+      };
+    }
+  }
   // RIB-053 (AZBot B317-1): prevented edges are written only by memory_observe kind=prevented (observePrevented),
   // which builds them from the sealed refusal row. Any other caller (public chainlock_append included) is refused.
   if (isPreventedShaped(src) && !(options && options.preventedWriter === true)) {

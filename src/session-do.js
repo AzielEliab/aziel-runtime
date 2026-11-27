@@ -435,27 +435,42 @@ export class RuntimeSession {
 
   async counterparty(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
-    const receipt = await applyCounterparty(session, new Date().toISOString(), body || {});
-    await this.save(session);
-    const verified = await verifyChainStrict(session.receipts);
-    return json({ ok: true, session: publicSession(session), receipt, counterparty: verified.counterparty, verified });
+    try {
+      const receipt = await applyCounterparty(session, new Date().toISOString(), body || {});
+      await this.save(session);
+      const verified = await verifyChainStrict(session.receipts);
+      return json({ ok: true, session: publicSession(session), receipt, counterparty: verified.counterparty, verified });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
   }
 
   async probe(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
-    const receipt = await applyProbe(session, new Date().toISOString(), body || {});
-    await this.save(session);
-    const verified = await verifyChainStrict(session.receipts);
-    return json({ ok: true, session: publicSession(session), receipt, calibration: verified.calibration, verified });
+    try {
+      const receipt = await applyProbe(session, new Date().toISOString(), body || {});
+      await this.save(session);
+      const verified = await verifyChainStrict(session.receipts);
+      return json({ ok: true, session: publicSession(session), receipt, calibration: verified.calibration, verified });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
   }
 
   async aer(body = {}) {
     const session = await this.expireIfNeeded(await this.load());
     const { origin: _drop, ...rest } = body || {};
-    const receipt = await applyAer(session, new Date().toISOString(), rest, body && body.origin);
-    await this.save(session);
-    const verified = await verifyChainStrict(session.receipts);
-    return json({ ok: true, session: publicSession(session), receipt, aer1: receipt.payload.aer1, verified: verified.aer1 });
+    try {
+      const receipt = await applyAer(session, new Date().toISOString(), rest, body && body.origin);
+      await this.save(session);
+      const verified = await verifyChainStrict(session.receipts);
+      return json({ ok: true, session: publicSession(session), receipt, aer1: receipt.payload.aer1, verified: verified.aer1 });
+    } catch (err) {
+      if (err && err.sessionDirty) await this.save(session);
+      throw err;
+    }
   }
 
   async aerRead(url) {
