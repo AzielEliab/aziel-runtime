@@ -23,6 +23,8 @@ import {
 } from "../src/session-core.js";
 import { newIssuerKey } from "../src/issuer-append.js";
 import {
+  assertBuildAttestForExec,
+  attestFromStatement,
   checkBuildAttest,
   digestBytes,
   resetBuildAttestState,
@@ -30,6 +32,7 @@ import {
 } from "../src/build-attest.js";
 import { heldSignerFromEnv, keyIdOf } from "../src/receipt-signing.js";
 import {
+  gateSecondMint,
   resetSecondMintState,
   secondMintWitnessFragment,
   setWitnessedReceiptKeyId,
@@ -77,7 +80,73 @@ n++;
   assert.equal(mismatch.view.builder_identity.run_id, "9");
   const same = checkBuildAttest({ runningDigest: digest, witnessed, deployVars: { BUILDER_RUN_ID: "999" } });
   assert.equal(same.allowed, true);
-  assert.equal(same.view.status, "verified");
+  assert.equal(same.view.status, "self_consistent");
+  const ciDigest = "ab".repeat(32);
+  const ci = checkBuildAttest({
+    runningDigest: digest,
+    witnessed: {
+      artifact_digest: ciDigest,
+      ci_bundle_sha256: ciDigest,
+      attest_source: "ci-provenance",
+      source_revision: "abc1234",
+      builder_identity: { workflow: "bundle-provenance", run_id: "9" },
+    },
+  });
+  assert.equal(ci.allowed, false);
+  assert.equal(ci.view.status, "mismatch");
+  assert.equal(ci.view.verified, false);
+  assert.equal(ci.view.live, false);
+  assert.notEqual(ci.view.code, "BUILD-ATTEST-OK");
+  const echo = checkBuildAttest({
+    runningDigest: digest,
+    runningGitSha: "abc1234a",
+    witnessed: { artifact_digest: digest, ci_bundle_sha256: digest, attest_source: "ci-provenance", git_sha: "abc1234a" },
+  });
+  assert.equal(echo.allowed, true);
+  assert.equal(echo.view.status, "verified");
+  assert.equal(echo.view.verified, true);
+  const fromGit = attestFromStatement({
+    build_attest: { artifact_digest: digest, git_sha: "abc1234a", attest_source: "ci-provenance", ci_bundle_sha256: digest },
+  });
+  assert.equal(fromGit.source_revision, "abc1234a");
+  assert.equal(fromGit.git_sha, "abc1234a");
+  const noGit = checkBuildAttest({
+    runningDigest: digest,
+    runningGitSha: "abc1234a",
+    strict: true,
+    witnessed: { artifact_digest: digest, ci_bundle_sha256: digest, attest_source: "ci-provenance" },
+  });
+  assert.equal(noGit.allowed, false);
+  assert.equal(noGit.view.verified, false);
+  assert.equal(noGit.view.live, false);
+  assert.notEqual(noGit.view.status, "verified");
+  const missingDigest = checkBuildAttest({
+    runningDigest: null,
+    strict: true,
+    witnessed: { artifact_digest: ciDigest, ci_bundle_sha256: ciDigest, attest_source: "ci-provenance" },
+  });
+  assert.equal(missingDigest.allowed, false);
+  assert.equal(missingDigest.view.status, "ci_witnessed");
+  assert.equal(missingDigest.view.verified, false);
+  assert.equal(missingDigest.view.live, false);
+  const gitMiss = checkBuildAttest({
+    runningDigest: digest,
+    runningGitSha: "aaaaaaaa",
+    strict: true,
+    witnessed: { artifact_digest: digest, ci_bundle_sha256: digest, attest_source: "ci-provenance", git_sha: "bbbbbbbb" },
+  });
+  assert.equal(gitMiss.allowed, false);
+  assert.equal(gitMiss.view.status, "mismatch");
+  assert.equal(gitMiss.view.verified, false);
+  assert.equal(gitMiss.view.live, false);
+  const strictExec = await assertBuildAttestForExec(
+    { policy: { build_attest_strict: true }, writer_epoch: 1 },
+    { witnessed: { artifact_digest: ciDigest, ci_bundle_sha256: ciDigest, attest_source: "ci-provenance", git_sha: "bbbbbbbb" } },
+  );
+  assert.equal(strictExec.allowed, false);
+  assert.equal(strictExec.view.verified, false);
+  assert.notEqual(strictExec.view.status, "verified");
+  assert.equal(strictExec.view.live, false);
   assert.equal(same.view.builder_identity.run_id, "9");
   const missing = checkBuildAttest({ runningDigest: digest, witnessed: null, strict: false });
   assert.equal(missing.allowed, true);
@@ -111,9 +180,10 @@ n++;
   const B = await provision();
   const tip = "ab".repeat(32);
   setWitnessedReceiptKeyId(await keyIdOf(A.pub));
-  const held = await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub });
+  assert.equal((await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub })).code, "KEY-ROTATION-NO-ROOT");
+  const held = await gateSecondMint({ ok: true, provenance: { key_id: await keyIdOf(A.pub) } });
   assert.equal(held.ok, true);
-  const second = await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub }, { tip });
+  const second = await gateSecondMint({ ok: true, provenance: { key_id: await keyIdOf(B.pub) } }, { tip });
   assert.equal(second.ok, false);
   assert.equal(second.code, "KEY-SECOND-MINT");
   const row = second.refusal;
@@ -337,9 +407,9 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
   // Matching witnessed digest: the check decides verified. One changed byte is failed.
   seed({ n: 1, build_attest: { artifact_digest: BUILD_BUNDLE_DIGEST, builder_identity: { workflow: "ci.yml", run_id: "4" } }, receipt_key: { key_id: keyA } });
   heads = await (await call({ RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub }, "GET", "/v1/anchor/heads")).json();
-  assert.equal(heads.build_attest.status, "verified");
-  assert.equal(heads.build_attest.ok, true);
-  assert.equal(heads.build_attest.live, true);
+  assert.equal(heads.build_attest.status, "self_consistent");
+  assert.equal(heads.build_attest.ok, null);
+  assert.equal(heads.build_attest.live, false);
   assert.equal(heads.build_attest.builder_identity.run_id, "4");
   assert.equal(heads.build_attest.signed, false);
   const other = "ab".repeat(32);
@@ -367,9 +437,10 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
   assert.equal((await verifySecondMintRefusal(heads.second_mint.refusal, { tip: heads.second_mint.refusal.tip })).ok, true);
   resetSecondMintState();
   setWitnessedReceiptKeyId(keyA);
-  const signed = await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub }, { tip: "ab".repeat(32) });
+  const signed = await gateSecondMint({ ok: true, provenance: { key_id: keyB } }, { tip: "ab".repeat(32) });
   assert.equal(signed.ok, false);
   assert.equal(signed.code, "KEY-SECOND-MINT");
+  assert.equal((await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub }, { tip: "ab".repeat(32) })).code, "KEY-ROTATION-NO-ROOT");
   assert.notEqual(signed.refusal.hash, heads.second_mint.refusal_receipt_hash);
   const chain = await (await import("../src/second-mint.js")).verifySecondMintChain([signed.refusal]);
   assert.equal(chain.ok, true, JSON.stringify(chain.errors));
@@ -476,8 +547,8 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
     assert.equal(body.receipt.event, "exec");
     assert.equal(body.receipt.issuer_kind, "harness");
     assert.equal(body.receipt.issuer_path, "runtime_session_exec");
-    assert.equal(body.receipt.build_attest.status, "verified");
-    assert.equal(body.receipt.build_attest.ok, true);
+    assert.equal(body.receipt.build_attest.status, "self_consistent");
+    assert.equal(body.receipt.build_attest.ok, null);
     assert.equal(body.receipt.build_attest.signed, false);
     assert.equal(body.receipt.build_attest.builder_identity.run_id, "4");
     const chain = await verifyChainStrict((await (await call(env, "GET", `/v1/session/${id}/receipts`)).json()).receipts);
@@ -600,7 +671,7 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
     let r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
     let body = await r.json();
     assert.equal(r.status, 200, JSON.stringify(body));
-    assert.equal(body.receipt.build_attest.status, "verified");
+    assert.equal(body.receipt.build_attest.status, "self_consistent");
     seed({ n: 2, build_attest: { artifact_digest: other, builder_identity: { workflow: "ci.yml", run_id: "4" } } });
     r = await call(env, "POST", `/v1/session/${id}/exec`, { slug: "foldlock", op: "health", payload: {} }, auth);
     body = await r.json();
@@ -642,8 +713,8 @@ const intent = (s, extra = {}) => recordIntent(s, { slug: "foldlock", op: "healt
     assert.equal(explicit.view.status, "not_checked");
     assert.equal(explicit.view.live, false);
     const noted = await assertBuildAttestForExec({ policy: {}, writer_epoch: 1 });
-    assert.equal(noted.view.status, "verified");
-    assert.equal(noted.view.live, true);
+    assert.equal(noted.view.status, "self_consistent");
+    assert.equal(noted.view.live, false);
     release();
     const view = await inflight;
     assert.equal(view.checked, false);

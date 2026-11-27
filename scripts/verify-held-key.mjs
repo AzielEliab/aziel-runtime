@@ -19,6 +19,11 @@ async function provision() {
 }
 const A = await provision();
 const B = await provision();
+async function testSigner(pair) {
+  const key = await webcrypto.subtle.importKey("pkcs8", Buffer.from(pair.priv, "base64url"), { name: "Ed25519" }, false, ["sign"]);
+  const sign = async (msg) => Buffer.from(await webcrypto.subtle.sign({ name: "Ed25519" }, key, new TextEncoder().encode(msg))).toString("base64url");
+  return { ok: true, sign, provenance: { key_id: await keyIdOf(pair.pub), public_key: pair.pub, provisioned_by: "deploy:wrangler-secret", attestation_sha256: "a".repeat(64) } };
+}
 const envA = { RECEIPT_SIGNING_KEY: A.priv, RECEIPT_SIGNING_PUBLIC_KEY: A.pub, RECEIPT_KEY_PROVISIONED_BY: "deploy:wrangler-secret", RECEIPT_KEY_ATTESTATION_SHA256: "a".repeat(64) };
 async function chain(signer, k = 2) {
   setActiveReceiptSigner(signer);
@@ -44,7 +49,7 @@ async function chain(signer, k = 2) {
   // env[...] index and every whole-env enumeration/spread is on a reviewed allowlist, so a new one fails here.
   const ALLOWED_COMPUTED_ENV = {
     "workspace.js": ["env[ENV_WORKSPACE_KEY]"],
-    "index.js": ["env[bindingName(product)]"],
+    "index.js": ["env[bindingName(product)]", "env[bindingName(product)]"],
     "engines/vibelock/engine.js": ["env[i]", "env[i]", "env[i]", "env[i - 1]"], // local numeric array named env
   };
   const ALLOWED_ENV_ENUM = {
@@ -94,8 +99,10 @@ async function chain(signer, k = 2) {
 }
 // Held key: every new receipt signed with provenance; verifies against the published key.
 {
-  const held = await heldSignerFromEnv(envA);
-  assert.equal(held.ok, true);
+  const refused = await heldSignerFromEnv(envA);
+  assert.equal(refused.ok, false);
+  assert.equal(refused.code, "KEY-ROTATION-NO-ROOT");
+  const held = await testSigner(A);
   const s = await chain(held);
   const r = s.receipts[1];
   assert.equal(r.signature.alg, "Ed25519"); assert.equal(r.signature.key_id, await keyIdOf(A.pub));
@@ -112,7 +119,7 @@ async function chain(signer, k = 2) {
   const tamper = (f) => s.receipts.map((x, i) => (i === 1 ? { ...x, signature: f(x.signature) } : x));
   const codes = async (rows, t = trusted) => (await verifyReceiptSignatures(rows, { trusted: t })).errors.map((e) => e.code);
   assert.deepEqual(await codes(tamper((g) => ({ ...g, sig: s.receipts[2].signature.sig }))), ["RECEIPT-SIG-BAD"]);
-  const heldB = await heldSignerFromEnv({ RECEIPT_SIGNING_KEY: B.priv, RECEIPT_SIGNING_PUBLIC_KEY: B.pub });
+  const heldB = await testSigner(B);
   const sb = await chain(heldB, 1);
   assert.ok((await codes(sb.receipts)).includes("RECEIPT-KEY-UNTRUSTED"), "a self-provisioned key that isn't trusted does not verify");
   assert.deepEqual(await codes(tamper((g) => ({ ...g, key_id: "ed25519:" + "0".repeat(64) }))), ["RECEIPT-KEY-ID-MISMATCH"]);
@@ -139,8 +146,7 @@ async function chain(signer, k = 2) {
   assert.equal(off.signing, false); assert.match(off.reason, /no receipt signing key/);
   const env = { ...envA, SESSION: memorySessionNamespace(envA) };
   const on = await (await handler(new Request("https://rt.example/v1/receipt-key"), env)).json();
-  assert.equal(on.signing, true); assert.equal(on.public_key, A.pub);
-  assert.equal(on.trusted, false); assert.equal(on.key_source, "published (self, unpinned)");
+  assert.equal(on.signing, false); assert.equal(on.code, "KEY-ROTATION-NO-ROOT");
   assert.doesNotMatch(JSON.stringify(on), new RegExp(A.priv.slice(0, 24)));
   // The session door checks the held key against the verified witness statement. Seed the matching
   // key so this in-process key is the witnessed key (a different id is KEY-SECOND-MINT and does not sign).
@@ -148,12 +154,12 @@ async function chain(signer, k = 2) {
   resetAnchorMemo();
   seedAnchorMemo("anchors", { ok: true, n: 1, latest: { statement: { n: 1, receipt_key: { key_id: await keyIdOf(A.pub) } } }, entries: [] });
   const open = await (await handler(new Request("https://rt.example/v1/session/open", { method: "POST", headers: { "content-type": "application/json" }, body: "{}" }), env)).json();
-  assert.equal(open.receipt.signature.alg, "Ed25519", JSON.stringify(open.receipt.signature));
-  assert.equal(open.receipt.signature.key_id, await keyIdOf(A.pub)); n++;
+  assert.equal(open.receipt.signature.sig, null, JSON.stringify(open.receipt.signature));
+  assert.equal(open.receipt.signature.code, "KEY-ROTATION-NO-ROOT"); n++;
 }
 // Downgrade: strip one, strip all, or swap one for {sig:null, reason} -> fails closed (sig_commit is hashed).
 {
-  const held = await heldSignerFromEnv(envA);
+  const held = await testSigner(A);
   const trusted = await trustedReceiptKeys({ RECEIPT_SIGNING_PUBLIC_KEY: A.pub });
   const s = await chain(held, 3);
   assert.ok(s.receipts.every((r) => r.sig_commit && r.sig_commit.key_id === held.provenance.key_id));

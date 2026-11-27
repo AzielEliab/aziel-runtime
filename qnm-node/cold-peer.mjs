@@ -50,6 +50,7 @@ await writeFile(
   JSON.stringify({
     ready: true,
     handle: node.handle,
+    public_key: node.public_key,
     base: node.base,
     direct: node.directUrl,
     direct_mode: node.directMode,
@@ -95,7 +96,7 @@ while (!stopped) {
     if (cmd.op === "dial-empty") out = await cold.dial();
     else if (cmd.op === "supply") out = await cold.supply(cmd.url);
     else if (cmd.op === "dial") out = await cold.dial();
-    else if (cmd.op === "allow") out = node.track2.allowSession(cmd.handle);
+    else if (cmd.op === "allow") out = node.track2.allowSession(cmd.public_key);
     else if (cmd.op === "deliver") out = await cold.deliver({ plaintext: cmd.plaintext, peerMachineId: cmd.peer_machine_id });
     else if (cmd.op === "bootstrap") out = await node.track2.bootstrapList([]);
     else if (cmd.op === "stop") {

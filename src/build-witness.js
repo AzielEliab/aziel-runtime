@@ -5,7 +5,7 @@
  * next to the chain heads. The outside witness (AzielEliab/aziel-anchors, GitHub Actions, Ed25519
  * key held only as that repo's Actions secret) copies it into its signed statement. Verify compares
  * the NEWEST witnessed statement only with the live build:
- *   verified      both fields witnessed and equal
+ *   self_consistent  both fields witnessed and equal to this runtime's own published claim
  *   partial       the witness statement predates a field (legacy git_sha-only rows); the rest matched
  *   failed        a witnessed field differs from live or is unknown live -> BUILD-WITNESS-MISMATCH (409)
  *   pending       fresh platform deploy not yet witnessed (window, default 4 h, see pendingWindow): ok null, 503
@@ -128,6 +128,6 @@ export function checkBuildWitness(anchors, live, { now = Date.now(), pendingMaxM
       note: "The live build differs from (or is unknown against) the newest witnessed build, outside the pending window." };
   }
   const full = legacy.length === 0;
-  return { ...base, ok: true, status: full ? "verified" : "partial", code: full ? "BUILD-WITNESS-OK" : "BUILD-WITNESS-PARTIAL", witnessed, compared,
-    ...(full ? {} : { not_compared: legacy, not_compared_reason: "the witness statement predates this field" }) };
+  return { ...base, ok: true, status: full ? "self_consistent" : "partial", code: full ? "BUILD-WITNESS-SELF-CONSISTENT" : "BUILD-WITNESS-PARTIAL", independent: false, witnessed, compared,
+    ...(full ? { note: "The witnessed git_sha and version_id match this runtime's own published build claim. That is self-consistent, not an independent build proof." } : { not_compared: legacy, not_compared_reason: "the witness statement predates this field" }) };
 }

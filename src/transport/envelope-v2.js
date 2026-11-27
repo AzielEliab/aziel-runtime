@@ -1,5 +1,7 @@
 /**
  * EnvelopeV2. AES-GCM payload, session signature, opaque routing fields.
+ * Spec string: AZP-NS-1.0. This is not AZRT-SEALED-FRAME-1.0 and not
+ * FED-MESH-ENVELOPE-2. The three do not share version, AAD, or KDF bytes.
  * The outer object does not carry plaintext payloads or long-term secrets.
  * Author: Aziel Eliab only.
  */

@@ -28,12 +28,14 @@ export async function keysManifest(env) {
   const an = await import("./anchor.js");
   const wq = await import("./witness-quorum.js");
   const held = await rs.heldSignerFromEnv(env);
+  const published = await rs.publishedReceiptKey(env);
+  const shown = held.ok ? held.provenance : published;
   const pinned = [];
   for (const k of rs.PINNED_RECEIPT_KEYS) pinned.push({ key_id: await rs.keyIdOf(k), public_key: k });
   const retired = [];
   for (const e of rs.RECEIPT_KEY_EPOCHS) retired.push({ key_id: await rs.keyIdOf(e.public_key), public_key: e.public_key, from: e.from || null, until: e.until });
-  const current = held.ok
-    ? { key_id: held.provenance.key_id, public_key: held.provenance.public_key, provisioned_by: held.provenance.provisioned_by, attestation_sha256: held.provenance.attestation_sha256, pinned: pinned.some((p) => p.key_id === held.provenance.key_id) }
+  const current = shown
+    ? { key_id: shown.key_id, public_key: shown.public_key, provisioned_by: shown.provisioned_by, attestation_sha256: shown.attestation_sha256, pinned: pinned.some((p) => p.key_id === shown.key_id) }
     : null;
   const w2 = wq.witness2Config(env);
   return {

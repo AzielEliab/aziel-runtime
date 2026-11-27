@@ -15,7 +15,16 @@ import { networkInterfaces } from "node:os";
 import { join } from "node:path";
 import { RF_BAND_IDS, RF_BANDS, SATELLITE_RELAY_SWITCH } from "../../src/mesh-channel-plane.js";
 import { TRAFFIC_PATHS } from "../../src/qnm-honesty.js";
+import { bluetoothCarrier, rfCarrier } from "../../src/transport/carriers.js";
 import { probeLightHardware } from "./photon.js";
+
+/** Future Bluetooth and RF adapters. Same sealed frame. Neither flag is turned on here. */
+export function sealBluetoothFrame(opts = {}) {
+  return bluetoothCarrier.seal(opts);
+}
+export function sealRfFrame(opts = {}) {
+  return rfCarrier.seal(opts);
+}
 
 export const RADIO_HOOK_SPEC = "QNM-RADIO-HOOKS-1.0";
 export const RADIO_HOOK_AUTHOR = "Aziel Eliab";

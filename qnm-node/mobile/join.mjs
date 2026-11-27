@@ -333,16 +333,51 @@ async function sha256Hex(text) {
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function sealPlaintext({ fromHandle, toHandle, seq, recipientEncPublicKey, plaintext }) {
+/** Same key order as src/transport/sealed-frame.js frameAad. Do not reorder. */
+export function frameAad(header) {
+  return JSON.stringify({
+    v: header.v,
+    spec: header.spec,
+    carrier: header.carrier,
+    from: header.from,
+    to: header.to,
+    seq: header.seq,
+    eph_public_key: header.eph_public_key,
+    nonce: header.nonce,
+    route_class: header.route_class,
+  });
+}
+
+/** AZRT-SEALED-FRAME-1.0 only. Not FED-MESH-ENVELOPE-2 and not AZP-NS-1.0. */
+async function sealPlaintext({ fromHandle, toHandle, seq, recipientEncPublicKey, plaintext, carrier = "lan", route_class = "" }) {
   const eph = await generateX25519();
   const key = await sharedKey(eph.privateKey, recipientEncPublicKey, fromHandle, toHandle, seq);
   if (!key) return null;
   const nonce = crypto.getRandomValues(new Uint8Array(12));
-  const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: nonce }, key, utf8(String(plaintext ?? "")));
+  const nonceText = bytesToB64url(nonce);
+  const header = {
+    v: 2,
+    spec: "AZRT-SEALED-FRAME-1.0",
+    carrier,
+    from: String(fromHandle || ""),
+    to: String(toHandle || ""),
+    seq: Number(seq),
+    eph_public_key: eph.enc_public_key,
+    nonce: nonceText,
+    route_class: String(route_class || ""),
+  };
+  const ct = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv: nonce, additionalData: utf8(frameAad(header)) },
+    key,
+    utf8(String(plaintext ?? "")),
+  );
   return {
-    nonce: bytesToB64url(nonce),
+    nonce: nonceText,
     eph_public_key: eph.enc_public_key,
     ciphertext: bytesToB64url(new Uint8Array(ct)),
+    frame_v: 2,
+    carrier,
+    spec: "AZRT-SEALED-FRAME-1.0",
   };
 }
 
@@ -595,6 +630,8 @@ export async function createMobileJoinClient() {
         seq: row.seq,
         recipientEncPublicKey: row.peer_session_enc_public_key,
         plaintext: String(plaintext ?? ""),
+        carrier: "lan",
+        route_class: row.route_class,
       });
       if (!sealed) return fail("AZP-REFUSE", "Session seal failed. Fail closed.");
       const envelope = {
@@ -609,7 +646,7 @@ export async function createMobileJoinClient() {
         route_class: row.route_class,
         ...sealed,
       };
-      envelope.session_sig = await signObject(row.signPrivate, {
+      const signedBody = {
         v: envelope.v,
         kind: envelope.kind,
         plane: envelope.plane,
@@ -620,7 +657,10 @@ export async function createMobileJoinClient() {
         eph_public_key: envelope.eph_public_key,
         ciphertext: envelope.ciphertext,
         route_class: envelope.route_class,
-      });
+      };
+      if (envelope.frame_v != null) signedBody.frame_v = envelope.frame_v;
+      if (envelope.carrier) signedBody.carrier = envelope.carrier;
+      envelope.session_sig = await signObject(row.signPrivate, signedBody);
       if (envelope.plaintext || envelope.body || envelope.payload) {
         return fail("MESH-NO-BYTES", "A share carries ciphertext only.");
       }
