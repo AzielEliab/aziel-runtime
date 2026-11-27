@@ -45,12 +45,22 @@ function itemsFrom(xml) {
   return out;
 }
 
-const tagIso = execFileSync("git", ["log", "-1", "--format=%cI", "v2.0.0-rc1"], { encoding: "utf8" }).trim();
-const tagDay = new Date(tagIso).toISOString().slice(0, 10);
-assert.equal(tagDay, "2026-09-11");
 assert.equal(RELEASE_PUBLISHED_AT, "2026-09-11T01:23:57Z");
-assert.equal(calendarDay(RELEASE_PUBLISHED_AT.slice(0, 10)), tagDay);
+assert.equal(calendarDay(RELEASE_PUBLISHED_AT.slice(0, 10)), "2026-09-11");
 assert.equal(rfc822Utc(RELEASE_PUBLISHED_AT), "Fri, 11 Sep 2026 01:23:57 GMT");
+// Actions checks out the PR commit without tags. Compare the tag day only when it is present.
+let tagIso = "";
+try {
+  tagIso = execFileSync("git", ["log", "-1", "--format=%cI", "v2.0.0-rc1"], {
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "ignore"],
+  }).trim();
+} catch {
+  tagIso = "";
+}
+if (tagIso) {
+  assert.equal(new Date(tagIso).toISOString().slice(0, 10), calendarDay(RELEASE_PUBLISHED_AT.slice(0, 10)));
+}
 
 for (const row of RIB_RECORDS) {
   const line = readFileSync(new URL("../" + row.source, import.meta.url), "utf8").split(/\n/)[row.line - 1];
