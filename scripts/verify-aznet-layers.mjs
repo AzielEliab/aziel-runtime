@@ -151,7 +151,7 @@ assert.equal(mesh.body.aznet_layers.name, "AZnet");
 const cards = listSoftwareEntries(PRODUCTS, "https://example.test");
 assert.equal(cards.length, 42);
 assert.equal(cards.every((card) => card.mesh && card.mesh.aznet_layers == null), true);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 
 const relay = await startRelayServer();
 const dir = await mkdtemp(join(tmpdir(), "offline-node-"));

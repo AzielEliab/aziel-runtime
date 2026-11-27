@@ -162,7 +162,7 @@ assert.equal(fixtureMeasure.anonymity_pass, false);
 assert.equal(fixtureMeasure.n, 8);
 assert.equal(fixtureMeasure.samples.every((row) => row.bytes > 0 && row.seal_ms >= 0), true);
 
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(softwareCatalog("https://aziel-runtime.example", PRODUCTS).count, 42);
 
 const fields = [

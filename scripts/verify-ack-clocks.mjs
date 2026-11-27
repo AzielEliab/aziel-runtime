@@ -61,7 +61,7 @@ ok(
   "satellite relay stays HELD",
 );
 ok(boundary.paid_sat === "HELD" && boundary.paid_satellite_held === true && boundary.satellite_relay_live === false, "boundary cites HELD");
-ok(PUBLIC_MCP_TOOLS.length === 36 && !PUBLIC_MCP_TOOLS.some((name) => /ack|clock/i.test(name)), "tools/list stays 36");
+ok(PUBLIC_MCP_TOOLS.length === 37 && !PUBLIC_MCP_TOOLS.some((name) => /ack|clock/i.test(name)), "tools/list is 37");
 
 // --- RIB-066: delivery, named ack, miss, read/auto do not stop, two clocks ---
 {

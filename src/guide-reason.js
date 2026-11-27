@@ -226,7 +226,7 @@ function flowAnswer(intent, cards, versionMeta) {
         : "";
     return {
       topic: "version",
-      answer: `This build is aziel-runtime ${RUNTIME_VERSION}. Softwares count is ${cards.length}. Ask Jeeves is suite help on aziel-corpus op jeeves, software_tab false, not an extra Softwares card. tools/list stays 36.${versionId}`,
+      answer: `This build is aziel-runtime ${RUNTIME_VERSION}. Softwares count is ${cards.length}. Ask Jeeves is suite help on aziel-corpus op jeeves, software_tab false, not an extra Softwares card. tools/list is 37.${versionId}`,
       actions: [{ label: "Open Ask Jeeves", href: "#elroi-jeeves" }],
     };
   }

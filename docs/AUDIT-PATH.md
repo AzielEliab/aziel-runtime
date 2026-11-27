@@ -2,7 +2,7 @@
 
 An external recorder can see network and file activity the session never logged. A hash chain shows edits to what was written. It does not show a run the worker did not record. This spec names that recorder, fails closed when its path is not healthy, and reconciles its records on the harness.
 
-Receipts stay hash-linked and sealed, not signed. This is a PR, not a live claim. No new MCP tool. Softwares stay 42. `tools/list` stays 36. Stub ops stay 363. Version stays 2.0.0-rc1.
+Receipts stay hash-linked and sealed, not signed. This is a PR, not a live claim. No new MCP tool. Softwares stay 42. `tools/list` is 37. Stub ops stay 363. Version stays 2.0.0-rc1.
 
 ## Naming the recorder
 

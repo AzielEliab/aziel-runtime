@@ -142,14 +142,14 @@ export function glamaInstallLlmsLines(workerVersion = "2.0.0-rc1") {
 
 /**
  * Glama card sentence. Count is live Softwares catalog products behind FragGate
- * (40), not MCP tools/list (36). Mesh and memory are not Softwares-tab products.
+ * (40), not MCP tools/list (37). Mesh and memory are not Softwares-tab products.
  */
 export const GLAMA_DISCOVERY_LEAD =
   "Aziel Runtime starts at Softwares, FragGate, and the library. Softwares picks a slug. FragGate is the single exec door. library_lookup searches library papers and cites. Install on Glama, then call Softwares, pick a slug, and fraggate_call. 40+ research tools run through that one door. Every call can leave a receipt.";
 
 export const GLAMA_HOW_TO_USE = Object.freeze([
   "1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime",
-  "2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then fraggate_call. library_lookup searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list stays 36.",
+  "2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then fraggate_call. library_lookup searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. confirm=true writes. dry_run=true previews and writes nothing. background=true returns Running until a receipt hash exists. Done only with that hash. tools/list is 37.",
   "Diagnostics, if needed: fraggate_list → fraggate_describe {name} → fraggate_call {name, op, payload, confirm:true}.",
 ]);
 
@@ -249,7 +249,7 @@ export function llmsWhatThisIsBlock(calling = null) {
     `Worker remote: ${GLAMA_REMOTE_MCP}`,
     GLAMA_EXAMPLE_FIRST_CALL,
     `MCP tools/list count: ${PUBLIC_MCP_TOOLS.length}. FragGate is the single door.`,
-    "Compact adopt card: /adopt.json (suite tip, first call, client class ids). Install matrix: /v1/clients.json.",
+    "Compact adopt card: /adopt.json (suite tip, first call, client class ids). Install matrix: /v1/clients.json. Paste this URL: /connect.",
     "",
     "Also:",
     "Agents: call Softwares (tools/list name Softwares), pick a slug, then fraggate_call. library_lookup searches library papers and cites. The door runs first (POST /mcp). ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call.",

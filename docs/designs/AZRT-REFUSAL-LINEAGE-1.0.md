@@ -14,4 +14,4 @@ A refusal stamp stores one `follows.h`. A session receipt stores one `parent_rec
 
 The result is a lineage: the refusal id, then upstream ids, with edges, unresolved links, and truncated links. It does not include receipt bodies.
 
-Cap-7 is not ICANN. Paid satellite stays HELD. `tools/list` stays 36. Softwares stay 42. Version stays 2.0.0-rc1.
+Cap-7 is not ICANN. Paid satellite stays HELD. `tools/list` is 37. Softwares stay 42. Version stays 2.0.0-rc1.

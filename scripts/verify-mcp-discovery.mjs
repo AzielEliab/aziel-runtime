@@ -70,7 +70,7 @@ for (const path of cardPaths) {
   assert.equal(body.install.glama_release, GLAMA_INSTALL_RELEASE);
   assert.equal(body.install.glama_release, glamaInstallCite(RUNTIME_VERSION).glama_release);
   assert.equal(body.install.worker_version, "2.0.0-rc1");
-  assert.equal(body.install.tools_list_count, 36);
+  assert.equal(body.install.tools_list_count, 37);
   assert.deepEqual(body.install.order, ["glama-install-server", "remote-post-mcp", "local-stdio"]);
   assert.equal(body.links.openapi, origin + "/openapi.json");
   assert.equal(body.links.llms, origin + "/llms.txt");

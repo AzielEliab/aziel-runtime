@@ -27,9 +27,9 @@ async function mcp(method, params = {}, headers = {}) {
 }
 const sc = (r) => { if (!r.result) throw new Error(JSON.stringify(r).slice(0, 300)); return r.result.structuredContent || JSON.parse(r.result.content[0].text); };
 
-// tools/list publishes the schema hash; still 36 tools.
+// tools/list publishes the schema hash; still 37 tools.
 const list = await mcp("tools/list");
-assert.equal(list.result.tools.length, 36);
+assert.equal(list.result.tools.length, 37);
 const schemaHash = list.result._meta["aziel/schema_hash"];
 assert.match(schemaHash, /^[a-f0-9]{64}$/);
 
@@ -120,6 +120,35 @@ await assert.rejects(
   (err) => err.code === "SCHEMA-DRIFT",
 );
 assert.equal((await expectSpecOf({ spec: "x" })).code, "EXPECT-SPEC-INVALID");
+
+// fraggate_preview refusals do not seal, even when CHAINLOCK is bound and a goal is open.
+const previewGoal = "preview-no-seal";
+const sealedOpen = await mcp("tools/call", { name: "fraggate_call", arguments: { slug: "4dmap", op: "pin", goal_id: previewGoal } });
+assert.equal(sc(sealedOpen).code, "MCP-CONFIRM-REQUIRED");
+assert.equal(sc(sealedOpen).refusal_receipt.sealed, true);
+const beforePreview = (await storeFor(env).loadRecords("refusals")).length;
+const previewMiss = await mcp("tools/call", {
+  name: "fraggate_preview",
+  arguments: { slug: "not-a-slug", op: "pin", confirm: true, goal_id: previewGoal },
+});
+const missed = sc(previewMiss);
+assert.equal(missed.code, "FG-HALLUC-TOOL");
+assert.equal(missed.dry_run, true);
+assert.equal(missed.mutated, false);
+assert.equal(missed.ledger_written, false);
+assert.equal(missed.refusal_receipt, undefined);
+assert.equal(missed.follows_refusal, undefined);
+const previewDry = await mcp("tools/call", {
+  name: "fraggate_preview",
+  arguments: { slug: "4dmap", op: "pin", confirm: true, goal_id: previewGoal },
+});
+const dried = sc(previewDry);
+assert.equal(dried.code, "MCP-DRY-RUN");
+assert.equal(dried.mutated, false);
+assert.equal(dried.ledger_written, false);
+assert.equal(dried.refusal_receipt, undefined);
+assert.equal(dried.follows_refusal, undefined);
+assert.equal((await storeFor(env).loadRecords("refusals")).length, beforePreview, "preview wrote a refusal receipt");
 
 // Old session fixture still verifies unchanged.
 const fx = JSON.parse(fs.readFileSync(new URL("../fixtures/session-receipt-chain.json", import.meta.url), "utf8"));

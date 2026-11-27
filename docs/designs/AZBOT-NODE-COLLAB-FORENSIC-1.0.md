@@ -11,7 +11,7 @@ PDF: [`AZBOT-NODE-COLLAB-FORENSIC-1.0.pdf`](AZBOT-NODE-COLLAB-FORENSIC-1.0.pdf)
 
 Code: `src/forensic-collab.js`. Tests: `scripts/verify-forensic-collab.mjs`.
 
-Not a Softwares-tab product. Not a FragGate slug. Not a new MCP tool. `tools/list` stays 36. Softwares stay 42. Version stays 2.0.0-rc1.
+Not a Softwares-tab product. Not a FragGate slug. Not a new MCP tool. `tools/list` is 37. Softwares stay 42. Version stays 2.0.0-rc1.
 
 ---
 

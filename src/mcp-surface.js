@@ -19,7 +19,7 @@ import {
 import { resolveSlug, RUNTIME_VERSION } from "./runtime-api.js";
 import { callSessionTool } from "./session-http.js";
 import { existMcpHint, FG_HALLUC_TOOL, FRAGGATE_KERNEL, PUBLIC_MCP_TOOL_MAX } from "./fraggate/codes.js";
-import { confirmConsentHonesty, isMutatingMcpTool } from "./mcp-safeguard.js";
+import { confirmConsentHonesty, dryRunAllowedEnvelope, isMutatingMcpTool } from "./mcp-safeguard.js";
 import {
   emptyArgsSchema,
   FRAGGATE_CATALOG_ALLOWLIST,
@@ -44,6 +44,7 @@ import {
   libraryLookup,
   listRegistry,
   namedDecisiongateCheck,
+  previewCatalogAdmission,
   verifyRegistry,
 } from "./fraggate/door.js";
 import { buildRegistry, LIVE_OPS } from "./fraggate/registry.js";
@@ -86,7 +87,7 @@ export function mcpInitializeInstructions(env = {}) {
     "Mutating tools require confirm=true or dry_run=true. " +
     "A call still walks CallEnvelope → the door → Lamb Lens → SweepGate → Sentinel → Provenance → ChainLock-IN → DecisionGATE → AZPIPE → Internal Domain Layer → RoseClock → TemporalLock → ChainLock-OUT → ForgeReceipts → Return. " +
     "Fabric MCP names mesh_* chainlock_* memory_* decisiongate_check library_lookup are kernel-direct wrappers after the door (same kernels the door mesh/memory/chainlock use). Not MASTER-33. Not a second Softwares door. " +
-    "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); Softwares = hub Software-tab cards (runtime_software is a tools/call alias, not a second tools/list name); runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec. " +
+    "Neighbor map (do not confuse siblings): runtime_skill = how-to markdown; runtime_manifest = machine JSON (advanced/internal); Softwares = hub Software-tab cards (runtime_software is a tools/call alias, not a second tools/list name); runtime_bundle = skill-URL bootstrap; runtime_pull = one product card; fraggate_list = hashed live/stub/digest roster; fraggate_describe = one registry card; fraggate_verify = digest proof; fraggate_call = default exec; fraggate_preview = dry_run only (readOnlyHint true; confirm, background, and job_id ignored; fraggate_call unchanged). " +
     "decisiongate_check gates a proposal without exec. library_lookup is the library paper and cite (public corpus; not memory, not ChainLock). " +
     "ChainLock is append-only (no chainlock_delete). A ledger-bearing tool stamps chainlock on its own. chainlock_append, chainlock_tip, chainlock_recall, chainlock_verify, and chainlock_seal stay for diagnostics. chainlock_seal writes a local LOCKSET; runtime_session_close seals a raw session — they are not the same. " +
     "Auto-wire: every tool enters the door. Ledger ops stamp chainlock, temporallock, and forgereceipts: decisiongate_check, library_lookup, memory_observe, memory_resolve, memory_calibrate, mesh_join, mesh_enable, mesh_heartbeat, mesh_leave, mesh_broadcast, runtime_run, runtime_session_exec. fraggate_call stamps chainlock, temporallock, and forgereceipts inside the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp chainlock, temporallock, or forgereceipts. " +
@@ -341,6 +342,49 @@ export function runtimeHelperTools() {
         },
         required: ["op"],
       }),
+      outputSchema: FRAGGATE_OUTPUT_SCHEMA,
+    },
+    {
+      name: "fraggate_preview",
+      title: "Preview a FragGate call (dry run only)",
+      description: tdqsDescription({
+        action:
+          "Read-only preview of one FragGate call. Forces dry_run. Ignores confirm, background, and job_id. Does not execute the op and does not write",
+        when: "a read-only client (for example ChatGPT custom MCP) can call only tools marked readOnlyHint",
+        notFor: "executing a catalog op, starting a background job, or writing a ledger tip",
+        instead: "fraggate_call with confirm=true when you mean to execute",
+        effects:
+          "Read-only. confirm is ignored and is not a login. Catalog allowlist, hallucination, stub, and local-only checks still run. A call that would be allowed returns MCP-DRY-RUN and writes nothing. fraggate_call is unchanged",
+        params:
+          "Pass slug or name, plus op. Optional payload. dry_run is forced true even when omitted. confirm, background, and job_id are ignored",
+        returns:
+          "the same FragGate refuse code a confirm call would get (FG-HALLUC-TOOL, FG-STUB, FG-UNKNOWN-OP, FG-LOCAL-ONLY), or MCP-DRY-RUN when the call would have been allowed",
+      }),
+      annotations: mcpAnnotations("Preview a FragGate call (dry run only)", HINT_READ),
+      inputSchema: {
+        type: "object",
+        additionalProperties: true,
+        description:
+          "Read-only preview. Pass slug or name, and op. dry_run is forced. confirm, background, and job_id are ignored. This tool never executes.",
+        properties: {
+          ...nameOrSlugProps(),
+          op: {
+            type: "string",
+            description:
+              "Public allowlisted op from fraggate_describe. Unknown ops refuse FG-UNKNOWN-OP. Stubs refuse FG-STUB. Nothing is executed.",
+          },
+          payload: {
+            type: "object",
+            additionalProperties: true,
+            description: "Optional op payload. Shape is engine-specific. It is not executed.",
+          },
+          dry_run: {
+            type: "boolean",
+            description: "Ignored. fraggate_preview always previews and never writes.",
+          },
+        },
+        required: ["op"],
+      },
       outputSchema: FRAGGATE_OUTPUT_SCHEMA,
     },
     {
@@ -918,6 +962,8 @@ export function wrapFraggateEnvelope(name, body, product, op) {
   if (body && body.mutated !== undefined) envelope.mutated = body.mutated;
   if (body && body.dry_run !== undefined) envelope.dry_run = body.dry_run;
   if (body && body.ledger_written !== undefined) envelope.ledger_written = body.ledger_written;
+  if (body && body.executes !== undefined) envelope.executes = body.executes;
+  if (body && body.read_only !== undefined) envelope.read_only = body.read_only;
   return {
     status,
     text: JSON.stringify(envelope, null, 2),
@@ -990,6 +1036,46 @@ export async function callRuntimeRun(env, args, origin, deps) {
   };
 }
 
+/** Strip write flags. fraggate_preview cannot confirm, background, or resume a job. */
+export function sanitizePreviewArgs(args) {
+  const src = args && typeof args === "object" && !Array.isArray(args) ? { ...args } : {};
+  delete src.confirm;
+  delete src.background;
+  delete src.job_id;
+  src.dry_run = true;
+  return src;
+}
+
+/**
+ * Catalog admission preview. Does not call fraggateCall and does not write.
+ * confirm is ignored. fraggate_call is a different tool.
+ */
+export function previewFraggateCall(args, registry, bySlug) {
+  const src = sanitizePreviewArgs(args);
+  const preview = previewCatalogAdmission(src, registry, bySlug);
+  if (!preview.proceed) {
+    const body = {
+      ...preview.envelope,
+      ...confirmConsentHonesty(),
+      tool: "fraggate_preview",
+      dry_run: true,
+      mutated: false,
+      ledger_written: false,
+      read_only: true,
+      executes: false,
+    };
+    return wrapFraggateEnvelope("fraggate_preview", body, null, body.op || src.op || null);
+  }
+  const allowed = dryRunAllowedEnvelope("fraggate_preview", src);
+  allowed.read_only = true;
+  allowed.executes = false;
+  allowed.note =
+    "Preview only. fraggate_preview forces dry_run. confirm, background, and job_id are ignored. Catalog allowlist would admit this call. No mutation and no ledger tip. confirm on fraggate_call is consent to run that call. It is not a login. This tool does not execute.";
+  const wrapped = wrapFraggateEnvelope("fraggate_preview", allowed, null, src.op || null);
+  wrapped.read_only = true;
+  return wrapped;
+}
+
 export async function callFraggateTool(name, args, products, bySlug, env, request = null) {
   const registry = registryFor(products);
   if (name === "fraggate_list") {
@@ -1005,6 +1091,9 @@ export async function callFraggateTool(name, args, products, bySlug, env, reques
     const body = await fraggateCall(args, registry, bySlug, env, request);
     const product = body.slug && bySlug ? bySlug[body.slug] : null;
     return wrapFraggateEnvelope(name, body, product, body.op);
+  }
+  if (name === "fraggate_preview") {
+    return previewFraggateCall(args, registry, bySlug);
   }
   if (name === "library_lookup") {
     const body = await libraryLookup(args, env);

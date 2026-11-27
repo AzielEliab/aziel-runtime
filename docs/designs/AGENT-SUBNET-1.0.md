@@ -2,7 +2,7 @@
 
 Author: Aziel Eliab only. Status: **BUILT, live:false** (additive). Code: `src/agent-subnet.js`.
 Tests: `scripts/verify-agent-subnet.mjs`. Reference client: `scripts/agent-subnet-client.mjs`.
-Version stays 2.0.0-rc1. `tools/list` stays 36. Softwares stay 42. No new MCP tool.
+Version stays 2.0.0-rc1. `tools/list` is 37. Softwares stay 42. No new MCP tool.
 
 ## What it is
 

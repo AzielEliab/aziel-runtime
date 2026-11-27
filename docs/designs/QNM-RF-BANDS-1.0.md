@@ -1,7 +1,7 @@
 # QNM-RF-BANDS-1.0 — receive-only RF bands and a satellite relay switch
 
 **Author:** Aziel Eliab only.
-**Status:** Design note plus switches. Operator 2026-10-29: AM, FM, and SDR satellite receive (`sat_rx`) are **enabled** and `live: false`. XM SDARS and `satellite_relay` stay **HELD** because they are a paid plan and a paid terminal. No spend, no SKU, no plan, no checkout. Nothing transmits. Version stays `2.0.0-rc1`. Softwares stay 42. `tools/list` stays 36. FragGate stub ops stay 363. FragGate stays the single door.
+**Status:** Design note plus switches. Operator 2026-10-29: AM, FM, and SDR satellite receive (`sat_rx`) are **enabled** and `live: false`. XM SDARS and `satellite_relay` stay **HELD** because they are a paid plan and a paid terminal. No spend, no SKU, no plan, no checkout. Nothing transmits. Version stays `2.0.0-rc1`. Softwares stay 42. `tools/list` is 37. FragGate stub ops stay 363. FragGate stays the single door.
 
 This paper names the bands under the one generic RF channel, and the satellite relay that would sit after photon. The switches are in the tree. The radios are not.
 
@@ -77,7 +77,7 @@ Not built. These need hardware, a license, a subscription, or Aziel's OK:
 - `GET /v1/mesh` never enables.
 - FragGate stays the single door.
 - `cap7_name_only` stays true. `public_icann`, `paid_registrar`, `cap7_registrar_live`, `registrar_live`, `cap7_public_egress`, `public_egress_ip`, and `dns_publish` stay false.
-- Softwares stay 42. MCP `tools/list` stays 36. Version stays `2.0.0-rc1`. Stub ops stay 363.
+- Softwares stay 42. MCP `tools/list` is 37. Version stays `2.0.0-rc1`. Stub ops stay 363.
 - No new secret. No live claim on these switches.
 
 ## Follow-up mirrors (not this repo)

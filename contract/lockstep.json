@@ -9,7 +9,7 @@
     },
     "locks": {
       "softwares": 42,
-      "mcp_tools": 36,
+      "mcp_tools": 37,
       "stub_op_count": 363,
       "software_count": 33,
       "health_count": 41
@@ -92,6 +92,7 @@
         "fraggate_call",
         "fraggate_describe",
         "fraggate_list",
+        "fraggate_preview",
         "fraggate_verify",
         "library_lookup",
         "memory_calibrate",
@@ -923,7 +924,7 @@
     },
     "path": "/v1/lockstep"
   },
-  "contract_sha256": "c44103e8d5c4d5bc1b06329a1949eac0ec9a52826e2c1c31d0668c8f23a5a35d",
+  "contract_sha256": "71cde49c108360b7c4ee0a1667038e2f0e9dbab423a1e964d263e16c82fcbc88",
   "tokens_sha256": "0515818b4de04a624c15d9e603ebdf20e1217a57115957ce434ab93ad88e2786",
   "css_sha256": "496be77f2dd44d295d8ef33936c977a2c9d68237b4d1086abae0c854a80f13ff",
   "hints_sha256": "31d107ef0b113a5e5807128558a46a1d40afcc0da424e9ec34c6d94ddc12d679"

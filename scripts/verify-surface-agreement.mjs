@@ -112,7 +112,7 @@ assert.equal(mesh.body.d2d_carriers.warn5, "STANDS-until-demonstrated");
 
 assert.equal(software.body.count, 42);
 assert.equal(software.body.live_count, 41);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 const bySlug = Object.fromEntries(software.body.software.map((row) => [row.slug, row]));
 assert.equal(bySlug.veillock.status, "local_only");
 assert.equal(bySlug.whitestone.worker_only, true);

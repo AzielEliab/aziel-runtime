@@ -18,4 +18,4 @@ Calls with no provider model report omit the fields. Receipts sealed before this
 
 Names only. A value that is an address, a URL, or `..` is not recorded. `.aziel` and Cap-7 strings are names. They are not resolved. Cap-7 is not ICANN. Paid satellite stays HELD.
 
-Not a new MCP tool. `tools/list` stays 36. Softwares stay 42. Version stays 2.0.0-rc1.
+Not a new MCP tool. `tools/list` is 37. Softwares stay 42. Version stays 2.0.0-rc1.

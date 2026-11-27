@@ -105,7 +105,7 @@ These stay **false**. Cap-7 is not public ICANN. No spend, no buy, no register. 
 - `cap7_public_egress`, `public_egress_ip`, `packet_forwarding`, `ip_exit`, `hosted_vpn`
 - `registrar_live`
 
-`GET /v1/mesh` `get_never_enables` stays true. This override does not cancel Remain-OFF. Softwares stay 42. `tools/list` stays 36.
+`GET /v1/mesh` `get_never_enables` stays true. This override does not cancel Remain-OFF. Softwares stay 42. `tools/list` is 37.
 
 AZMail stamps suite membership on. The anonymous mail ring stays default **off** (`mail_ring_packet_live` false). That ring is not the QNM packet path. Embryolock `public_mesh_destructive` stays false. Whitestone is a Softwares card and is not a `{slug}-worker` `software_nodes` row. Do not equate Softwares tab 42 with `software_nodes` 41.
 
@@ -286,7 +286,7 @@ Layers are a stack, not a fork. L0 is the default public path (this Worker, Frag
 
 Must stay off: Cap-7 public egress / residential / Cloudflare geo-exit / sticky public IP / packet forward; Cap-7 as ICANN; Mirage `vpn-hop` / `hop` / `tunnel` / `mesh` (FG-STUB, not AZVPN); AZVPN WireGuard / OpenVPN / L3 (SLOT); AZNet `payload_host`; any claim that the mesh name plane replaces the public internet (`MESH-STAY-OFF`).
 
-FragGate name ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and Softwares slug `aznet`. They call the existing relay. Claim and witness write only with payload `confirm: true` and anchor ChainLock. No new MCP tool. `tools/list` stays 36.
+FragGate name ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and Softwares slug `aznet`. They call the existing relay. Claim and witness write only with payload `confirm: true` and anchor ChainLock. No new MCP tool. `tools/list` is 37.
 
 `.aziel` name records are signed and anchored like ref updates. `<handle>.aziel` is self-certifying and final immediately. A friendly name carries proof-of-work and stays pending until 72 hours and 2 witness handles. The first valid final claim wins, with 3 user .aziel names per handle and 4 reserved hub-mirror slots. Equivocation flags that handle only. This relay does not execute peer code and does not rank handles. `.az` is normal DNS except the Cap-7 factory names and the AZ.* hub names (`AZ.AzielEliab.AZ`, `AZ.Godlock.AZ`, `AZ.AzielCorpusLibrary.AZ`, `AZ.HeDidntJump.AZ`). Those cites are not mesh name records. Standard internet does not reach Cap-7. AZ.* resolves through hub HTTPS.
 
@@ -302,7 +302,7 @@ Track 1 is Plane N, the Cap-7 and `.aziel` name plane. Factory active use on tha
 - `GET /v1/mesh/outlets` — registry (hub cite, JSON-LD, llms, catalog mirrors, frozen cite, joined `outlet_hook`).
 - `POST /v1/mesh/sot-sync` — `dry_run: true` previews every outlet. `confirm: true` writes the ledger, mints ACT-RECEIPT-1.0, and updates `last_applied` only where a write succeeded.
 
-FragGate: `fraggate_call` `{ slug: "mesh", op: "sot-sync", payload: { dry_run: true } }`. Interface: `mesh_outlets`, `mesh_sot_status`, `mesh_sot_sync` on `POST /v1/interface`. Those names are not in `tools/list` (still 36).
+FragGate: `fraggate_call` `{ slug: "mesh", op: "sot-sync", payload: { dry_run: true } }`. Interface: `mesh_outlets`, `mesh_sot_status`, `mesh_sot_sync` on `POST /v1/interface`. Those names are not in `tools/list` (37, including fraggate_preview).
 
 Unreachable outlets keep last-known inventory. Nodes and Live Nodes are not this plane.
 

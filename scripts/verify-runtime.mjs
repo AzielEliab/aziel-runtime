@@ -369,7 +369,7 @@ assert.ok(tools.includes("runtime_manifest"));
 assert.ok(tools.includes("runtime_bundle"));
 assert.ok(tools.includes("Softwares"));
 assert.ok(!tools.includes("runtime_software"));
-assert.equal(tools.length, 36);
+assert.equal(tools.length, 37);
 assert.ok(tools.includes("runtime_pull"));
 assert.ok(tools.includes("runtime_session_open"));
 assert.ok(tools.includes("runtime_session_exec"));

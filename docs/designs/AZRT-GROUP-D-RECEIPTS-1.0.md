@@ -2,7 +2,7 @@
 
 Author: Aziel Eliab only. Status: **Not live.** Source: RIB-048, RIB-049, RIB-050, RIB-051. Receipts are hash-linked and sealed, not signed. Cap-7 is not ICANN. Paid satellite stays HELD.
 
-One draft covers the four ideas because they share the session receipt chain and the ChainLock append path. No new MCP tool. Softwares stay 42. `tools/list` stays 36. Version stays 2.0.0-rc1.
+One draft covers the four ideas because they share the session receipt chain and the ChainLock append path. No new MCP tool. Softwares stay 42. `tools/list` is 37. Version stays 2.0.0-rc1.
 
 ## RIB-048 — AZRT-BUILD-ATTEST-1.0
 

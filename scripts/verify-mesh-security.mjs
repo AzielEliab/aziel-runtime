@@ -63,7 +63,7 @@ const FROZEN_MESH_TOOLS = Object.freeze([
   "mesh_nodes",
   "mesh_broadcast",
 ]);
-const FROZEN_PUBLIC_TOOL_COUNT = 36;
+const FROZEN_PUBLIC_TOOL_COUNT = 37;
 
 const gates = [];
 function gate(id, title) {
@@ -642,7 +642,7 @@ const built = buildMcpToolList({ sessionTools: sessionMcpTools() }).map((t) => t
 assert.deepEqual(built.slice().sort(), PUBLIC_MCP_TOOLS.slice().sort());
 assert.ok(MESH_LIVE_OPS.includes("broadcast"));
 assert.ok(MESH_LIVE_OPS.includes("status"));
-gate("FRAGGATE-MCP-FROZEN", "FragGate slug=mesh intact; 8 mesh_* tools frozen; 36 public tools");
+gate("FRAGGATE-MCP-FROZEN", "FragGate slug=mesh intact; 8 mesh_* tools frozen; 37 public tools");
 
 assert.ok(isSoftwareWorkerNodeId("godlock-worker"));
 assert.ok(isEphemeralMeshNodeId("mesh_1_abc_defg"));

@@ -73,7 +73,7 @@ function assertLattice(body) {
 
 const catalog = softwareCatalog("https://aziel-runtime.example", PRODUCTS);
 assert.equal(catalog.count, 42);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 const localOnly = catalog.software.filter((row) => row.status === "local_only").map((row) => row.slug);
 assert.deepEqual(localOnly, ["veillock"]);
 

@@ -2,7 +2,7 @@
 
 **Author:** Aziel Eliab only.  
 **Status:** client present, not demonstrated.  
-**Version:** runtime stays `2.0.0-rc1`. Not a new MCP tool. Softwares stay 42. `tools/list` stays 36.
+**Version:** runtime stays `2.0.0-rc1`. Not a new MCP tool. Softwares stay 42. `tools/list` is 37.
 
 This paper is the runbook for the phone client. The bytes are the LAN beacon and the sealed peer session already implemented in `src/fed-mesh/track2.js`. The client does not define a second protocol.
 

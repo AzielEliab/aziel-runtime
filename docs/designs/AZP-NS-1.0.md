@@ -2,7 +2,7 @@
 
 **Author:** Aziel Eliab only.  
 **Runtime:** 2.0.0-rc1.  
-**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` stays 36.
+**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` is 37.
 
 This layer sits beside FragGate, ChainLock, and FED-MESH. It does not replace those doors. Cap-7 is not public ICANN and is not a public egress IP. Mirage is not AZVPN. `aznet_replaces_internet` is false. FED-MESH L1 LAN bind stays what PR #201 shipped: `--host` is a direct listen, `0.0.0.0` is not a peer URL, and that socket is not open-world awareness.
 
@@ -112,7 +112,7 @@ Item 6 refuses a keystore opened without the passphrase. Destroying or expiring 
 
 Item 7 is the reproduction document and `scripts/verify-azp-ns-repro.mjs`. The wrapper exits non-zero when a fixture gate fails. It does not mark `live-vps`, `plane-b-framagit`, `live-multi-provider`, or `destroy-live-provider` as pass. It prints WARN-1 through WARN-4 as STANDS and WARN-5 as STANDS-until-demonstrated. The map is [`MESH-INTERNET-WARNS-1.0.md`](MESH-INTERNET-WARNS-1.0.md). Track 1 is the Cap-7 and `.aziel` name plane. Cap-7 is not the public Internet. Track 2 is a separate node-mesh internet and is not demonstrated. Those tracks are Plane N (names) and Plane P (packet path) in [`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md). That sketch does not paint a LIVE public egress.
 
-Softwares stay 42. `tools/list` stays 36. No new Softwares card. No new MCP tool.
+Softwares stay 42. `tools/list` is 37. No new Softwares card. No new MCP tool.
 
 ## Preserved
 

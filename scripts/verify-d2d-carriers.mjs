@@ -34,7 +34,7 @@ resetMeshStore();
 assert.equal(SUITE_SOFTWARE_COUNT, 42);
 assert.equal(PRODUCTS.length, 41);
 assert.equal(PRODUCTS.some((p) => p.slug === "d2d" || p.slug === "nodemesh"), false);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.deepEqual(
   D2D_CARRIERS.map((row) => row.id),
   ["lan", "wifi", "bluetooth", "rf", "photon", "satellite_relay"],

@@ -3,7 +3,7 @@
 **Author:** Aziel Eliab only.  
 **Operator lock:** Aziel Eliab, 2026-10-02. WARN-5 is not a permanent ceiling.  
 **Tip:** `324a4a88561dd6e33bdfcbb0f2dd80a874344af2` (merge #203). This note does not deploy.  
-**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` stays 36.
+**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` is 37.
 
 This is an honesty map. It does not close a WARN. A green `node scripts/verify-azp-ns-repro.mjs` still prints `WARN STANDS` for WARN-1 through WARN-4. WARN-5 prints `STANDS-until-demonstrated`. SKIP and SLOT rows stay `ok: false`. Nothing here is an anonymity PASS, a live multi-node PASS, or an Internet-comparable BGP claim.
 
@@ -54,7 +54,7 @@ Sentences that stay in force: records are tamper-evident, not an immutability cl
 | Cap-7 | Factory exec, geo-target, session-stick, and egress-rotate are plane metadata and land. Not a public egress IP. Not residential. Not a Cloudflare geo-exit pool. Not packet forward. Not an ICANN `.az` registrar. Cap-7 is not the public Internet. |
 | Mirage | `vpn-hop`, `hop`, `tunnel`, and `mesh` stay FG-STUB. Mirage is not AZVPN. AZVPN HTTPS/WS stays the suite VPN. WireGuard, OpenVPN, and L3 stay SLOT. |
 | Track 1 flag | `not_a_second_internet` stays true. `aznet_replaces_internet` stays false. |
-| Catalog | Softwares stay 42. `tools/list` stays 36. No new Softwares card. No new MCP tool. |
+| Catalog | Softwares stay 42. `tools/list` is 37. No new Softwares card. No new MCP tool. |
 | Plane B | Framagit URL is null. `doi` is null. `CLAIM_LIMITS.plane_b_framagit` is `SLOT`. The script row `plane-b-framagit` is SKIP with `ok: false`. Hash-verify on Codeberg and archive.org is an operator record. It is not Plane B LIVE. |
 | NAT / DNS | `FED-MESH-NAT-REFUSE`. No STUN. No TURN. No live DNS change. No Cap-7 egress bearer. |
 | Phoenix / isolation | Phoenix is local wait / re-seal. Isolation is single-node security-awareness. Neither one is a loopback fence of the whole mesh. |

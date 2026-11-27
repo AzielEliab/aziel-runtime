@@ -29,7 +29,7 @@ for (const needle of [
 }
 
 assert.equal(listSoftwareEntries(PRODUCTS, "https://rt.example").length, 42);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PUBLIC_MCP_TOOLS.includes("news_pin"), false);
 assert.equal(listSoftwareEntries(PRODUCTS, "https://rt.example").some((r) => r.slug === "aznews"), false);
 

@@ -161,7 +161,7 @@ assert.equal(armedDirect.methods.find((method) => method.id === "direct-lan").mo
 assert.equal(armedDirect.methods.find((method) => method.id === "direct-lan").reachability_claimed, false);
 const stunned = survivalMethods({ directUrl: "stun:203.0.113.8:3478" });
 assert.equal(stunned.methods.find((method) => method.id === "direct-lan").live, false);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(MESH_MCP_TOOLS.includes("mesh_status"), true);
 assert.equal(MESH_MCP_TOOLS.some((name) => /hole|nat|stun/.test(name)), false);
 

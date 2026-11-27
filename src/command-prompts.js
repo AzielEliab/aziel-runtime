@@ -165,7 +165,7 @@ export const COMMAND_PROMPTS = Object.freeze([
     id: "mcp",
     command: "mcp",
     aliases: [],
-    does: "Point at the MCP surface. tools/list stays 36.",
+    does: "Point at the MCP surface. tools/list is 37.",
     intent: "mcp",
   },
 ]);
@@ -232,7 +232,7 @@ export function commandPromptAnswer() {
     "That path is help text. It is not written onto Softwares desk cards and it is not a field on GET /v1/software.",
     `Softwares count is ${count}. This list is the command prompt set. It is not Ask Jeeves suite_help.`,
     "Ask Jeeves suite_help stays on the Aziel Digital Library card only (aziel-corpus, software_tab false). The jeeves prompt explains that card.",
-    "MCP Softwares {} and GET /v1/software stay the 42-card catalog. They do not include this list. tools/list stays 36. Author Aziel Eliab only.",
+    "MCP Softwares {} and GET /v1/software stay the 42-card catalog. They do not include this list. tools/list is 37. Author Aziel Eliab only.",
   ].join("\n");
 }
 
@@ -260,7 +260,7 @@ export function skillCommandAnswer() {
 }
 
 export function mcpCommandAnswer() {
-  return "MCP is POST /mcp. tools/list stays 36. First call is Softwares (pick a slug), then fraggate_call. library_lookup is for library papers and cites. The door runs first. Diagnostics stay fraggate_list, fraggate_describe, and fraggate_call. Author Aziel Eliab only.";
+  return "MCP is POST /mcp. tools/list is 37. First call is Softwares (pick a slug), then fraggate_call. library_lookup is for library papers and cites. The door runs first. Diagnostics stay fraggate_list, fraggate_describe, and fraggate_call. Author Aziel Eliab only.";
 }
 
 export function jeevesCommandAnswer() {

@@ -66,7 +66,7 @@ async function initAndList(env, label) {
   const list = await mcp(env, "tools/list", 2, { [MCP_SESSION_HEADER]: sid });
   assert.equal(list.status, 200, `${label}: tools/list must not 500`);
   const body = await list.json();
-  assert.equal(body.result.tools.length, 36, `${label}: tools/list stays 36`);
+  assert.equal(body.result.tools.length, 37, `${label}: tools/list is 37`);
   const cold = await mcp(env, "tools/list", 3);
   assert.equal(cold.status, 200, `${label}: session-less tools/list must not 500`);
   return sid;

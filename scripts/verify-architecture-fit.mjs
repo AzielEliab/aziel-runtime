@@ -22,7 +22,7 @@ import { tally } from "../src/engines/mmconsensus/engine.js";
 resetLedger();
 
 assert.ok(PUBLIC_MCP_TOOLS.length <= PUBLIC_MCP_TOOL_MAX);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36, "architecture-fit adds engines, not MCP tools");
+assert.equal(PUBLIC_MCP_TOOLS.length, 37, "architecture-fit adds engines, not MCP tools");
 assert.ok(!PUBLIC_MCP_TOOLS.some((n) => /^(zkattest|mmconsensus|toolbench)_/.test(n)));
 
 const SLUGS = ["zkattest", "mmconsensus", "toolbench"];
