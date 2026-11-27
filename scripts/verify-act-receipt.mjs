@@ -337,7 +337,7 @@ assert.ok(citeJson.designs.papers.some((p) => p.id === "ACT-RECEIPT-1.0" && p.ki
 
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/v1\/receipts/);
-assert.match(sitemap, /ACT-RECEIPT-1\.0\.md/);
+assert.doesNotMatch(sitemap, /ACT-RECEIPT-1\.0\.md/);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/v1/receipts"]);

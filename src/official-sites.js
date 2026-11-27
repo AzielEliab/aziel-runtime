@@ -7,22 +7,23 @@
  */
 
 export const FURNACE_NAME = "The Furnace Isn't Free";
-export const FURNACE_HOME = "https://www.furnaceisntfree.com/";
+/** Apex is canonical. www redirects here. Never thefurnaceisntfree.com. */
+export const FURNACE_HOME = "https://furnaceisntfree.com/";
 export const FURNACE_AZIEL = "https://furnaceisntfree.com/aziel/";
-export const FURNACE_SITEMAP = "https://www.furnaceisntfree.com/sitemap.xml";
-export const FURNACE_CITE = "https://www.furnaceisntfree.com/cite.json";
-export const FURNACE_LLMS = "https://www.furnaceisntfree.com/llms.txt";
+export const FURNACE_SITEMAP = "https://furnaceisntfree.com/sitemap.xml";
+export const FURNACE_CITE = "https://furnaceisntfree.com/cite.json";
+export const FURNACE_LLMS = "https://furnaceisntfree.com/llms.txt";
 
-/** www origin is HTTP 200. /aziel on www and the apex canonical are HTTP 200. Not a Live Node. */
+/** Apex is canonical. www redirects here. /aziel on this host is HTTP 200. Not a Live Node. */
 export const UNSEAL_NAME = "TimeToUnsealTheBook";
-export const UNSEAL_HOME = "https://www.timetounsealthebook.net";
-/** Live canonical. Apex and www both return HTTP 200. Listed because that path returns HTTP 200. */
+export const UNSEAL_HOME = "https://timetounsealthebook.net/";
+/** Live path. Listed because that path returns HTTP 200. */
 export const UNSEAL_AZIEL = "https://timetounsealthebook.net/aziel";
 export const UNSEAL_AZIEL_HTTP = 200;
-export const UNSEAL_SITEMAP = "https://www.timetounsealthebook.net/sitemap.xml";
-export const UNSEAL_LLMS = "https://www.timetounsealthebook.net/llms.txt";
+export const UNSEAL_SITEMAP = "https://timetounsealthebook.net/sitemap.xml";
+export const UNSEAL_LLMS = "https://timetounsealthebook.net/llms.txt";
 export const UNSEAL_AZIEL_STATUS_NOTE =
-  "www origin is HTTP 200. /aziel on this host is HTTP 200.";
+  "Apex origin is HTTP 200. /aziel on this host is HTTP 200.";
 
 /** This Worker's public Softwares origin. Execution surface, not a second identity. */
 export const RUNTIME_WORKER_HOME = "https://aziel-runtime.vibelock.workers.dev/";

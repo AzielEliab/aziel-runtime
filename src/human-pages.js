@@ -5,6 +5,7 @@
  */
 
 import { d2dCarrierCite } from "./d2d-carriers.js";
+import { ecosystemDoorLinks, ecosystemDoorNotes } from "./public-ecosystem.js";
 
 const HUMAN_CITE = Object.freeze({
   "/platforms": "platforms",
@@ -219,6 +220,22 @@ function pageTitle(kind) {
   return "Shelves";
 }
 
+function sisterDoorsHtml() {
+  const items = ecosystemDoorLinks()
+    .map((link) => `    <li><a href="${esc(link.url)}">${esc(link.label)}</a></li>`)
+    .join("\n");
+  const notes = ecosystemDoorNotes()
+    .map((line) => `  <p>${esc(line)}</p>`)
+    .join("\n");
+  return `  <nav class="ecosystem" aria-label="Public sister doors">
+  <p>Public sister doors</p>
+  <ul>
+${items}
+  </ul>
+</nav>
+${notes}`;
+}
+
 /** Full HTML document. The JSON body is not pasted into the page. */
 export function humanCiteHtml({ kind, body, origin, pathname }) {
   const base = String(origin || "").replace(/\/$/, "");
@@ -246,6 +263,7 @@ export function humanCiteHtml({ kind, body, origin, pathname }) {
   <p><a href="${esc(base)}/">Back</a></p>
   <h1>${esc(title)}</h1>
 ${paras}
+${kind === "survival" ? sisterDoorsHtml() : ""}
   <p>Programs still use JSON at <a href="${esc(base + twin)}">${esc(twin)}</a>. This page is ${esc(path)}.</p>
   </main>
 </body>

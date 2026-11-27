@@ -245,8 +245,10 @@ assert.doesNotMatch(llms, /## Why Aziel Eliab \(locked brief\)|## Model rules/);
 assert.ok(llms.includes(SURVIVAL_TIP));
 
 const sitemap = await (await get("/sitemap.xml")).text();
-assert.match(sitemap, /NO-LIE-NO-REWRITE-1\.0\.md/);
-assert.match(sitemap, /CROSS-NETWORK-SURVIVAL-1\.0/);
+assert.doesNotMatch(sitemap, /NO-LIE-NO-REWRITE-1\.0\.md/);
+assert.doesNotMatch(sitemap, /github\.com/);
+assert.match(llms, /NO-LIE-NO-REWRITE-1\.0/);
+assert.match(llms, /CROSS-NETWORK-SURVIVAL-1\.0/);
 assert.doesNotMatch(sitemap, /docs\/CROSS-NETWORK-SURVIVAL\.md/);
 
 const mcp = await handler(

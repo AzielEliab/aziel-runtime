@@ -49,6 +49,14 @@ import {
   TRADES_RUNTIME_VERSION,
   sisterProductHubFields,
 } from "./sister-products.js";
+import {
+  HEDIDNTJUMP_CANONICAL,
+  HEDIDNTJUMP_CITE as HEDIDNTJUMP_CITE_CANONICAL,
+  HEDIDNTJUMP_LLMS as HEDIDNTJUMP_LLMS_CANONICAL,
+  HEDIDNTJUMP_SITEMAP as HEDIDNTJUMP_SITEMAP_CANONICAL,
+  ecosystemDoorLinks,
+  ecosystemHonestyLines,
+} from "./public-ecosystem.js";
 
 export {
   FURNACE_AZIEL,
@@ -282,13 +290,13 @@ export const GODLOCK_UK_CITE = `${GODLOCK_UK_ORIGIN}/cite.json`;
 export const GODLOCK_UK_LLMS = `${GODLOCK_UK_ORIGIN}/llms.txt`;
 export const GODLOCK_UK_SOFTWARE_TAB = `${GODLOCK_UK_ORIGIN}/software`;
 
-/** Sister historical archive. Not a Softwares hub. www canonical matches live archive cite. */
+/** Sister historical archive. Not a Softwares hub. Apex is the live canonical (www serves the same page). */
 export const HEDIDNTJUMP_NAME = "He Didn't Jump";
-export const HEDIDNTJUMP_ORIGIN = "https://www.hedidntjump.com";
-export const HEDIDNTJUMP_HOME = `${HEDIDNTJUMP_ORIGIN}/`;
-export const HEDIDNTJUMP_SITEMAP = `${HEDIDNTJUMP_ORIGIN}/sitemap.xml`;
-export const HEDIDNTJUMP_CITE = `${HEDIDNTJUMP_ORIGIN}/cite.json`;
-export const HEDIDNTJUMP_LLMS = `${HEDIDNTJUMP_ORIGIN}/llms.txt`;
+export const HEDIDNTJUMP_ORIGIN = HEDIDNTJUMP_CANONICAL.replace(/\/$/, "");
+export const HEDIDNTJUMP_HOME = HEDIDNTJUMP_CANONICAL;
+export const HEDIDNTJUMP_SITEMAP = HEDIDNTJUMP_SITEMAP_CANONICAL;
+export const HEDIDNTJUMP_CITE = HEDIDNTJUMP_CITE_CANONICAL;
+export const HEDIDNTJUMP_LLMS = HEDIDNTJUMP_LLMS_CANONICAL;
 
 /** Canonical author site (www). Apex azieleliab.com redirects here. */
 export const AUTHOR_SITE_ORIGIN = "https://www.azieleliab.com";
@@ -692,7 +700,8 @@ export function robotsTxt(origin, products) {
     "# Hash fragments on / are not the crawl path. Product cards are /p/{slug}.",
     "# Cap-7 is not an ICANN name. Paid satellite stays HELD. decryption_complete stays false. Not LIVE until Dual CLEAR, Aziel merge OK, and Cos.",
     "# Allow /v1/software /v1/update /mcp /openapi /survival — hubs and agents fetch these.",
-    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, www.hedidntjump.com (sister archive), www.furnaceisntfree.com, www.timetounsealthebook.net, and live product Workers.",
+    "# Sitemap index lists this host, azieleliab.com, azielcorpuslibrary.net, godlock.uk, hedidntjump.com (sister archive), furnaceisntfree.com, timetounsealthebook.net, and live product Workers.",
+    "# /sitemap.xml is first-party canonical only. Sister hosts stay on the sitemap index.",
     "",
     "User-agent: *",
     "Allow: /",
@@ -722,6 +731,27 @@ export function robotsTxt(origin, products) {
   }
   lines.push("");
   return lines.join("\n");
+}
+
+/** Fresh first-party sitemap date. Catalog updated_at stays the unbound fallback. */
+export const SITEMAP_LASTMOD = "2026-11-20";
+
+/** sitemap.xml locs stay on this host. Hash fragments and other hosts are not canonical. */
+export function isFirstPartyCanonicalLoc(origin, loc) {
+  let page;
+  let target;
+  try {
+    const raw = String(origin || "");
+    page = new URL(raw.endsWith("/") ? raw : `${raw}/`);
+    target = new URL(String(loc || ""));
+  } catch {
+    return false;
+  }
+  if (target.protocol !== page.protocol) return false;
+  if (target.host !== page.host) return false;
+  if (target.hash) return false;
+  if (/-download-tracker\.vibelock\.workers\.dev$/i.test(target.hostname)) return false;
+  return true;
 }
 
 export function sitemapIndexXml(origin, products, lastmod) {
@@ -867,32 +897,27 @@ export function runtimeSoftwareJsonLd(origin, extra = {}) {
 
 export const ECOSYSTEM_HEADING = "Part of the Aziel Eliab ecosystem";
 
-/** Visible + cite ecosystem doors. Do not invent hosts. */
-export const ECOSYSTEM_LINKS = Object.freeze([
-  { label: "Try on Glama (primary host)", url: RUNTIME_GLAMA },
-  { label: "Official site", url: `${AUTHOR_SITE_ORIGIN}/` },
-  { label: "Aziel Corpus Library", url: `${LIBRARY_ORIGIN}/` },
-  { label: "Aziel Runtime on GitHub", url: RUNTIME_GITHUB },
-  { label: "Aziel Runtime", url: RUNTIME_WORKER_HOME },
-  { label: "GodLock", url: `${GODLOCK_UK_ORIGIN}/` },
-  { label: HEDIDNTJUMP_NAME, url: HEDIDNTJUMP_HOME },
-  { label: FURNACE_NAME, url: FURNACE_HOME },
-  { label: `${FURNACE_NAME} · Aziel`, url: FURNACE_AZIEL },
-  { label: UNSEAL_NAME, url: UNSEAL_HOME },
-  { label: `${UNSEAL_NAME} · Aziel`, url: UNSEAL_AZIEL },
-]);
+/**
+ * Visible + cite ecosystem doors. Ten live public sites, both Glama listings,
+ * and the runtime git repo. Do not invent hosts. Not download-tracker URLs.
+ */
+export const ECOSYSTEM_LINKS = Object.freeze(
+  ecosystemDoorLinks().map((link) => ({ label: link.label, url: link.url })),
+);
 
 /** Visible + llms sister-site doors. Not Softwares hubs. */
 export function llmsEcosystemBlock() {
   const lines = [
     "## Ecosystem",
     "",
-    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}. Official Aziel sites (not Live Nodes): ${FURNACE_NAME} ${FURNACE_HOME} and ${FURNACE_AZIEL}; ${UNSEAL_NAME} ${UNSEAL_HOME} and ${UNSEAL_AZIEL}. Softwares: ${RUNTIME_WORKER_HOME}.`,
+    `${ECOSYSTEM_HEADING}. Identity ${AUTHOR_NAME} only. Ten live public sites use their canonical URLs. Softwares hubs refresh from GET /v1/software. Sister archive: ${HEDIDNTJUMP_HOME}. Official Aziel sites (not Live Nodes): ${FURNACE_NAME} ${FURNACE_HOME} and ${FURNACE_AZIEL}; ${UNSEAL_NAME} ${UNSEAL_HOME} and ${UNSEAL_AZIEL}. Softwares: ${RUNTIME_WORKER_HOME}.`,
     "",
   ];
   for (const link of ECOSYSTEM_LINKS) {
     lines.push(`- ${link.label}: ${link.url}`);
   }
+  lines.push("");
+  for (const line of ecosystemHonestyLines()) lines.push(line);
   lines.push("");
   return lines.join("\n");
 }

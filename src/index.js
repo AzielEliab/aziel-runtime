@@ -278,6 +278,7 @@ import {
   oauthProtectedResource,
 } from "./mcp-discovery.js";
 import { adoptCard, llmsBodyCanonical } from "./adopt-card.js";
+import { INDEXNOW_KEY_PATH, INDEXNOW_WELL_KNOWN_PATH, indexNowKeyBody, indexNowLlmsLines, isIndexNowKeyPath } from "./indexnow.js";
 import { clientMatrix } from "./client-matrix.js";
 import { cachedUses, statsFloorFor, STATS_CAP_CODE, STATS_FLOOR_UNAVAILABLE } from "./stats-cache.js";
 import { claudeDesktopInstallSnippet, cursorInstallSnippet } from "./install-snippets.js";
@@ -383,6 +384,8 @@ import {
   productCrawlUrls,
   robotsTxt as buildRobotsTxt,
   sitemapIndexXml,
+  SITEMAP_LASTMOD,
+  isFirstPartyCanonicalLoc,
   SUITE_DESIGNS,
 } from "./seo.js";
 import { SITE_RSS_ALIAS, SITE_RSS_ORIGIN, SITE_RSS_PATH, siteRssStaticLastmod, siteRssXml } from "./site-rss.js";
@@ -491,7 +494,7 @@ const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
 const CATALOG_DESCRIPTION = RUNTIME_ABSTRACT;
 const CATALOG_CHANGELOG_20 =
-  "2.0.0-rc1 SpectralLock 0.3.1: wheel paint is separate from the spectral triad; FragGate ops pigment and restore-pigment restore lost pigment and refuse SL-PIGMENT-GONE when the signal is gone; AMOE is not a live product. 2.0.0-rc1 is the certification-point freeze: public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers. Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Sister product Trades-Runtime machine cite is 0.4.9 (live GET /v1/health; sister_products / extras cite_only; live_backends false; earlier cite 0.3.3). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
+  "2.0.0-rc1 SpectralLock 0.3.1: wheel paint is separate from the spectral triad; FragGate ops pigment and restore-pigment restore lost pigment and refuse SL-PIGMENT-GONE when the signal is gone; AMOE is not a live product. 2.0.0-rc1 is the certification-point freeze: public contract, compatibility, receipt schema, refusal contract, and breaking-change policy under docs/2.0/. Clean-room reproducibility + external adversarial pack for independent reviewers. Gate 4 includes Glama TDQS 5.0 tools/list metadata (no rename; no behavior change) plus existing glama.json / GitHub topics. Read-only QNM suite-presence is ON by default; POST /v1/mesh/disable refuses MESH-DISABLE-REFUSED. Additive COLD-MULTI-SHELF-1.0 cite (GET /shelves) matches corpus#96 /shelves honesty: Plane A = 5 published surfaces / 2 family radii / 1 independent live; Plane B Codeberg + archive.org PASS still SLOT (https://archive.org/details/aziel-lockset-tip + https://archive.org/details/aziel-lockset-tip_202609, same blast_radius); Framagit URL null Zenodo tip-pack SLOT (zenodo_live:false; CNS-ZENODO-NOT-LIVE); doi null; Plane C USB SLOT. Sister product Trades-Runtime machine cite follows live GET /v1/health: 1.0.0 (sister_products / extras cite_only; live_backends false; pilot_started false; earlier cites 0.3.3 and 0.4.9). Remain-OFF untouched. FragGate remains THE single door. Architecture-fit placements zkattest / mmconsensus / toolbench are in-runtime engines behind FragGate (isolation 33 unchanged; no new MCP tool). Crawler abstract stays lead copy. Identity Aziel Eliab only.";
 const CATALOG_CHANGELOG_19 =
     "1.9.3 closes the remaining AZRT-1.9-GAPS-CLOSE items: isolate-native AZ-OS session_open/status/close (prefab ethics VFS; exec/shell/lattice stay refuse); isolate-safe Ask Jeeves over sample MASTER / CORPUS_D1 records; binding-gated media-run when env.AI is present (no fake OCR); published independent-validation attestation path. Remain-OFF untouched. 1.9.2 binds Workers Browser Rendering (BROWSER) and live D1 MASTER (CORPUS_D1 → aziel-digital-library records). Whisper/OCR Workers-AI-bound. Sample MASTER remains the unbound fallback. Chromium product UI stays unbound; Tor/phoenix stay refuse. Remain-OFF untouched. 1.9.1 closes AZRT-1.9-GAPS-CLOSE isolate-safe corpus verify; Whisper/OCR Workers-AI-gated; AZBrowser sandbox_status; AZMail transport_status; wave 2–3 doctor; adversarial self-check + Actions npm test. Remain-OFF untouched. 1.9.0 closed AZRT-1.9-CLOSE-1.0. Chromium product UI stays unbound. Remain-OFF untouched.";
 /** Unbound-catalog and sitemap date. Live Workers prefer CF_VERSION_METADATA.timestamp via softwareMeta. */
@@ -1733,6 +1736,9 @@ function sitemapXml(origin) {
     { loc: base + "/llms.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/ai.txt", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/.well-known/llms.txt", priority: "0.75", changefreq: "weekly" },
+    { loc: base + "/.well-known/ai.txt", priority: "0.75", changefreq: "weekly" },
+    { loc: base + INDEXNOW_KEY_PATH, priority: "0.3", changefreq: "monthly" },
+    { loc: base + INDEXNOW_WELL_KNOWN_PATH, priority: "0.3", changefreq: "monthly" },
     { loc: base + "/adopt.json", priority: "0.95", changefreq: "daily" },
     { loc: base + "/openapi/adopt-actions.json", priority: "0.85", changefreq: "weekly" },
     { loc: base + "/install/cursor.json", priority: "0.8", changefreq: "weekly" },
@@ -1793,9 +1799,11 @@ function sitemapXml(origin) {
   for (const loc of hubPageSitemapUrls()) {
     urls.push({ loc, priority: "0.7", changefreq: "weekly", lastmod: null });
   }
-  const body = urls
+  const firstParty = urls.filter((u) => isFirstPartyCanonicalLoc(origin, u.loc));
+  const body = firstParty
     .map((u) => {
-      const last = u.lastmod === null ? "" : `    <lastmod>${u.lastmod || LASTMOD}</lastmod>\n`;
+      const lastmod = u.lastmod || SITEMAP_LASTMOD;
+      const last = `    <lastmod>${lastmod}</lastmod>\n`;
       return `  <url>\n    <loc>${escapeXml(u.loc)}</loc>\n${last}    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`;
     })
     .join("\n");
@@ -1946,6 +1954,8 @@ function llmsTxt(origin, env = {}) {
     llmsHubsBlock().trimEnd(),
     "",
     llmsEcosystemBlock().trimEnd(),
+    "",
+    indexNowLlmsLines(origin).join("\n").trimEnd(),
     "",
     llmsCatalogSetsBlock(catalog.catalog_sets).trimEnd(),
     "",
@@ -4531,7 +4541,11 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/sitemap-index.xml" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, xml(sitemapIndexXml(origin, PRODUCTS, LASTMOD), extra("/sitemap-index.xml")));
+      return asHead(request, xml(sitemapIndexXml(origin, PRODUCTS, SITEMAP_LASTMOD), extra("/sitemap-index.xml")));
+    }
+
+    if (isIndexNowKeyPath(url.pathname) && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, text(indexNowKeyBody(), extra(url.pathname)));
     }
 
     {

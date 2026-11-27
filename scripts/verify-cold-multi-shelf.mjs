@@ -438,7 +438,8 @@ assert.match(skill, /verify-redline\.mjs/);
 const sitemap = await (await get("/sitemap.xml")).text();
 assert.match(sitemap, /\/shelves/);
 assert.match(sitemap, /\/v1\/shelves/);
-assert.match(sitemap, /COLD-MULTI-SHELF-1\.0\.md/);
+assert.doesNotMatch(sitemap, /COLD-MULTI-SHELF-1\.0\.md/);
+assert.match(skill, /COLD-MULTI-SHELF-1\.0/);
 
 const openapi = await (await get("/openapi.json")).json();
 assert.ok(openapi.paths["/shelves"]);
