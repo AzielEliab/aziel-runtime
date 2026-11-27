@@ -384,40 +384,73 @@ assert.equal(innerOpRefusal({ result: { ok: true, code: "OK" } }), null);
   assert.equal(sealed.sealed, false); assert.equal(sealed.status, "rate_limited");
   assert.equal((await verify(gst, { c: "refusals" })).ok, true);
 
+  // The writer cap is the wall-clock minute. A loop that crosses that minute would
+  // open a fresh bucket and look like the cap failed. Retry the whole loop in the new minute.
+  const sameMinute = async (run) => {
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const start = Math.floor(Date.now() / 60000);
+      const got = await run(start);
+      if (got && Math.floor(Date.now() / 60000) === start) return got;
+    }
+    throw new Error("refusal cap loop crossed a minute boundary three times");
+  };
   // (d) goal-variant sub-cap: rows that differ only by goal_key stop at 30; another code still writes.
-  const vst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
-  let vlast;
-  for (let i = 0; i < REFUSAL_CAP.variant; i++) vlast = await append(vst, row("SAME-CODE", null, { goal_key: "goal:" + String(i).padStart(16, "0") }), { internal: true });
-  assert.equal(vlast.ok, true);
-  o = await append(vst, row("SAME-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true });
-  assert.equal(o.ok, false); assert.match(o.message, /goal-variant sub-cap 30/);
-  assert.equal((await append(vst, row("OTHER-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true })).ok, true);
-  assert.equal((await loadChain(vst, "refusals")).length, REFUSAL_CAP.variant + 1);
+  const variant = await sameMinute(async (start) => {
+    const vst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+    let vlast;
+    for (let i = 0; i < REFUSAL_CAP.variant; i++) {
+      if (Math.floor(Date.now() / 60000) !== start) return null;
+      vlast = await append(vst, row("SAME-CODE", null, { goal_key: "goal:" + String(i).padStart(16, "0") }), { internal: true });
+    }
+    if (Math.floor(Date.now() / 60000) !== start) return null;
+    const over = await append(vst, row("SAME-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true });
+    if (Math.floor(Date.now() / 60000) !== start) return null;
+    const other = await append(vst, row("OTHER-CODE", null, { goal_key: "goal:ffffffffffffffff" }), { internal: true });
+    if (Math.floor(Date.now() / 60000) !== start) return null;
+    return { vst, vlast, over, other };
+  });
+  assert.equal(variant.vlast.ok, true);
+  assert.equal(variant.over.ok, false); assert.match(variant.over.message, /goal-variant sub-cap 30/);
+  assert.equal(variant.other.ok, true);
+  assert.equal((await loadChain(variant.vst, "refusals")).length, REFUSAL_CAP.variant + 1);
   // (d2) AZBot bypass repro: a junk op AND the goal both vary. The op is bounded to "other" (its hash is
   //      not in the shape), so the sub-cap still stops it at 30.
-  const jst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
-  let jok = 0, jcap = 0;
-  for (let i = 0; i < 100; i++) {
-    rgc._resetMcpSealCap();
-    const jr = await rgc.sealRefusal(jst, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "junk" + i, args: {}, goal: { key: "goal:" + String(i).padStart(16, "0"), source: "caller" } });
-    if (jr.sealed) jok++; else if (jr.status === "rate_limited") jcap++;
-  }
-  assert.equal(jok, REFUSAL_CAP.variant, "junk op + goal varied: stops at 30"); assert.equal(jcap, 100 - REFUSAL_CAP.variant);
-  assert.equal((await loadChain(jst, "refusals")).length, REFUSAL_CAP.variant);
+  const junk = await sameMinute(async (start) => {
+    const jst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+    let jok = 0, jcap = 0;
+    for (let i = 0; i < 100; i++) {
+      if (Math.floor(Date.now() / 60000) !== start) return null;
+      rgc._resetMcpSealCap();
+      const jr = await rgc.sealRefusal(jst, { code: "FG-HALLUC-TOOL", tool: "fraggate_call", slug: "foldlock", op: "junk" + i, args: {}, goal: { key: "goal:" + String(i).padStart(16, "0"), source: "caller" } });
+      if (jr.sealed) jok++; else if (jr.status === "rate_limited") jcap++;
+    }
+    if (Math.floor(Date.now() / 60000) !== start) return null;
+    return { jst, jok, jcap };
+  });
+  assert.equal(junk.jok, REFUSAL_CAP.variant, "junk op + goal varied: stops at 30"); assert.equal(junk.jcap, 100 - REFUSAL_CAP.variant);
+  assert.equal((await loadChain(junk.jst, "refusals")).length, REFUSAL_CAP.variant);
   rgc._resetMcpSealCap();
   // (d3) AZBot collide repro: two MCP tools sharing one code have separate variant buckets (tool is in the shape).
-  const tst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
-  for (let i = 0; i < REFUSAL_CAP.variant; i++) {
+  const collided = await sameMinute(async (start) => {
+    const tst = storeFor({ CHAINLOCK: memoryChainWriterNamespace({}) });
+    for (let i = 0; i < REFUSAL_CAP.variant; i++) {
+      if (Math.floor(Date.now() / 60000) !== start) return null;
+      rgc._resetMcpSealCap();
+      const tr = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "memory_get", args: {}, goal: { key: "goal:" + String(i).padStart(16, "0"), source: "caller" } });
+      if (tr.sealed !== true) return { tst, failed: i };
+    }
+    if (Math.floor(Date.now() / 60000) !== start) return null;
     rgc._resetMcpSealCap();
-    const tr = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "memory_get", args: {}, goal: { key: "goal:" + String(i).padStart(16, "0"), source: "caller" } });
-    assert.equal(tr.sealed, true, "memory_get variant " + i + " seals");
-  }
-  rgc._resetMcpSealCap();
-  const tover = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "memory_get", args: {}, goal: { key: "goal:ffffffffffffffff", source: "caller" } });
-  assert.equal(tover.status, "rate_limited", "memory_get variant 31 is capped");
-  rgc._resetMcpSealCap();
-  const tother = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "mesh_join", args: {} });
-  assert.equal(tother.sealed, true, "same code on another tool is not in memory_get's bucket");
+    const tover = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "memory_get", args: {}, goal: { key: "goal:ffffffffffffffff", source: "caller" } });
+    if (Math.floor(Date.now() / 60000) !== start) return null;
+    rgc._resetMcpSealCap();
+    const tother = await rgc.sealRefusal(tst, { code: "SCHEMA-DRIFT", tool: "mesh_join", args: {} });
+    if (Math.floor(Date.now() / 60000) !== start) return null;
+    return { tst, tover, tother };
+  });
+  assert.equal(collided.failed, undefined, "memory_get variant seals");
+  assert.equal(collided.tover.status, "rate_limited", "memory_get variant 31 is capped");
+  assert.equal(collided.tother.sealed, true, "same code on another tool is not in memory_get's bucket");
   rgc._resetMcpSealCap();
 
   // (e) failed writes don't spend a slot: the first peer write fails at the storage put, then 120 still fit.

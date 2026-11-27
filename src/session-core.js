@@ -165,6 +165,8 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
     defaultOutcome: extra && extra.outcome ? extra.outcome : "completed",
   });
   if (!link.ok) throw sessionError(link.status || 400, "bad_attempt_link", link.error);
+  const { redactValue } = await import("./run-observability.js");
+  payload = redactValue(payload);
   const attestFromRequest = Boolean(extra && extra.attestFromRequest);
   const witnessedAttest = extra ? extra.witnessedAttest : undefined;
   const rest = extra && typeof extra === "object" ? { ...extra } : {};
@@ -188,6 +190,7 @@ export async function appendReceipt(session, event, payload, nowIso, extra = {})
   ]) {
     delete rest[key];
   }
+  for (const key of Object.keys(rest)) rest[key] = redactValue(rest[key]);
   // RIB-051: the harness mints issuer_kind. A caller field cannot.
   const { harnessFieldsFor } = await import("./harness-seal.js");
   const harness = harnessFieldsFor(event);
@@ -299,6 +302,11 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   const { checkServerDrift } = await import("./server-provenance.js");
   const server_drift = checkServerDrift((receipts || []).filter(Boolean));
   for (const d of server_drift.drifts) errors.push({ seq: d.seq, error: d.code, tool: d.tool });
+  // AZRT-OBS-HYGIENE-1.0: snapshot, credential finding, taint, and tool-error shape.
+  // Receipts sealed before these fields are unchanged.
+  const { verifyObsReceipts } = await import("./run-observability.js");
+  const obs_hygiene = await verifyObsReceipts((receipts || []).filter(Boolean));
+  for (const e of obs_hygiene.errors) errors.push({ seq: e.seq, error: e.error });
   // RIB-068: version change under one requested alias. Non-model receipts add no errors.
   const { checkModelVersion } = await import("./model-provenance.js");
   const model_provenance = await checkModelVersion((receipts || []).filter(Boolean));
@@ -387,6 +395,7 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
     audit_path,
     writer_fence,
     harness_seal,
+    obs_hygiene,
     counterparty,
     calibration,
     aer1,
@@ -706,10 +715,21 @@ export async function applyOpen(session, nowIso, extra = {}) {
   }
   const { beginSessionFence } = await import("./writer-fence.js");
   beginSessionFence(session);
+  // AZRT-CAPABILITY-SNAPSHOT-1.0: seal what was active at this timestamp. Fail closed.
+  const { snapshotForSession } = await import("./run-observability.js");
+  let capability_snapshot;
+  try {
+    capability_snapshot = await snapshotForSession(session, nowIso);
+  } catch (err) {
+    throw sessionError(500, "CAPABILITY-SNAPSHOT-ABORT", "The capability snapshot could not be sealed. The session was not opened.", {
+      executed: false,
+      detail: err && err.code ? err.code : "snapshot-failed",
+    });
+  }
   await appendReceipt(session, "open", {
     policy: session.policy,
     source: session.source,
-  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}), ...(frozen || {}), ...(recorder || {}) });
+  }, nowIso, { ...additiveReceiptFields(extra), ...(issuer ? { issuer } : {}), ...(frozen || {}), ...(recorder || {}), capability_snapshot });
   return session;
 }
 
@@ -929,6 +949,15 @@ async function recordIntentInner(session, args, nowIso) {
       ? { hosted_azai: "protocol mirror + Lamb check, not the local blend (azai serve)" }
       : {}),
   };
+  // AZRT-CREDENTIAL-BASELINE-1.0: class names only. The payload digest stays the raw hash.
+  const { observeCredentialTouch } = await import("./run-observability.js");
+  const touch = await observeCredentialTouch({
+    store: session,
+    identity: session.policy && session.policy.identity,
+    value: payload,
+  });
+  if (touch.baselineView) intent.credential_baseline = touch.baselineView;
+  if (touch.anomaly) intent.credential_anomaly = touch.anomaly;
   session.pending_intent = intent;
   session.exec_count = (Number(session.exec_count) || 0) + 1;
   session.updated_at = nowIso;
@@ -1012,6 +1041,14 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
   }
   const modelStamp = modelStampOf(additive);
   const modelFields = modelStamp ? await withSwapFinding(session.receipts, modelStamp) : {};
+  const { redactLogText, resultTaintFromDigest, explicitToolError } = await import("./run-observability.js");
+  const safeError = error == null || error === "" ? null : redactLogText(String(error));
+  const tool_error = explicitToolError({ status, error: safeError });
+  const result_taint = resultTaintFromDigest({
+    tool: `${intent && intent.slug ? intent.slug : "tool"}/${intent && intent.op ? intent.op : "op"}`,
+    sha256: responseDigest,
+    bytes: responseBytes,
+  });
   const receipt = await appendReceipt(session, "exec", {
     // Seal the intent the session recorded (incl. any RIB-043 approver), not the caller's echo of it.
     intent: sealedIntent,
@@ -1022,7 +1059,9 @@ export async function commitExec(session, { intent, status, latencyMs, requestDi
       response_digest: responseDigest,
       response_bytes: responseBytes,
       content_type: contentType || null,
-      error: error || null,
+      error: safeError,
+      ...(tool_error ? { tool_error } : {}),
+      ...(result_taint ? { result_taint } : {}),
       upstream: isLocal ? null : (upstream || null),
       mode,
       true_engine_runtime: isLocal,

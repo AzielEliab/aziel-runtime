@@ -54,7 +54,7 @@ for (const t of tools) {
   if (r.result.isError) {
     const sc = r.result.structuredContent || {};
     const text = JSON.stringify(sc);
-    const ok = sc.code === MCP_CONFIRM_REQUIRED || sc.code === "MESH-DISABLE-REFUSED" || SESSION_OR_ID.has(t.name);
+    const ok = sc.code === MCP_CONFIRM_REQUIRED || sc.code === "MESH-DISABLE-REFUSED" || sc.code === "SCHEMA-INPUT-RETRY" || sc.code === "SCHEMA-INPUT-ABORT" || sc.disposition === "retry" || sc.disposition === "abort" || SESSION_OR_ID.has(t.name);
     assert.ok(ok, `${t.name} errored on a reasonable first call: ${text.slice(0, 300)}`);
   }
 }

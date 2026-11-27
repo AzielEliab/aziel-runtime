@@ -435,6 +435,213 @@ export function innerOpRefusal(env) {
   return { code, reason: String(r.message || r.reason || "") };
 }
 
+const ELEVATED_TRUST = new Set(["TRUSTED", "HIGH", "CUSTODIAL"]);
+const ELEVATION_DEPTH = 32;
+
+function elevationName(key) {
+  return String(key).normalize("NFKC").toLowerCase().replace(/[\s._-]+/g, "");
+}
+
+function isResultTaintKey(key) {
+  return elevationName(key) === "resulttaint";
+}
+
+/**
+ * A caller- or tool-supplied claim that it is trusted, an operator, or otherwise
+ * elevated. Nested objects and arrays are scanned. Key case does not matter
+ * (`Trust`, `POLICY`, `Operator`). A throwing getter, or a tree deeper than 32,
+ * is a claim too: fail closed, and do not keep the text.
+ * `result_taint` is not a claim; the runtime replaces that object.
+ * Returns null when no elevation is present.
+ */
+function selfSuppliedElevation(value, depth = 0) {
+  try {
+    if (value == null || typeof value !== "object") return null;
+    if (depth > ELEVATION_DEPTH) return { operatorOnly: false };
+    let sawOperator = false;
+    let sawOther = false;
+    const note = (hit) => {
+      if (!hit) return;
+      if (hit.operatorOnly) sawOperator = true;
+      else sawOther = true;
+    };
+    if (Array.isArray(value)) {
+      let len = 0;
+      try {
+        len = value.length;
+      } catch {
+        return { operatorOnly: false };
+      }
+      const n = Number(len) || 0;
+      if (n > 10000) return { operatorOnly: false };
+      for (let i = 0; i < n; i++) {
+        let child;
+        try {
+          child = value[i];
+        } catch {
+          return { operatorOnly: false };
+        }
+        note(selfSuppliedElevation(child, depth + 1));
+        if (sawOther) return { operatorOnly: false };
+      }
+      return sawOperator ? { operatorOnly: true } : null;
+    }
+    let keys;
+    try {
+      keys = Object.keys(value);
+    } catch {
+      return { operatorOnly: false };
+    }
+    if (keys.length > 10000) return { operatorOnly: false };
+    for (const key of keys) {
+      if (isResultTaintKey(key)) continue;
+      let child;
+      try {
+        child = value[key];
+      } catch {
+        return { operatorOnly: false };
+      }
+      const name = elevationName(key);
+      if (
+        name === "trust" || name === "trustlevel" ||
+        name === "policy" || name === "policylevel" ||
+        name === "operator" || name === "operatorlevel" ||
+        name === "trusted" || name === "trustedlevel" ||
+        name === "untrusted" || name === "untrustedlevel" ||
+        name === "privilege" || name === "privilegelevel"
+      ) {
+        const word = typeof child === "string" ? child.toUpperCase() : "";
+        const trustUp = name === "trust" && word !== "" && word !== "UNTRUSTED";
+        const levelUp = name === "trustlevel" && ELEVATED_TRUST.has(word);
+        const policyUp = (name === "policy" || name === "policylevel") && child === true;
+        const operatorUp = (name === "operator" || name === "operatorlevel") && child === true;
+        const trustedUp = (name === "trusted" || name === "trustedlevel") && child === true;
+        const untrustedDown = (name === "untrusted" || name === "untrustedlevel") && child === false;
+        const privilegeUp = (name === "privilege" || name === "privilegelevel") && child != null && child !== false;
+        if (trustUp || levelUp || policyUp || trustedUp || untrustedDown || privilegeUp) sawOther = true;
+        else if (operatorUp) sawOperator = true;
+      }
+      if (child && typeof child === "object") note(selfSuppliedElevation(child, depth + 1));
+      if (sawOther) return { operatorOnly: false };
+    }
+    return sawOperator ? { operatorOnly: true } : null;
+  } catch {
+    return { operatorOnly: false };
+  }
+}
+
+/** Operator elevation is allowed only when the request token matches the server secret. */
+async function elevationAllowed(claim, request, env) {
+  if (!claim || !claim.operatorOnly) return false;
+  try {
+    const { isOperator } = await import("./packed-catalog.js");
+    return isOperator(request, env) === true;
+  } catch {
+    return false;
+  }
+}
+
+function elevationStop(executed) {
+  return {
+    ok: false,
+    code: "TRUST-SELF-ELEVATION",
+    disposition: "abort",
+    spec: "AZRT-UNTRUSTED-RESULT-1.0",
+    executed: executed === true,
+    accepted: false,
+    returned: false,
+    policy: false,
+    operator: false,
+    message: "Trust is not taken from the caller. Elevation comes only from server-side state.",
+    result: null,
+  };
+}
+
+/**
+ * Replace a tool result with a new plain object. Arrays and primitives are
+ * wrapped so the runtime taint is always a top-level field. Text-only plain
+ * objects stay without an envelope so the display wrap can nest `result`.
+ * The tool's object is never the value returned.
+ */
+async function installPlainEnvelope(out, obs, name) {
+  if (!out || typeof out !== "object") return;
+  const hadEnvelope = Object.prototype.hasOwnProperty.call(out, "envelope") && out.envelope !== undefined;
+  let source;
+  let parsed = false;
+  if (hadEnvelope) {
+    source = out.envelope;
+    parsed = true;
+  } else if (typeof out.text === "string") {
+    try {
+      source = JSON.parse(out.text);
+      parsed = true;
+    } catch {
+      parsed = false;
+    }
+  }
+  if (!parsed) return;
+  if (obs.hostileInput(source)) {
+    const closed = {
+      ok: false,
+      code: "SCHEMA-OUTPUT-ABORT",
+      disposition: "abort",
+      spec: obs.SCHEMA_DISPOSITION_SPEC,
+      executed: true,
+      accepted: false,
+      returned: false,
+      message: "The tool result could not be read.",
+      result: null,
+    };
+    out.envelope = closed;
+    out.status = 422;
+    out.text = JSON.stringify(closed, null, 2);
+    return;
+  }
+  let minted;
+  try {
+    minted = await obs.mintPlainEnvelope(source, name);
+  } catch {
+    minted = null;
+  }
+  if (!minted || obs.hostileInput(minted)) {
+    const closed = {
+      ok: false,
+      code: "SCHEMA-OUTPUT-ABORT",
+      disposition: "abort",
+      spec: obs.SCHEMA_DISPOSITION_SPEC,
+      executed: true,
+      accepted: false,
+      returned: false,
+      message: "The tool result could not be read.",
+      result: null,
+    };
+    out.envelope = closed;
+    out.status = 422;
+    out.text = JSON.stringify(closed, null, 2);
+    return;
+  }
+  const forceEnvelope = hadEnvelope || Array.isArray(source) || source == null || typeof source !== "object";
+  if (forceEnvelope) out.envelope = minted;
+  try {
+    out.text = JSON.stringify(minted, null, 2);
+  } catch {
+    const closed = {
+      ok: false,
+      code: "SCHEMA-OUTPUT-ABORT",
+      disposition: "abort",
+      spec: obs.SCHEMA_DISPOSITION_SPEC,
+      executed: true,
+      accepted: false,
+      returned: false,
+      message: "The tool result could not be read.",
+      result: null,
+    };
+    out.envelope = closed;
+    out.status = 422;
+    out.text = JSON.stringify(closed, null, 2);
+  }
+}
+
 /**
  * Wrap one MCP tools/call. call() runs the existing door unchanged.
  */
@@ -452,10 +659,33 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     }
   }
   const meta = { goal_key: goal ? goal.key : null, context, schema_hash: schemaHash || null };
+  const obs = await import("./run-observability.js");
   let out;
-  let policyScreen = { ok: true, engaged: false };
+  let inputCheck = null;
   if (!drift) {
-    const { preExecScreen, policyScreened, runScreened } = await import("./x-reply-policy.js");
+    try {
+      inputCheck = await obs.validateToolInvocation({ name, args: src, phase: "input" });
+    } catch {
+      inputCheck = {
+        ok: false,
+        code: obs.SCHEMA_INPUT_ABORT,
+        disposition: "abort",
+        spec: obs.SCHEMA_DISPOSITION_SPEC,
+        phase: "input",
+        executed: false,
+        accepted: false,
+        returned: false,
+        status: 422,
+        message: "The tool arguments could not be read.",
+        result: null,
+      };
+    }
+  }
+  const argElevation = selfSuppliedElevation(src);
+  const argAllowed = argElevation ? await elevationAllowed(argElevation, request, runtimeEnv) : false;
+  let policyScreen = { ok: true, engaged: false };
+  if (!drift && !(inputCheck && inputCheck.ok === false) && !(argElevation && !argAllowed)) {
+    const { preExecScreen, policyScreened } = await import("./x-reply-policy.js");
     if (!policyScreened()) {
       policyScreen = await preExecScreen({
         name,
@@ -468,6 +698,11 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (drift) {
     out = { status: 409, text: JSON.stringify(drift, null, 2), envelope: { ...drift } };
+  } else if (argElevation && !argAllowed) {
+    const body = elevationStop(false);
+    out = { status: 422, text: JSON.stringify(body), envelope: body };
+  } else if (inputCheck && inputCheck.ok === false) {
+    out = { status: inputCheck.status || 400, text: JSON.stringify(inputCheck), envelope: inputCheck };
   } else if (policyScreen && policyScreen.ok === false) {
     out = {
       status: policyScreen.status || 403,
@@ -480,7 +715,54 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = policyScreen.engaged ? await runScreened(invoke) : await invoke();
     if (policyScreen.engaged && policyScreen.attribution) attachToResult(out, "attribution", policyScreen.attribution);
     if (policyScreen.engaged && policyScreen.hook_tip) attachToResult(out, "hook_tip", policyScreen.hook_tip);
+    const produced = envelopeOf(out);
+    const producedElevation = selfSuppliedElevation(produced);
+    const producedAllowed = producedElevation ? await elevationAllowed(producedElevation, request, runtimeEnv) : false;
+    if (producedElevation && !producedAllowed) {
+      const body = elevationStop(true);
+      out = { status: 422, text: JSON.stringify(body), envelope: body };
+    } else if (produced && obs.hostileInput(produced)) {
+      const body = {
+        ok: false,
+        code: obs.SCHEMA_OUTPUT_ABORT,
+        disposition: "abort",
+        spec: obs.SCHEMA_DISPOSITION_SPEC,
+        executed: true,
+        accepted: false,
+        returned: false,
+        message: "The tool result could not be read.",
+        result: null,
+      };
+      out = { status: 422, text: JSON.stringify(body), envelope: body };
+    } else if (produced && typeof produced === "object" && !Array.isArray(produced)) {
+      let producedClean;
+      try {
+        producedClean = obs.stripResultTaint(produced);
+      } catch {
+        producedClean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
+      }
+      let outputCheck = null;
+      try {
+        outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: producedClean });
+      } catch {
+        outputCheck = {
+          ok: false,
+          code: obs.SCHEMA_OUTPUT_ABORT,
+          disposition: "abort",
+          spec: obs.SCHEMA_DISPOSITION_SPEC,
+          status: 422,
+          message: "The tool result could not be read.",
+          result: null,
+        };
+      }
+      if (outputCheck && outputCheck.ok === false) {
+        const body = { ...obs.stripResultTaint(outputCheck), result: null };
+        delete body.result_taint;
+        out = { status: outputCheck.status || 422, text: JSON.stringify(body), envelope: body };
+      }
+    }
   }
+  await installPlainEnvelope(out, obs, name);
   const env = envelopeOf(out);
   let code = refusalCodeOf(env, out);
   // RIB-018 addendum: an op that refuses inside an accepted door envelope (e.g. memory lattice-learn
@@ -490,8 +772,9 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
+    const alreadySealed = env && env.refusal_receipt && env.refusal_receipt.sealed === true ? env.refusal_receipt : null;
     const policyAttr = env && env.attribution ? { attribution: env.attribution } : null;
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: { ...(inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : {}), ...(policyAttr || {}) } });
+    const receipt = alreadySealed || await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: { ...(inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : {}), ...(policyAttr || {}) } });
     const policyReceipt = env && env.refusal_receipt && env.refusal_receipt.hash ? env.refusal_receipt : null;
     if (policyReceipt && (!receipt || receipt.sealed !== true)) {
       attachToResult(out, "refusal_receipt", { ...receipt, policy_receipt: policyReceipt, h: policyReceipt.hash, hash: policyReceipt.hash });
@@ -505,5 +788,31 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   if (context) attachToResult(out, "context", context);
   if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
+  // AZRT-UNTRUSTED-RESULT-1.0. Mint again so attachments are inside a new
+  // plain object. Arrays stay wrapped; text-only objects stay unwrapped so
+  // the display envelope can still nest result.
+  await installPlainEnvelope(out, obs, name);
+  let touch = { baselineView: null, anomaly: null };
+  try {
+    touch = await obs.observeCredentialTouch({
+      store: obs.mcpCredentialStore(),
+      identity: src.identity,
+      value: src,
+    });
+  } catch {
+    touch = { baselineView: null, anomaly: null };
+  }
+  if (touch.baselineView) attachToResult(out, "credential_baseline", touch.baselineView);
+  if (touch.anomaly) attachToResult(out, "credential_anomaly", touch.anomaly);
+  const after = envelopeOf(out);
+  const failed = (after && after.ok === false) || (out && Number(out.status) >= 400);
+  if (failed && after && !after.tool_error) {
+    const toolErr = obs.explicitToolError({
+      status: out && out.status,
+      error: after.message || after.error || null,
+      code: after.code,
+    });
+    if (toolErr) attachToResult(out, "tool_error", toolErr);
+  }
   return out;
 }

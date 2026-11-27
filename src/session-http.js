@@ -5,7 +5,7 @@
  */
 
 import { anchorRefNow } from "./anchor.js";
-import { contextOf, currentSchemaHash, expectSpecOf, verdictOf } from "./receipt-guard.js";
+import { contextOf, currentSchemaHash, expectSpecOf, guardToolCall, verdictOf } from "./receipt-guard.js";
 import { digestText, newSessionId, SESSION_ID_RE } from "./session-core.js";
 import { RUNTIME_VERSION } from "./runtime-api.js";
 import { executeLocal, proxyFallbackMeta } from "./engines/runner.js";
@@ -450,6 +450,59 @@ async function handleExec(request, env, id, { json, PRODUCTS, BY_SLUG, upstreamF
     return json({ error: "invalid JSON", code: "bad_json" }, 400);
   }
   if (bodyHasOperatorToken(body) || bodyHasOperatorToken(body.payload)) return bodyTokenRefuse(json);
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    return json({
+      ok: false,
+      code: "SCHEMA-INPUT-ABORT",
+      disposition: "abort",
+      spec: "AZRT-SCHEMA-DISPOSITION-1.0",
+      executed: false,
+      message: "Session exec body must be a JSON object. Disposition is abort.",
+    }, 422);
+  }
+  const typeBad = (path, message) => json({
+    ok: false,
+    code: "SCHEMA-INPUT-RETRY",
+    disposition: "retry",
+    spec: "AZRT-SCHEMA-DISPOSITION-1.0",
+    executed: false,
+    errors: [{ path, keyword: "type", message }],
+    message: "Schema validation failed. Disposition is retry. Nothing was coerced.",
+  }, 400);
+  if (body.slug !== undefined && typeof body.slug !== "string") return typeBad("slug", "expected string");
+  if (body.product !== undefined && typeof body.product !== "string") return typeBad("product", "expected string");
+  if (body.op !== undefined && typeof body.op !== "string") return typeBad("op", "expected string");
+  if (body.confirm !== undefined && typeof body.confirm !== "boolean") return typeBad("confirm", "expected boolean");
+  if (body.dry_run !== undefined && typeof body.dry_run !== "boolean") return typeBad("dry_run", "expected boolean");
+  if (body.payload !== undefined && body.payload !== null && typeof body.payload !== "string" && (typeof body.payload !== "object" || Array.isArray(body.payload))) {
+    return typeBad("payload", "expected object or string");
+  }
+  let chainStore = null;
+  if (env && env.CHAINLOCK) {
+    const { storeFor } = await import("./chainlock/store.js");
+    chainStore = storeFor(env);
+  }
+  const guarded = await guardToolCall({
+    store: chainStore,
+    request,
+    name: "runtime_session_exec",
+    args: {
+      ...body,
+      session_id: typeof body.session_id === "string" && body.session_id ? body.session_id : id,
+    },
+    schemaHash: currentSchemaHash(),
+    runtimeEnv: env,
+    call: () => finishSessionExec(request, env, id, body, { PRODUCTS, BY_SLUG, upstreamFetch }),
+  });
+  const envBody = guarded && guarded.envelope && typeof guarded.envelope === "object"
+    ? guarded.envelope
+    : { ok: false, code: "SCHEMA-OUTPUT-ABORT", disposition: "abort" };
+  const status = Number.isInteger(guarded && guarded.status) ? guarded.status : (envBody.ok === false ? 400 : 200);
+  return json(envBody, status);
+}
+
+async function finishSessionExec(request, env, id, body, { PRODUCTS, BY_SLUG, upstreamFetch }) {
+  const json = (envelope, status) => ({ status, envelope });
   let slug = String(body.slug || body.product || "").trim().toLowerCase();
   let op = String(body.op || "").trim();
   let payload = body.payload !== undefined ? body.payload : {};

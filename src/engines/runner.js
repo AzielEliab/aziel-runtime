@@ -4,6 +4,7 @@
  * Author: Aziel Eliab.
  */
 import { digestText } from "../session-core.js";
+import { explicitToolError, redactLogText } from "../run-observability.js";
 import { resolveOpAlias } from "../fraggate/registry.js";
 import { embeddedDigest, ENGINE_RUNNERS, isTrueEngineSlug } from "./registry.js";
 import { SEAL_SLUGS, guardianAudit, withReceipt } from "../operator-surfaces.js";
@@ -59,12 +60,25 @@ export async function executeLocal({ slug, op, payload, ranIn, env }) {
       error = "RECEIPT-UNCHAINED";
     } else if (body && body.error) {
       status = Number(body.status) || 400;
-      error = String(body.error);
+      error = redactLogText(String(body.error));
+      if (!body.code) {
+        body = { ...body, ok: false, error, code: "TOOL-FAILED", tool_error: explicitToolError({ status, error, code: "TOOL-FAILED" }) };
+      }
+    } else if (body && body.ok === false && !body.code) {
+      const reason = redactLogText(String(body.message || body.reason || "tool failed"));
+      body = { ...body, code: "TOOL-FAILED", tool_error: explicitToolError({ status: status >= 400 ? status : 400, error: reason, code: "TOOL-FAILED" }) };
     }
   } catch (err) {
-    error = String(err && err.message ? err.message : err);
+    error = redactLogText(String(err && err.message ? err.message : err));
     status = err && err.status ? err.status : 400;
-    body = { error, slug: key, op: action };
+    body = {
+      ok: false,
+      code: "TOOL-THROWN",
+      error,
+      slug: key,
+      op: action,
+      tool_error: explicitToolError({ status, error, code: "TOOL-THROWN", thrown: true }),
+    };
   }
   const latencyMs = Date.now() - started;
   const responseText = JSON.stringify(body);

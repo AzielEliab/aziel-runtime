@@ -122,7 +122,10 @@
  * CORS *. Apache-2.0. Forks welcome.
  * Author: Aziel Eliab. Identity is Aziel Eliab only. Do not invent DOIs.
  */
+import { installLogRedaction } from "./run-observability.js";
 import { arkFirewall } from "./account/firewall.js";
+
+installLogRedaction();
 import { signinHelperHtml, SIGNIN_HELPER_HEADERS } from "./account/signin-helper.js";
 import { tokensCss } from "./lockstep/tokens-css.js";
 import { DESIGN_TOKENS } from "./lockstep/design-tokens.js";
@@ -4126,8 +4129,8 @@ async function handleMcp(request, env, origin, ctx) {
         telemetryHeaders[GLAMA_TELEMETRY_RESPONSE_HEADER] = GLAMA_TELEMETRY_RESPONSE_WORKER;
       }
       return rpcResult(id, payload, { ...wire, ...telemetryHeaders });
-    } catch (err) {
-      const text = JSON.stringify({ error: String(err.message || err) });
+    } catch {
+      const text = JSON.stringify({ ok: false, code: "LOG-LEAK-CLOSED", error: "The tool result could not be sealed." });
       return rpcResult(id, mcpCallPayload(name, { status: 400, text }, null, null), wire);
     }
   }
