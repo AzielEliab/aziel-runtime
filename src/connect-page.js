@@ -11,6 +11,7 @@ import {
   cursorDeeplink,
   cursorInstallSnippet,
   lmStudioInstallSnippet,
+  pasteOrigin,
   vscodeInstallLink,
   vscodeInstallSnippet,
 } from "./install-snippets.js";
@@ -39,7 +40,7 @@ function pre(obj) {
 }
 
 export function connectPageHtml(origin) {
-  const base = String(origin || "").replace(/\/$/, "");
+  const base = pasteOrigin(origin);
   const mcp = `${base}/mcp`;
   const actions = `${base}/openapi/adopt-actions.json`;
   const cursor = cursorInstallSnippet(origin);

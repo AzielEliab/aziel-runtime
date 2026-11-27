@@ -10,6 +10,9 @@ import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { CONTENT_SIGNAL } from "../src/security-headers.js";
 import { CLIENT_CLASS_IDS } from "../src/client-matrix.js";
 import { glamaStaticDecision } from "../src/glama-static.js";
+import { pasteOrigin } from "../src/install-snippets.js";
+import { LIVE_MCP_ORIGIN, LIVE_MCP_URL } from "../src/mcp-discovery.js";
+import { MCP_DRY_RUN } from "../src/mcp-safeguard.js";
 import { MCP_PROTOCOL_PREFERRED } from "../src/mcp-transport.js";
 
 const { default: worker } = await import("../src/index.js");
@@ -181,12 +184,12 @@ assert.ok(Object.keys(full.paths).length > slimPaths.length);
 assert.ok(full.paths["/v1/fraggate/call"]);
 
 const cursor = await (await get("/install/cursor.json")).json();
-assert.equal(cursor.mcpServers["aziel-runtime"].url, origin + "/mcp");
+assert.equal(cursor.mcpServers["aziel-runtime"].url, LIVE_MCP_URL);
 assert.equal(cursor.mcpServers["aziel-runtime"].headers["MCP-Protocol-Version"], "2025-11-25");
 assert.equal(cursor.mcpServers["aziel-runtime"].headers.Authorization, undefined);
 const claude = await (await get("/install/claude-desktop.json")).json();
 assert.equal(claude.mcpServers["aziel-runtime"].type, "http");
-assert.equal(claude.mcpServers["aziel-runtime"].url, origin + "/mcp");
+assert.equal(claude.mcpServers["aziel-runtime"].url, LIVE_MCP_URL);
 assert.equal(claude.mcpServers["aziel-runtime"].headers["MCP-Protocol-Version"], "2025-11-25");
 
 const matrix = await (await get("/v1/clients.json")).json();
@@ -264,7 +267,8 @@ assert.equal(connectRes.status, 200);
 assert.match(connectRes.headers.get("content-type") || "", /text\/html/);
 const connect = await connectRes.text();
 const connectMain = connect.split("<footer")[0];
-assert.match(connectMain, new RegExp(origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "/mcp"));
+assert.match(connectMain, new RegExp(LIVE_MCP_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.doesNotMatch(connectMain, /aziel-runtime\.example/);
 assert.match(connectMain, /openapi\/adopt-actions\.json/);
 assert.match(connectMain, /No authentication/);
 assert.match(connectMain, /No sign in/);
@@ -298,15 +302,40 @@ assert.match(home, /href="https:\/\/aziel-runtime\.example\/connect"/);
 
 const vscode = await (await get("/install/vscode.json")).json();
 assert.equal(vscode.servers["aziel-runtime"].type, "http");
-assert.equal(vscode.servers["aziel-runtime"].url, origin + "/mcp");
+assert.equal(vscode.servers["aziel-runtime"].url, LIVE_MCP_URL);
 const lmstudio = await (await get("/install/lmstudio.json")).json();
-assert.equal(lmstudio.mcpServers["aziel-runtime"].url, origin + "/mcp");
+assert.equal(lmstudio.mcpServers["aziel-runtime"].url, LIVE_MCP_URL);
 assert.equal(lmstudio.mcpServers["aziel-runtime"].headers, undefined);
 const chatgptMd = await (await get("/install/chatgpt.md")).text();
 assert.match(chatgptMd, /Add custom MCP server/);
 assert.match(chatgptMd, /No authentication/);
-assert.match(chatgptMd, /openapi\/adopt-actions\.json/);
+assert.match(chatgptMd, new RegExp(LIVE_MCP_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+assert.match(chatgptMd, new RegExp(LIVE_MCP_ORIGIN.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "/openapi/adopt-actions\\.json"));
+assert.doesNotMatch(chatgptMd, /aziel-runtime\.example/);
 assert.doesNotMatch(chatgptMd, /\bLIVE\b/);
+
+assert.equal(pasteOrigin("https://user:pass@aziel-runtime.vibelock.workers.dev"), LIVE_MCP_ORIGIN);
+assert.equal(pasteOrigin("https://aziel-runtime.vibelock.workers.dev:8443"), LIVE_MCP_ORIGIN);
+assert.equal(pasteOrigin("https://aziel-runtime.vibelock.workers.dev."), LIVE_MCP_ORIGIN);
+assert.equal(pasteOrigin("https://evil.example"), LIVE_MCP_ORIGIN);
+assert.equal(pasteOrigin(LIVE_MCP_ORIGIN), LIVE_MCP_ORIGIN);
+const hostileHosts = [
+  "https://evil.example",
+  "https://aziel-runtime.vibelock.workers.dev.",
+  "http://aziel-runtime.vibelock.workers.dev",
+];
+for (const hostile of hostileHosts) {
+  for (const path of ["/connect", "/install/cursor.json", "/install/claude-desktop.json", "/install/vscode.json", "/install/lmstudio.json", "/install/chatgpt.md"]) {
+    const res = await handler(new Request(hostile + path), {});
+    assert.equal(res.status, 200, `${hostile} ${path}`);
+    const body = await res.text();
+    assert.match(body, new RegExp(LIVE_MCP_URL.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")), `${hostile} ${path}`);
+    assert.doesNotMatch(body, /evil\.example/, `${hostile} ${path}`);
+    assert.doesNotMatch(body, /workers\.dev\./, `${hostile} ${path}`);
+    assert.doesNotMatch(body, /user:pass/, `${hostile} ${path}`);
+    assert.doesNotMatch(body, /http:\/\/aziel-runtime/, `${hostile} ${path}`);
+  }
+}
 
 const withheld = await get("/server.json");
 assert.equal(withheld.status, 404);
@@ -340,13 +369,15 @@ const previewCall = await call("/mcp", {
     jsonrpc: "2.0",
     id: 4,
     method: "tools/call",
-    params: { name: "fraggate_preview", arguments: { slug: "foldlock", op: "fold-append", confirm: true } },
+    params: { name: "fraggate_preview", arguments: { slug: "4dmap", op: "pin", confirm: true } },
   }),
 });
 const previewBody = await previewCall.json();
+assert.equal(previewBody.result.structuredContent.code, MCP_DRY_RUN);
 assert.equal(previewBody.result.structuredContent.dry_run, true);
 assert.equal(previewBody.result.structuredContent.mutated, false);
 assert.equal(previewBody.result.structuredContent.ledger_written, false);
+assert.notEqual(previewBody.result.structuredContent.code, "FG-UNKNOWN-OP");
 assert.notEqual(previewBody.result.structuredContent.code, "FG-OK");
 
 console.log("ok ai-adopt", Buffer.byteLength(adoptRaw), "adopt bytes");

@@ -5,7 +5,7 @@
  * Author: Aziel Eliab.
  */
 import assert from "node:assert/strict";
-import { fraggateOpAccess, MCP_CONFIRM_REQUIRED } from "../src/mcp-safeguard.js";
+import { fraggateOpAccess, MCP_CONFIRM_REQUIRED, MCP_DRY_RUN } from "../src/mcp-safeguard.js";
 import { memorySessionNamespace } from "../src/session-do.js";
 
 const handler = (await import("../src/index.js")).default.fetch;
@@ -51,12 +51,14 @@ assert.equal(previewTool.annotations.readOnlyHint, true);
 assert.equal(tools.find((t) => t.name === "fraggate_call").annotations.readOnlyHint, false);
 const preview = await mcp("tools/call", {
   name: "fraggate_preview",
-  arguments: { slug: "foldlock", op: "fold-append", confirm: true, background: true },
+  arguments: { slug: "4dmap", op: "pin", confirm: true, background: true },
 });
+assert.equal(preview.result.structuredContent.code, MCP_DRY_RUN);
 assert.equal(preview.result.structuredContent.dry_run, true);
 assert.equal(preview.result.structuredContent.mutated, false);
 assert.equal(preview.result.structuredContent.ledger_written, false);
 assert.equal(preview.result.structuredContent.executes, false);
+assert.notEqual(preview.result.structuredContent.code, "FG-UNKNOWN-OP");
 assert.notEqual(preview.result.structuredContent.code, "FG-OK");
 const firstArgs = { fraggate_call: { slug: "foldlock", op: "health" }, runtime_pull: { slug: "foldlock" } };
 const SESSION_OR_ID = new Set(["memory_get", "runtime_session_receipt", "runtime_session_receipts"]);

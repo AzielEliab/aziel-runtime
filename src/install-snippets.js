@@ -3,11 +3,37 @@
  * Author: Aziel Eliab only.
  */
 
+import { LIVE_MCP_ORIGIN } from "./mcp-discovery.js";
 import { MCP_PROTOCOL_HEADER, MCP_PROTOCOL_PREFERRED } from "./mcp-transport.js";
 
+/**
+ * Paste snippets may name only these origins. A request Host is not a paste URL.
+ * Trailing-dot hosts, other hosts, and non-https origins fall back to the live MCP origin.
+ */
+export const PASTE_ORIGIN_ALLOWLIST = Object.freeze([LIVE_MCP_ORIGIN]);
+
+export function pasteOrigin(origin) {
+  let url;
+  try {
+    url = new URL(String(origin || ""));
+  } catch {
+    return LIVE_MCP_ORIGIN;
+  }
+  if (url.protocol !== "https:") return LIVE_MCP_ORIGIN;
+  if (url.username || url.password || url.port) return LIVE_MCP_ORIGIN;
+  const host = url.hostname;
+  if (!host || host.endsWith(".") || host.startsWith(".") || host.includes("..")) return LIVE_MCP_ORIGIN;
+  const normalized = `https://${host}`;
+  if (!PASTE_ORIGIN_ALLOWLIST.includes(normalized)) return LIVE_MCP_ORIGIN;
+  return normalized;
+}
+
 function mcpUrl(origin) {
-  const base = String(origin || "").replace(/\/$/, "");
-  return `${base}/mcp`;
+  return `${pasteOrigin(origin)}/mcp`;
+}
+
+function actionsUrl(origin) {
+  return `${pasteOrigin(origin)}/openapi/adopt-actions.json`;
 }
 
 function protocolHeaders() {
@@ -83,7 +109,7 @@ export function lmStudioInstallSnippet(origin) {
 
 /** ChatGPT steps. Custom MCP first. GPT Actions second. No OAuth. */
 export function chatgptInstallMarkdown(origin) {
-  const base = String(origin || "").replace(/\/$/, "");
+  const base = pasteOrigin(origin);
   const mcp = mcpUrl(origin);
   return `# ChatGPT
 
