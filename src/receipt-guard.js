@@ -453,10 +453,33 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   }
   const meta = { goal_key: goal ? goal.key : null, context, schema_hash: schemaHash || null };
   let out;
+  let policyScreen = { ok: true, engaged: false };
+  if (!drift) {
+    const { preExecScreen, policyScreened, runScreened } = await import("./x-reply-policy.js");
+    if (!policyScreened()) {
+      policyScreen = await preExecScreen({
+        name,
+        args: src,
+        request,
+        env: runtimeEnv,
+        now: Date.now(),
+      });
+    }
+  }
   if (drift) {
     out = { status: 409, text: JSON.stringify(drift, null, 2), envelope: { ...drift } };
+  } else if (policyScreen && policyScreen.ok === false) {
+    out = {
+      status: policyScreen.status || 403,
+      text: JSON.stringify(policyScreen.envelope, null, 2),
+      envelope: policyScreen.envelope,
+    };
   } else {
-    out = await runWithCallMeta(meta, () => call());
+    const invoke = () => runWithCallMeta(meta, () => call());
+    const { runScreened } = await import("./x-reply-policy.js");
+    out = policyScreen.engaged ? await runScreened(invoke) : await invoke();
+    if (policyScreen.engaged && policyScreen.attribution) attachToResult(out, "attribution", policyScreen.attribution);
+    if (policyScreen.engaged && policyScreen.hook_tip) attachToResult(out, "hook_tip", policyScreen.hook_tip);
   }
   const env = envelopeOf(out);
   let code = refusalCodeOf(env, out);
@@ -467,8 +490,15 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   const slug = String(src.slug || src.name || src.product || "") || null;
   const op = src.op ? String(src.op) : null;
   if (code) {
-    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : null });
-    attachToResult(out, "refusal_receipt", receipt);
+    const policyAttr = env && env.attribution ? { attribution: env.attribution } : null;
+    const receipt = await sealRefusal(store, { code, tool: name, slug, op, args: src, goal, prior, context, schemaHash, env: runtimeEnv, extra: { ...(inner ? { kind: "refusal", door: "op", ...(await boundedReason(inner.reason, src)) } : {}), ...(policyAttr || {}) } });
+    const policyReceipt = env && env.refusal_receipt && env.refusal_receipt.hash ? env.refusal_receipt : null;
+    if (policyReceipt && (!receipt || receipt.sealed !== true)) {
+      attachToResult(out, "refusal_receipt", { ...receipt, policy_receipt: policyReceipt, h: policyReceipt.hash, hash: policyReceipt.hash });
+    } else {
+      attachToResult(out, "refusal_receipt", receipt);
+      if (policyReceipt) attachToResult(out, "policy_receipt", policyReceipt);
+    }
   } else if (prior && prior.open) {
     const follow = await sealFollow(store, { prior, goal, tool: name, slug, op, outcome: env && (env.ok === false || Number(out && out.status) >= 400) ? "error" : "accepted", code: env && env.code, args: src, context, schemaHash });
     if (follow) attachToResult(out, "follows_refusal", follow);

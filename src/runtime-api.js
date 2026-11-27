@@ -1453,6 +1453,81 @@ export function runtimeStaticPaths() {
         },
       },
     },
+    "/v1/session/{id}/counterparty": {
+      post: {
+        operationId: "runtime_session_counterparty",
+        security: [{ RuntimeToken: [] }],
+        summary:
+          "RIB-021: seal a counterparty receipt after a policy-gated exec. The caller cannot set status to verified. A self-named issuer is refused and nothing is written. The row is hash-linked and not signed. No key is minted. Not an MCP tool. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+        responses: {
+          "200": { description: "Counterparty receipt appended. Third parties recompute it from the chain." },
+          "400": { description: "bad_json, COUNTERPARTY-INVALID, COUNTERPARTY-SELF, COUNTERPARTY-ATTACHMENT-MISMATCH, COUNTERPARTY-ATTACHMENT-TOO-LARGE, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, COUNTERPARTY-NO-ACT, COUNTERPARTY-NOT-ACT, COUNTERPARTY-POLICY-UNBOUND, SESSION-STOPPED, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
+        },
+      },
+    },
+    "/v1/session/{id}/probe": {
+      post: {
+        operationId: "runtime_session_probe",
+        security: [{ RuntimeToken: [] }],
+        summary:
+          "RIB-022: pre-register a deliberately wrong premise, then seal premise × response × verdict (held, hedged, or built_on) linked to that pre-registration hash. The runtime does not grade the verdict. A second verdict is refused. Not an MCP tool. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+        responses: {
+          "200": { description: "Probe pre-registration or verdict record appended." },
+          "400": { description: "bad_json, CALIBRATION-INVALID, CALIBRATION-NOT-WRONG-PREMISE, CALIBRATION-VERDICT-BEFORE-RUN, CALIBRATION-VERDICT-INVALID, CALIBRATION-PREMISE-MOVED, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, CALIBRATION-UNKNOWN-PREREG, CALIBRATION-ALREADY-SEALED, CALIBRATION-RESPONSE-BEFORE-PREMISE, SESSION-STOPPED, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
+        },
+      },
+    },
+    "/v1/session/{id}/aer": {
+      get: {
+        operationId: "runtime_session_aer_read",
+        summary:
+          "RIB-025: read a portable execution receipt without an account. Unknown ids are AER-NOT-FOUND and are not fabricated. verification is recomputed. aer1_conformance names draft-zambo-aer1-08 and the v1.4.0 43/43 corpus; chain corpora that are not in that tag are not claimed.",
+        tags: ["session"],
+        parameters: [
+          SESSION_ID_PARAM,
+          { name: "id", in: "query", required: false, schema: { type: "string" } },
+          { name: "workflow", in: "query", required: false, schema: { type: "string" } },
+        ],
+        responses: {
+          "200": { description: "Portable receipt or the session's AER-1 export. account_required is false." },
+          "404": { description: "session_not_found or AER-NOT-FOUND (fabricated false)" },
+        },
+      },
+      post: {
+        operationId: "runtime_session_aer",
+        security: [{ RuntimeToken: [] }],
+        summary:
+          "RIB-025: seal one portable receipt (act_receipt_hash, logged:true, or close:true). One output commitment covers tool call, inputs, and outputs. Provenance is chosen by the runtime. A caller cannot upgrade a log into an execution. Not an MCP tool. No key is minted. Cap-7 is not ICANN. Paid satellite stays HELD.",
+        tags: ["session"],
+        parameters: [SESSION_ID_PARAM],
+        requestBody: { required: true, content: { "application/json": { schema: { type: "object" } } } },
+        responses: {
+          "200": { description: "Portable receipt appended to the session chain." },
+          "400": { description: "bad_json, AER-INVALID, AER-MIXED, AER-JOB-MISMATCH, AER-INPUT-MISMATCH, AER-PROVENANCE-UPGRADE, or " + TOKEN_400 },
+          "401": { description: TOKEN_401 },
+          "404": { description: "session_not_found" },
+          "409": { description: "session_closed, AER-NO-ACT, AER-NOT-ACT, AER-DUPLICATE, AER-ALREADY-CLOSED, SESSION-STOPPED, or " + PAUSED_409 },
+          "429": { description: TOKEN_429 },
+          "503": { description: TOKEN_503 },
+        },
+      },
+    },
     "/v1/session/{id}/spec": {
       get: {
         operationId: "runtime_session_spec",
