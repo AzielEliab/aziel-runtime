@@ -483,6 +483,40 @@ export async function refuseRuntimeGate(name, gate) {
 export async function fraggateCall(args, registry, bySlug, env, request = null) {
   // USER-SIGNIN-ARK-1.0 §4: the credential firewall runs before anything reads args.
   args = await arkFirewall(args);
+  const { policyScreened, preExecScreen, runScreened } = await import("../x-reply-policy.js");
+  if (!policyScreened()) {
+    const screen = await preExecScreen({ name: "fraggate_call", args, env, request, now: Date.now() });
+    if (!screen.ok) {
+      const src = args && typeof args === "object" ? args : {};
+      return refuse({
+        code: screen.code,
+        name: src.slug || src.name || src.product ? String(src.slug || src.name || src.product) : null,
+        slug: src.slug || src.name || src.product ? String(src.slug || src.name || src.product) : null,
+        op: src.op ? String(src.op) : null,
+        message: screen.message,
+        extra: {
+          fail_closed: true,
+          executed: false,
+          written: false,
+          spec: "AZRT-X-REPLY-POLICY-1.0",
+          attribution: screen.attribution,
+          refusal_receipt: screen.refusal_receipt,
+        },
+      });
+    }
+    if (screen.engaged) {
+      const out = await runScreened(() => fraggateCallAfterScreen(args, registry, bySlug, env, request));
+      if (out && typeof out === "object") {
+        out.attribution = screen.attribution;
+        if (screen.hook_tip) out.hook_tip = screen.hook_tip;
+      }
+      return out;
+    }
+  }
+  return fraggateCallAfterScreen(args, registry, bySlug, env, request);
+}
+
+async function fraggateCallAfterScreen(args, registry, bySlug, env, request) {
   const attempt = normalizeAttemptLink(args && typeof args === "object" ? args : {}, { generate: true });
   if (!attempt.ok) {
     return refuse({
