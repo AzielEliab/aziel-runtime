@@ -24,9 +24,11 @@ import {
   checkBudget,
   createLedger,
   humanAck,
+  confirmIntake,
   openItem,
   readReceipt,
   reassign,
+  rejectIntake,
   reopen,
   resolveItem,
   verifyAckChain,
@@ -279,11 +281,38 @@ ok(PUBLIC_MCP_TOOLS.length === 36 && !PUBLIC_MCP_TOOLS.some((name) => /ack|clock
     item_id: "item_should_not_exist",
     budget_ms: 1000,
   });
-  ok(dup.linked === true && dup.new_item === false && dup.item_id === id, "inside the window a new filing links");
-  ok(dup.receipt.event === "intake_linked" && dup.receipt.refused_new_item === true, "the link is a sealed row");
-  ok(dup.receipt.reopen_count === 1 && dup.receipt.forced === true, "intake bumps the reopen count");
-  ok(dup.receipt.original_receipt_hash === opened.receipt.hash, "intake names the original");
+  ok(dup.pending === true && dup.linked === false && dup.new_item === false && dup.reentered === false && dup.item_id === id, "inside the window a filing is only proposed");
+  ok(dup.receipt.event === "intake_proposed" && dup.receipt.intake_state === "proposed" && dup.receipt.refused_new_item === true, "the proposal is a sealed row");
+  ok(dup.receipt.reopen_count === 0 && dup.receipt.reenters === false && dup.item.status === "resolved", "a proposal does not re-enter");
+  ok(dup.receipt.original_receipt_hash === opened.receipt.hash, "the proposal names the original");
   ok([...new Set(ledger.receipts.map((rec) => rec.item_id))].length === 1, "no second item was sealed");
+  const repeat = await openItem(ledger, {
+    now: T0 + 10 * DAY_MS + 1,
+    requester: "sam",
+    issue_key: "disk-full",
+    owner: "ada",
+    budget_ms: 1000,
+  });
+  ok(repeat.written === false && repeat.receipt.hash === dup.receipt.hash, "an open proposal is not sealed twice");
+  const rejected = await rejectIntake(ledger, { item_id: id, proposal_hash: dup.receipt.hash, now: T0 + 10 * DAY_MS + 2 });
+  ok(rejected.ok === true && rejected.receipt.event === "intake_rejected" && rejected.reentered === false, "reject seals and does not re-enter");
+  ok(rejected.item.status === "resolved" && rejected.item.reopen_count === 0 && rejected.item.intake_state === "rejected", "reject leaves the item resolved");
+  const late = await confirmIntake(ledger, { item_id: id, proposal_hash: dup.receipt.hash, now: T0 + 10 * DAY_MS + 3 });
+  ok(late.ok === false && late.code === "INTAKE-NOT-PROPOSED", "a rejected proposal cannot be confirmed");
+  const dupB = await openItem(ledger, {
+    now: T0 + 10 * DAY_MS + 4,
+    requester: "Sam",
+    issue_key: "disk full",
+    owner: "bea",
+    budget_ms: 1000,
+  });
+  ok(dupB.receipt.event === "intake_proposed" && dupB.receipt.hash !== dup.receipt.hash, "a new filing after reject proposes again");
+  const mismatch = await confirmIntake(ledger, { item_id: id, proposal_hash: dup.receipt.hash, now: T0 + 10 * DAY_MS + 5 });
+  ok(mismatch.ok === false && mismatch.code === "INTAKE-PROPOSAL-MISMATCH", "confirm must name the open proposal");
+  const confirmed = await confirmIntake(ledger, { item_id: id, proposal_hash: dupB.receipt.hash, now: T0 + 10 * DAY_MS + 5 });
+  ok(confirmed.reentered === true && confirmed.linked === true && confirmed.receipt.event === "intake_confirmed", "confirm re-enters");
+  ok(confirmed.receipt.reopen_count === 1 && confirmed.receipt.reopen_flagged === false && confirmed.receipt.proposal_hash === dupB.receipt.hash, "confirm bumps the reopen count once");
+  ok(confirmed.receipt.original_receipt_hash === opened.receipt.hash && confirmed.item.status === "reopened", "the confirmed match stays on the original item");
   const dup2 = await openItem(ledger, {
     now: T0 + 11 * DAY_MS,
     requester: "sam",
@@ -291,7 +320,11 @@ ok(PUBLIC_MCP_TOOLS.length === 36 && !PUBLIC_MCP_TOOLS.some((name) => /ack|clock
     owner: "ada",
     budget_ms: 1000,
   });
-  ok(dup2.receipt.reopen_count === 2 && dup2.receipt.reopen_flagged === true, "a second inside-window filing flags");
+  ok(dup2.receipt.event === "intake_proposed" && dup2.receipt.reopen_count === 1, "a later match proposes and does not bump yet");
+  const confirmed2 = await confirmIntake(ledger, { item_id: id, proposal_hash: dup2.receipt.hash, now: T0 + 11 * DAY_MS + 1 });
+  ok(confirmed2.receipt.reopen_count === 2 && confirmed2.receipt.reopen_flagged === true, "the second confirmed match is flagged");
+  const bare = await confirmIntake(ledger, { item_id: id, now: T0 + 11 * DAY_MS + 2 });
+  ok(bare.ok === false && bare.code === "INTAKE-PROPOSAL-MISMATCH", "confirm without the proposal hash is refused");
 }
 
 {
@@ -332,8 +365,48 @@ ok(PUBLIC_MCP_TOOLS.length === 36 && !PUBLIC_MCP_TOOLS.some((name) => /ack|clock
     owner: "bea",
     budget_ms: 1000,
   });
-  ok(linked.linked === true && linked.item_id === opened.item_id, "an unresolved item stays the same item");
-  ok(linked.receipt.total_age_ms === 40 * DAY_MS, "the open item keeps its age");
+  ok(linked.pending === true && linked.linked === false && linked.item_id === opened.item_id, "an unresolved match is proposed on the same item");
+  ok(linked.receipt.event === "intake_proposed" && linked.receipt.total_age_ms === 40 * DAY_MS && linked.item.reopen_count === 0, "the proposal keeps age and does not re-enter");
+  const confirmed = await confirmIntake(ledger, { item_id: opened.item_id, proposal_hash: linked.receipt.hash, now: T0 + 40 * DAY_MS + 1 });
+  ok(confirmed.reentered === true && confirmed.item.status === "reopened" && confirmed.receipt.total_age_ms === 40 * DAY_MS + 1, "confirm keeps total age from the original open");
+  ok(confirmed.item.resolution_started_ms === T0 && confirmed.receipt.resolution_restarted === false, "confirm does not restart resolution");
+}
+
+{
+  const ledger = createLedger();
+  const opened = await openItem(ledger, {
+    now: T0,
+    requester: "sam",
+    issue_key: "intake-verify",
+    owner: "ada",
+    budget_ms: 1000,
+  });
+  await resolveItem(ledger, { item_id: opened.item_id, now: T0 + 50 });
+  const proposed = await openItem(ledger, {
+    now: T0 + 80,
+    requester: "sam",
+    issue_key: "intake-verify",
+    owner: "ada",
+    budget_ms: 1000,
+  });
+  await rejectIntake(ledger, { item_id: opened.item_id, proposal_hash: proposed.receipt.hash, now: T0 + 90 });
+  const again = await openItem(ledger, {
+    now: T0 + 100,
+    requester: "sam",
+    issue_key: "intake-verify",
+    owner: "ada",
+    budget_ms: 1000,
+  });
+  await confirmIntake(ledger, { item_id: opened.item_id, proposal_hash: again.receipt.hash, now: T0 + 110 });
+  const verified = await verifyAckChain(ledger.receipts);
+  ok(verified.ok === true, "propose, reject, propose, confirm verifies: " + JSON.stringify(verified.errors));
+  const tampered = structuredClone(ledger.receipts);
+  const last = tampered[tampered.length - 1];
+  last.reenters = false;
+  const { hash: _drop, ...unsigned } = last;
+  last.hash = await sha256Hex(canonicalize(unsigned));
+  const broken = await verifyAckChain(tampered);
+  ok(broken.ok === false && broken.errors.some((err) => err.error === "intake_state"), "a confirmed row that does not re-enter fails verify");
 }
 
 // Chain verify, tamper, and additive old seals.

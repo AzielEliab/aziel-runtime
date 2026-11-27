@@ -24,7 +24,9 @@ A human ack stops the clock only when `deliberate` is true and `human_name` is a
 
 `total_age_ms` is measured from the original open. `reopen` increments `reopen_count`. The second reopen sets `reopen_flagged`. The row sets `re_resolve_started_ms` and `original_receipt_hash` of the first seal. The inherited resolution start stays put, so a later resolve can show a long `resolution_ms` and a short `re_resolve_ms`.
 
-Intake: the same requester and the same issue key, while the item is unresolved or within 30 days after `resolved_ms`, seals `intake_linked` on that item. It does not open a second item. A filing outside that window is a new item with its own resolution clock.
+Intake: the same requester and the same issue key, while the item is unresolved or within 30 days after `resolved_ms`, matches that item. It does not open a second item. A filing outside that window is a new item with its own resolution clock.
+
+Twitter backlog RIB-058 (@smperng): a match seals `intake_proposed` and does not re-enter. `confirmIntake` seals `intake_confirmed` (the proposal hash is on that row) and only then bumps `reopen_count`, starts `re_resolve_started_ms`, and sets the item reopened. `rejectIntake` seals `intake_rejected` and leaves reopen count and resolved state as they were. A second filing while a proposal is open returns that proposal and writes nothing. Confirm and reject name the open proposal hash. AZRT-ANCHOR-COVERAGE-1.0 also uses the label RIB-058 for its verifier cron. That cron is a different module and is unchanged. A legacy `intake_linked` row, if one is already sealed, still counts as a reopen during verify.
 
 ## Boundary
 
