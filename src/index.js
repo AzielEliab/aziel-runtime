@@ -29,6 +29,8 @@
  * GET  /robots.txt            Allow / for Google + major AI bots; sitemap-index + hub sitemaps
  * GET  /sitemap.xml           session, pull, OpenAPI, product cards/health, GitHub
  * GET  /sitemap-index.xml     catalog sitemap + corpus + godlock.uk + hedidntjump sister archive + furnace + unseal + live product Worker sitemaps
+ * GET  /rss.xml               RSS 2.0 at the public origin. Release, Softwares catalog date, dated RIB notes.
+ * GET  /feed.xml              301 to https://aziel-runtime.vibelock.workers.dev/rss.xml
  * GET  /llms.txt              plain-text catalog + how to cite Aziel Eliab + Digital Library
  * GET  /ai.txt                same as /llms.txt
  * GET  /.well-known/llms.txt  alias of /llms.txt
@@ -383,6 +385,7 @@ import {
   sitemapIndexXml,
   SUITE_DESIGNS,
 } from "./seo.js";
+import { SITE_RSS_ALIAS, SITE_RSS_ORIGIN, SITE_RSS_PATH, siteRssStaticLastmod, siteRssXml } from "./site-rss.js";
 import { llmsCatalogSetsBlock } from "./catalog-sets.js";
 import { aboutAzielCiteField, aboutAzielLlmsBlock, corpusFoldPackCiteField, workerLaunchCiteField, workerLaunchHtml } from "./about-aziel.js";
 import { helpOpenApiPaths, helpSitemapEntries, helpTxtForPath } from "./help-txt.js";
@@ -482,7 +485,7 @@ import { crossMapFields } from "./cross-map.js";
 
 export { RuntimeSession, ChainWriter, RateQuota, TunnelHub, RuntimeKv, AzNewsStore };
 
-const CATALOG_HOST = "https://aziel-runtime.vibelock.workers.dev";
+const CATALOG_HOST = SITE_RSS_ORIGIN;
 const PROTOCOL = MCP_PROTOCOL_PREFERRED;
 const CATALOG_TITLE = PRODUCT_NAME;
 /** Bound to the canonical abstract. Version rolls (1.9+) go in #version-history, not here. */
@@ -1506,6 +1509,19 @@ function xml(body, extra = {}) {
   });
 }
 
+function rssXml(body, extra = {}) {
+  return new Response(body, {
+    status: 200,
+    headers: {
+      ...corsHeaders(),
+      ...securityHeaders("api"),
+      "X-Robots-Tag": "index, follow, max-snippet:-1, max-image-preview:large",
+      ...extra,
+      "Content-Type": "application/rss+xml; charset=utf-8",
+    },
+  });
+}
+
 function originOf(request) {
   try {
     return new URL(request.url).origin;
@@ -1747,6 +1763,7 @@ function sitemapXml(origin) {
     { loc: base + "/sigil.png", priority: "0.3", changefreq: "monthly" },
     { loc: base + "/manifest.webmanifest", priority: "0.5", changefreq: "weekly" },
   ];
+  urls.push({ loc: base + SITE_RSS_PATH, priority: "0.7", changefreq: "weekly", lastmod: siteRssStaticLastmod() });
   for (const p of PRODUCTS) {
     urls.push({ loc: `${base}/#${p.slug}`, priority: "0.8", changefreq: "weekly" });
     urls.push({ loc: `${base}/p/${p.slug}`, priority: "0.8", changefreq: "weekly" });
@@ -1903,6 +1920,7 @@ function llmsTxt(origin, env = {}) {
     `Ban survival: ${base}/survival  (BAN-SURVIVAL-1.0; mutual backup: live multi-front ↔ cold shelves; LIVE doors only; live-node API SLOT; SPORE-1.0 pause / preserve / wait / physical-wipe-only)`,
     `Sitemap: ${base}/sitemap.xml`,
     `Sitemap index: ${base}/sitemap-index.xml`,
+    `RSS: ${base}${SITE_RSS_PATH}`,
     `Primary host (discovery / install): ${RUNTIME_GLAMA}`,
     `Library: ${LIBRARY_NAME} ${LIBRARY_ORIGIN}/`,
     `Library cite: ${LIBRARY_CITE}`,
@@ -2305,6 +2323,7 @@ function headMeta(origin, title, description, canonicalPath, env = {}) {
 <link rel="canonical" href="${escapeHtml(canonical)}">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap.xml">
 <link rel="sitemap" type="application/xml" href="${base}/sitemap-index.xml">
+<link rel="alternate" type="application/rss+xml" href="${base}${SITE_RSS_PATH}" title="Aziel Runtime">
 <link rel="alternate" type="text/plain" href="${base}/llms.txt" title="llms.txt">
 <link rel="alternate" type="text/plain" href="${base}/help.txt" title="help.txt">
 <link rel="alternate" type="text/plain" href="${base}/addendum.txt" title="addendum.txt">
@@ -3274,6 +3293,14 @@ function staticPaths(origin, env = {}) {
         responses: { "200": { description: "sitemap.xml" } },
       },
     },
+    "/rss.xml": {
+      get: {
+        operationId: "catalog_rss",
+        summary: "RSS 2.0 at the public origin. GitHub release, Softwares catalog date, and RIB notes that record a date. GET /feed.xml is a 301 to that document.",
+        tags: ["catalog"],
+        responses: { "200": { description: "application/rss+xml" } },
+      },
+    },
     "/sitemap-index.xml": {
       get: {
         operationId: "catalog_sitemap_index",
@@ -3724,6 +3751,7 @@ function healthBody(origin, env = {}) {
     platforms_json: "/v1/platforms",
     sitemap: "/sitemap.xml",
     sitemap_index: "/sitemap-index.xml",
+    rss: "/rss.xml",
     robots: "/robots.txt",
     llms: "/llms.txt",
     ai: "/ai.txt",
@@ -4479,6 +4507,27 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/sitemap.xml" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(request, xml(sitemapXml(origin), extra("/sitemap.xml")));
+    }
+
+    if (url.pathname === SITE_RSS_ALIAS && (request.method === "GET" || request.method === "HEAD")) {
+      return new Response(null, {
+        status: 301,
+        headers: {
+          Location: `${CATALOG_HOST}${SITE_RSS_PATH}`,
+          ...corsHeaders(),
+        },
+      });
+    }
+
+    if (url.pathname === SITE_RSS_PATH && (request.method === "GET" || request.method === "HEAD")) {
+      const catalog = softwareCatalogBody(CATALOG_HOST, env);
+      return asHead(
+        request,
+        rssXml(
+          siteRssXml(CATALOG_HOST, { updatedAt: catalog.updated_at, softwareCount: catalog.count }),
+          linkHeaders(CATALOG_HOST, SITE_RSS_PATH),
+        ),
+      );
     }
 
     if (url.pathname === "/sitemap-index.xml" && (request.method === "GET" || request.method === "HEAD")) {
