@@ -297,3 +297,17 @@ RIB-064: `reassign` restarts ack for a new owner and does not move `resolution_s
 RIB-065 and RIB-067: `total_age_ms` is from the original open. `reopen` increments `reopen_count` (the second sets `reopen_flagged`) and sets `re_resolve_started_ms` on a row whose `original_receipt_hash` is the first seal. The same requester and issue key, while the item is unresolved or within 30 days of `resolved_ms`, matches that item instead of opening a new one. Twitter backlog RIB-058 seals that match as `intake_proposed` until `intake_confirmed` (re-enters, bumps `reopen_count`) or `intake_rejected` (does not re-enter). A legacy `intake_linked` row still verifies as a reopen. AZRT-ANCHOR-COVERAGE-1.0's RIB-058 label is the coverage verifier, not this state machine.
 
 Cap-7 and `.aziel` strings on a row stay names (`name_resolved: false`). The sealed `boundary` says Cap-7 is not ICANN and not a public egress IP. `paid_sat` is `HELD`. Not a Softwares card. Not an MCP tool. Not a public door.
+
+## 11. Counterparty, calibration, and portable receipts (not live)
+
+Kind stays `aziel-runtime.receipt`. New events `counterparty`, `probe`, and `aer` are additive rows on the session chain. Old chains that lack them verify as before (`status: "absent"`). No signature field is added. No key is minted.
+
+| Event | Spec | What is sealed |
+|-------|------|----------------|
+| `counterparty` | AZRT-COUNTERPARTY-RECEIPT-1.0 (RIB-021) | Counterparty statement bound to an earlier policy-gated exec. `signed: false`. |
+| `probe` | AZRT-CALIBRATION-PROBE-1.0 (RIB-022) | Pre-registered wrong premise, then `premise × response × verdict`. |
+| `aer` | AZRT-AER1-EXPORT-1.0 (RIB-025, `draft-zambo-aer1-08`) | Portable receipt. Canonical bytes cover tool call, inputs, and outputs. |
+
+`GET /v1/session/{id}/aer` requires no account. `aer1_conformance` is `draft-zambo-aer1-08` with kit `v1.4.0` result `43/43`. `aer1_chain_corpus` is `not_in_v1.4.0_tag`. Paper: [AZRT-RIB-021-022-025](../designs/AZRT-RIB-021-022-025.md).
+
+---
