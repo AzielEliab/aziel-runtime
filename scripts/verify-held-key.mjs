@@ -49,7 +49,7 @@ async function chain(signer, k = 2) {
   // env[...] index and every whole-env enumeration/spread is on a reviewed allowlist, so a new one fails here.
   const ALLOWED_COMPUTED_ENV = {
     "workspace.js": ["env[ENV_WORKSPACE_KEY]"],
-    "index.js": ["env[bindingName(product)]"],
+    "index.js": ["env[bindingName(product)]", "env[bindingName(product)]"],
     "engines/vibelock/engine.js": ["env[i]", "env[i]", "env[i]", "env[i - 1]"], // local numeric array named env
   };
   const ALLOWED_ENV_ENUM = {

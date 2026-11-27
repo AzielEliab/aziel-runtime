@@ -4,15 +4,24 @@
  * The sum is computed on read. It is not written into the USES Durable Object.
  * nodes, live_nodes, and human_uses are not Softwares uses.
  *
+ * Front-door meter views are read through the Worker's service binding. A fetch of
+ * https://{worker}.vibelock.workers.dev from this Worker is same-account and Cloudflare
+ * returns error 1042, which dropped every meter (sum_views 0). The public URL is only
+ * a fallback when the binding is missing or does not answer. A timeout, 1042, or a
+ * body without an integer `views` is listed in uses_views_missing. It is not filled
+ * from an older snapshot, and the rollup is not complete.
+ *
  * Author: Aziel Eliab. Identity is Aziel Eliab only.
  */
 
+import { serviceBindingName } from "./software-meters.js";
 import { USES_TOTAL_SOURCE } from "./uses.js";
 
 export const USES_RECTIFY_SPEC = "USES-RECTIFY-1.0";
 export const USES_FORMULA = "uses_legacy+uses_durable+sum_views+hosted_views+site_live_viewers";
 export const USES_VIEWS_TTL_MS = 60_000;
-const VIEW_TIMEOUT_MS = 2_000;
+/** Matches the product proxy. 2s aborted the whole roster under parallel subrequests. */
+export const USES_VIEW_TIMEOUT_MS = 4_000;
 
 /**
  * Hosted page views that are not a download-tracker counter.
@@ -49,6 +58,9 @@ export const USES_EXCLUDED = Object.freeze({
   hedidntjump: "hedidntjump.com is not a Softwares meter and is excluded from site viewers.",
 });
 
+const VIEWS_INCOMPLETE_NOTE =
+  "uses_complete is false because one or more Softwares meters or hosted view sources are missing. Missing meters are not counted as a complete total.";
+
 let viewsCache = { at: 0, complete: null };
 
 export function clearUsesRectifyCache() {
@@ -59,58 +71,173 @@ function whole(n) {
   return Number.isSafeInteger(n) && n >= 0 ? n : null;
 }
 
-async function fetchViews(url, fetchImpl) {
-  const res = await fetchImpl(url, {
+function viewInit(timeoutMs) {
+  return {
+    method: "GET",
     headers: { "user-agent": "Mozilla/5.0", accept: "application/json" },
-    signal: AbortSignal.timeout(VIEW_TIMEOUT_MS),
-  });
-  if (!res || res.ok !== true) return { ok: false, url };
-  const body = await res.json();
+    signal: AbortSignal.timeout(timeoutMs),
+  };
+}
+
+function failureReason(err) {
+  const name = err && err.name ? String(err.name) : "";
+  if (name === "TimeoutError" || name === "AbortError") return "timeout";
+  const msg = String(err && err.message ? err.message : err || "fetch-failed");
+  if (msg.includes("1042")) return "worker-1042";
+  return msg.slice(0, 160);
+}
+
+function viewsFromBody(body, url) {
   const views = whole(body && body.views);
-  if (views == null) return { ok: false, url };
+  if (views == null) return { ok: false, url, reason: "views-missing" };
   return { ok: true, url, views };
 }
 
-async function readViewSnapshot(meters, fetchImpl, now) {
+async function responseViews(res, url) {
+  if (!res || res.ok !== true) {
+    const status = res && Number.isFinite(Number(res.status)) ? Number(res.status) : 0;
+    return { ok: false, url, reason: status ? "http-" + status : "no-response" };
+  }
+  try {
+    return viewsFromBody(await res.json(), url);
+  } catch {
+    return { ok: false, url, reason: "bad-json" };
+  }
+}
+
+async function fetchPublicViews(url, fetchImpl, timeoutMs) {
+  const res = await fetchImpl(url, viewInit(timeoutMs));
+  return responseViews(res, url);
+}
+
+async function fetchBoundViews(row, bindFetch, timeoutMs) {
+  if (typeof bindFetch !== "function") return null;
+  const fetchBound = bindFetch(row);
+  if (typeof fetchBound !== "function") return null;
+  const binding = serviceBindingName(row);
+  const res = await fetchBound(new Request(row.meter_stats, viewInit(timeoutMs)));
+  const got = await responseViews(res, row.meter_stats);
+  return { ...got, via: "service-binding", binding };
+}
+
+async function fetchOneMeter(row, bindFetch, fetchImpl, timeoutMs) {
+  const url = row.meter_stats;
+  const binding = serviceBindingName(row);
+  let bound = null;
+  try {
+    bound = await fetchBoundViews(row, bindFetch, timeoutMs);
+  } catch (err) {
+    bound = { ok: false, url, via: "service-binding", binding, reason: failureReason(err) };
+  }
+  if (bound && bound.ok) return bound;
+  if (typeof fetchImpl !== "function") {
+    return bound || { ok: false, url, via: "unbound", binding, reason: "no-binding" };
+  }
+  try {
+    const pub = await fetchPublicViews(url, fetchImpl, timeoutMs);
+    if (pub.ok) return { ...pub, via: bound ? "public-fallback" : "public", binding };
+    return {
+      ok: false,
+      url,
+      via: bound ? "public-fallback" : "public",
+      binding,
+      reason: (bound && bound.reason) || pub.reason || "unread",
+      public_reason: pub.reason || null,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      url,
+      via: bound ? "public-fallback" : "public",
+      binding,
+      reason: (bound && bound.reason) || failureReason(err),
+      public_reason: failureReason(err),
+    };
+  }
+}
+
+function unreadSnapshot() {
+  return {
+    sum_views: 0,
+    hosted_views: 0,
+    meters: [],
+    hosted: {},
+    missing: ["views-unread"],
+    errors: [{ slug: "views-unread", reason: "no-fetch" }],
+    complete: false,
+    source: "unread",
+    corpus_once: CORPUS_ONCE,
+  };
+}
+
+async function readViewSnapshot(meters, bindFetch, fetchImpl, now, timeoutMs) {
   const fresh = viewsCache.complete && now - viewsCache.at < USES_VIEWS_TTL_MS ? viewsCache.complete : null;
   if (fresh) return { ...fresh, source: "cache" };
-  const list = Array.isArray(meters) ? meters : [];
-  const meterJobs = list
-    .filter((row) => row && row.slug && typeof row.meter_stats === "string" && row.meter_stats)
-    .map(async (row) => {
-      try {
-        const got = await fetchViews(row.meter_stats, fetchImpl);
-        return { slug: row.slug, ...got };
-      } catch {
-        return { ok: false, slug: row.slug, url: row.meter_stats };
+  const list = (Array.isArray(meters) ? meters : []).filter(
+    (row) => row && row.slug && typeof row.meter_stats === "string" && row.meter_stats,
+  );
+  const meterRows = await Promise.all(
+    list.map(async (row) => {
+      const got = await fetchOneMeter(row, bindFetch, fetchImpl, timeoutMs);
+      return { slug: row.slug, ...got };
+    }),
+  );
+  const hostedRows = await Promise.all(
+    HOSTED_VIEW_SOURCES.map(async (src) => {
+      if (typeof fetchImpl !== "function") {
+        return {
+          ok: false,
+          id: src.id,
+          url: src.url,
+          field: src.field,
+          excluded_fields: src.excluded_fields,
+          reason: "no-fetch",
+          via: "unbound",
+        };
       }
-    });
-  const hostedJobs = HOSTED_VIEW_SOURCES.map(async (src) => {
-    try {
-      const got = await fetchViews(src.url, fetchImpl);
-      return { id: src.id, field: src.field, excluded_fields: src.excluded_fields, ...got };
-    } catch {
-      return { ok: false, id: src.id, url: src.url, field: src.field, excluded_fields: src.excluded_fields };
-    }
-  });
-  const [meterRows, hostedRows] = await Promise.all([Promise.all(meterJobs), Promise.all(hostedJobs)]);
+      try {
+        const got = await fetchPublicViews(src.url, fetchImpl, timeoutMs);
+        return { id: src.id, field: src.field, excluded_fields: src.excluded_fields, via: "public", ...got };
+      } catch (err) {
+        return {
+          ok: false,
+          id: src.id,
+          url: src.url,
+          field: src.field,
+          excluded_fields: src.excluded_fields,
+          reason: failureReason(err),
+          via: "public",
+        };
+      }
+    }),
+  );
   const missing = [];
+  const errors = [];
   let sum_views = 0;
   const meters_out = [];
   for (const row of meterRows) {
     if (!row.ok) {
       missing.push(row.slug || row.url);
+      errors.push({
+        slug: row.slug || null,
+        url: row.url || null,
+        reason: row.reason || "unread",
+        via: row.via || null,
+        binding: row.binding || null,
+        ...(row.public_reason ? { public_reason: row.public_reason } : {}),
+      });
       continue;
     }
     sum_views += row.views;
-    meters_out.push({ slug: row.slug, url: row.url, views: row.views });
+    meters_out.push({ slug: row.slug, url: row.url, views: row.views, via: row.via || "public" });
   }
   let hosted_views = 0;
   const hosted = {};
   for (const row of hostedRows) {
     if (!row.ok) {
       missing.push(row.id || row.url);
-      hosted[row.id] = { url: row.url, field: "views", ok: false };
+      errors.push({ slug: row.id || null, url: row.url || null, reason: row.reason || "unread", via: row.via || "public" });
+      hosted[row.id] = { url: row.url, field: "views", ok: false, reason: row.reason || "unread" };
       continue;
     }
     hosted_views += row.views;
@@ -122,19 +249,26 @@ async function readViewSnapshot(meters, fetchImpl, now) {
     meters: meters_out,
     hosted,
     missing,
-    complete: missing.length === 0,
+    errors,
+    complete: missing.length === 0 && meters_out.length === list.length,
     corpus_once: CORPUS_ONCE,
   };
+  // Only a full roster is cached. A failed read is not replaced by the previous sum.
   if (snap.complete) viewsCache = { at: now, complete: snap };
-  else if (viewsCache.complete) return { ...viewsCache.complete, source: "last-complete", missing };
-  return { ...snap, source: "partial" };
+  return { ...snap, source: snap.complete ? "live" : "partial" };
+}
+
+function canReadViews(meters, bindFetch, fetchFn) {
+  if (typeof fetchFn === "function") return true;
+  if (typeof bindFetch !== "function") return false;
+  return (Array.isArray(meters) ? meters : []).some((row) => typeof bindFetch(row) === "function");
 }
 
 /**
  * Fold Softwares tracker views, hosted views, and site_live_viewers into a reconciled uses body.
  * A body that is not the legacy+durable total is returned unchanged.
  */
-export async function rectifyUsesBody(body, { meters = [], siteLive = null, fetchImpl = null, now = Date.now() } = {}) {
+export async function rectifyUsesBody(body, { meters = [], siteLive = null, bindFetch = null, fetchImpl = null, now = Date.now(), timeoutMs = USES_VIEW_TIMEOUT_MS } = {}) {
   if (!body || body.uses_total_source !== USES_TOTAL_SOURCE) return body;
   const fetchFn = typeof fetchImpl === "function"
     ? fetchImpl
@@ -146,22 +280,25 @@ export async function rectifyUsesBody(body, { meters = [], siteLive = null, fetc
   const uses_legacy = whole(body.uses_legacy) || 0;
   const uses_durable = whole(body.uses_durable) || 0;
   const uses_read = uses_legacy + uses_durable;
-  let views = {
-    sum_views: 0,
-    hosted_views: 0,
-    meters: [],
-    hosted: {},
-    missing: ["views-unread"],
-    complete: false,
-    source: "unread",
-    corpus_once: CORPUS_ONCE,
-  };
-  if (fetchFn) views = await readViewSnapshot(meters, fetchFn, now);
+  const limit = Number.isFinite(Number(timeoutMs)) && Number(timeoutMs) > 0 ? Number(timeoutMs) : USES_VIEW_TIMEOUT_MS;
+  const views = canReadViews(meters, bindFetch, fetchFn)
+    ? await readViewSnapshot(meters, bindFetch, fetchFn, now, limit)
+    : unreadSnapshot();
   const site_live_viewers = siteLive && whole(siteLive.site_live_viewers) != null ? siteLive.site_live_viewers : 0;
   const site_live_viewers_complete = Boolean(siteLive && siteLive.site_live_viewers_complete === true && whole(siteLive.site_live_viewers) != null);
+  const rollupComplete = views.complete === true;
+  const uses_complete = body.uses_complete === true && rollupComplete;
   return {
     ...body,
     uses: uses_read + views.sum_views + views.hosted_views + site_live_viewers,
+    uses_complete,
+    ...(uses_complete
+      ? {}
+      : {
+          uses_complete_note: rollupComplete
+            ? "uses_complete is false because the USES read itself was incomplete."
+            : VIEWS_INCOMPLETE_NOTE,
+        }),
     uses_formula: USES_FORMULA,
     uses_rectify_spec: USES_RECTIFY_SPEC,
     uses_components: {
@@ -178,11 +315,12 @@ export async function rectifyUsesBody(body, { meters = [], siteLive = null, fetc
       site_live_viewers_source: (siteLive && siteLive.site_live_viewers_source) || "mesh site_viewers single-key",
       site_live_viewers_components: siteLive && siteLive.site_live_viewers_components ? siteLive.site_live_viewers_components : {},
       uses_views_source: views.source,
-      uses_views_complete: views.complete === true,
+      uses_views_complete: rollupComplete,
       uses_views_missing: views.missing,
+      uses_views_errors: views.errors,
       site_live_viewers_complete,
     },
     uses_formula_note:
-      "published uses is uses_legacy + uses_durable + sum of front-door meter views + hosted views (azieleliab.com and godlock.uk views only) + site_live_viewers. Corpus hub views are the aziel-corpus tracker views and are counted once. nodes, live_nodes, human_uses, downloads, and hedidntjump are not added. The sum is not written into the USES Durable Object.",
+      "published uses is uses_legacy + uses_durable + sum of front-door meter views + hosted views (azieleliab.com and godlock.uk views only) + site_live_viewers. Meter views are read through each Softwares service binding. A public workers.dev fetch from this Worker is same-account error 1042 and is only a fallback. A missing or timed-out meter is listed and is not filled from an older snapshot. Corpus hub views are the aziel-corpus tracker views and are counted once. nodes, live_nodes, human_uses, downloads, and hedidntjump are not added. The sum is not written into the USES Durable Object. An incomplete rollup is not lifted to the shared floor.",
   };
 }

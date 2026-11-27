@@ -177,6 +177,13 @@ service = "azcoherence-download-tracker"
 binding = "EMBRYOLOCK"
 service = "embryolock-download-tracker"
 
+# Whitestone is a worker-only Softwares meter (not a PRODUCTS engine). Without
+# this binding, the uses rollup fetches the public workers.dev URL and
+# Cloudflare returns error 1042, so the meter is missing and sum_views drops it.
+[[services]]
+binding = "WHITESTONE"
+service = "whitestone-download-tracker"
+
 # Optional production gate (1.4.1+). When REQUIRE_TOKEN=1, GET /v1/ready is 503
 # unless secret RUNTIME_TOKEN is set (`npx wrangler secret put RUNTIME_TOKEN`).
 # Catalog / health / runtime / skill / pull / OpenAPI / MCP tools/list stay public.

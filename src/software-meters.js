@@ -52,6 +52,20 @@ export const SKIPPED_NOT_METER_PRODUCTS = Object.freeze([
   { key: "azlibrary", reason: "Website design on the library hub. Not a Softwares card." },
 ]);
 
+/**
+ * Service-binding name for a Softwares meter. A slug that starts with a digit
+ * is not a JS identifier. Must match [[services]] in wrangler.toml and
+ * bindingName() in src/index.js. Same-account fetch of the public
+ * workers.dev URL returns error 1042, so the rollup calls this binding.
+ */
+export const SERVICE_BINDING_OVERRIDES = Object.freeze({ "4dmap": "FOURDMAP" });
+
+export function serviceBindingName(product) {
+  const slug = String((product && product.slug) || "");
+  if (Object.prototype.hasOwnProperty.call(SERVICE_BINDING_OVERRIDES, slug)) return SERVICE_BINDING_OVERRIDES[slug];
+  return slug.toUpperCase().replace(/-/g, "_");
+}
+
 export function isDownloadTrackerWorker(worker) {
   return typeof worker === "string" && worker.endsWith("-download-tracker");
 }
