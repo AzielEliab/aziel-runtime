@@ -15,7 +15,7 @@ FragGate remains THE single public executable door. `GET /v1/mesh` never enables
 | 1. Stable public contract | `PUBLIC-CONTRACT.md`, `COMPATIBILITY-POLICY.md`, `RECEIPT-SCHEMA.md`, `REFUSAL-CONTRACT.md`, `BREAKING-CHANGE-POLICY.md` |
 | 2. Independent reproducibility | `CLEAN-ROOM.md` + `scripts/clean-room-2.0.sh` + evidence schema |
 | 3. External adversarial | `EXTERNAL-ADVERSARIAL-PACK.md` + `scripts/external-adversarial-2.0.sh` |
-| 4. Distribution identity | Existing `glama.json` listing metadata + GitHub description/topics **plus** Glama TDQS 5.0 `tools/list` schema quality (`docs/GLAMA-TDQS.md`). Identity **Aziel Eliab** only. Tool **names** stay the 36 `PUBLIC_MCP_TOOLS`. |
+| 4. Distribution identity | Existing `glama.json` listing metadata + GitHub description/topics **plus** Glama TDQS 5.0 `tools/list` schema quality (`docs/GLAMA-TDQS.md`). Identity **Aziel Eliab** only. Tool **names** stay the 37 `PUBLIC_MCP_TOOLS`. |
 | 5. Outside use | Operational proof **outside this PR** — not claimed here |
 
 ## Documents

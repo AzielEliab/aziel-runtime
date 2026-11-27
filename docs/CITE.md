@@ -11,7 +11,7 @@ Aziel Runtime is a node-meshed orchestration suite of MCP-connected software des
 ## How to use
 
 1. Click Install / Add to Glama on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime
-2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` is 37.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
@@ -19,7 +19,7 @@ Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
 Example first call: Softwares `{}`, pick a slug, then `fraggate_call` `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
-MCP `tools/list` is 36 tools. FragGate is the single door.
+MCP `tools/list` is 37 tools. FragGate is the single door.
 
 **Version 2.0.0-rc1** is the certification-point freeze. Changelog stays below this abstract.
 

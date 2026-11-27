@@ -14,7 +14,7 @@ to record them as **one rollup receipt per minute per door + code, a count only*
 
 | Law | How this fits |
 |---|---|
-| docs/2.0/PUBLIC-CONTRACT.md | No route, tool or field is removed. tools/list stays 36, Softwares 42, version 2.0.0-rc1. |
+| docs/2.0/PUBLIC-CONTRACT.md | No route, tool or field is removed. tools/list is 37, Softwares 42, version 2.0.0-rc1. |
 | docs/2.0/COMPATIBILITY-POLICY.md, BREAKING-CHANGE-POLICY.md | Additive only: one response header, one new row kind on an existing internal chain, one new KV op. |
 | docs/2.0/REFUSAL-CONTRACT.md | Auth refuse codes, statuses and bodies are unchanged. §5d lists the header and the one new row code. |
 | docs/2.0/RECEIPT-SCHEMA.md | Rows use the existing refusal receipt shape. The new fields (`kind`, `rollup_spec`, `count`, `count_capped`, `minute`, `window_s`, `combos`) are additive. |

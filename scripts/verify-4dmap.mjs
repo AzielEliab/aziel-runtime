@@ -568,7 +568,7 @@ resetFourdmapStore();
 const catalog = softwareCatalog(origin, PRODUCTS);
 assert.equal(catalog.count, 42);
 assert.equal(catalog.software.some((row) => row.slug === "aznews"), false);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PUBLIC_MCP_TOOLS.includes("news_pin"), false);
 assert.equal(PUBLIC_MCP_TOOLS.includes("aznews"), false);
 assert.equal(existsSync(new URL("../src/engines/4dmap/aznews-source.js", import.meta.url)), true);
@@ -1186,6 +1186,6 @@ assert.equal(fetchedStatus.mesh_node, false);
 assert.match(fetchedStatus.note, /join is live/i);
 assert.doesNotMatch(fetchedStatus.note, /\{/);
 assert.equal(softwareCatalog(origin, PRODUCTS).count, 42);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 
 console.log(`ok 4dmap ${product.version}: LIVE_OPS=${live.join(",")} stub=${STUB_OPS["4dmap"].join(",")} axes=${AXES.join("/")}`);

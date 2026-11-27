@@ -81,7 +81,7 @@ const MESH_WARNS = [
   },
 ];
 
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(softwareCatalog("https://aziel-runtime.example", PRODUCTS).count, 42);
 assert.equal(CLAIM_LIMITS.anonymous, false);
 assert.equal(CLAIM_LIMITS.unkillable, false);
@@ -118,7 +118,7 @@ assert.match(paper, /Softwares stay 42/);
 assert.match(repro, /npm install/);
 assert.match(repro, /node scripts\/verify-azp-ns-repro\.mjs/);
 assert.match(repro, /Softwares stay 42/);
-assert.match(repro, /tools\/list` stays 36/);
+assert.match(repro, /tools\/list` is 37/);
 for (const gate of GATES) assert.match(repro, new RegExp(gate.replace(/[.]/g, "\\.")));
 for (const row of REQUIRED_HONESTY) assert.match(repro, new RegExp(row.id));
 for (const warn of MESH_WARNS) {
@@ -153,7 +153,7 @@ assert.match(planeP, /Mirage is not AZVPN/);
 assert.match(planeP, /bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297/);
 assert.match(planeP, /does not edit the Softwares catalog/);
 assert.match(planeP, /Softwares stay 42/);
-assert.match(planeP, /tools\/list` stays 36/);
+assert.match(planeP, /tools\/list` is 37/);
 assert.match(planeP, /not a LIVE public packet egress/);
 {
   const order = ["1 | LAN", "2 | Wi-Fi", "3 | Bluetooth", "4 | RF", "5 | Photon"];
@@ -174,7 +174,7 @@ assert.match(warnsPaper, /FIXTURE-MEASURE/);
 assert.match(warnsPaper, /not an anonymity PASS/);
 assert.match(warnsPaper, /live_multi_provider/);
 assert.match(warnsPaper, /Softwares stay 42/);
-assert.match(warnsPaper, /tools\/list` stays 36/);
+assert.match(warnsPaper, /tools\/list` is 37/);
 assert.equal(warnsPaper.includes("STAY-OFF"), false);
 for (const cite of [fedPaper, nodeMesh]) {
   assert.match(cite, /MESH-INTERNET-WARNS-1\.0/);
@@ -275,7 +275,7 @@ console.log("WARN-5 STANDS-until-demonstrated BY-DESIGN separate from ICANN");
 console.log(JSON.stringify({
   script: "verify-azp-ns-repro",
   softwares: 42,
-  tools: 36,
+  tools: 37,
   live_multi_provider: false,
   anonymous: false,
   unkillable: false,

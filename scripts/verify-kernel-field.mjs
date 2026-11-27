@@ -27,7 +27,8 @@ assert.equal(list.kernel_repo_url, "https://github.com/AzielEliab/fraggate");
 // and with engine wording for QNM named flags (mesh_node_live, alt_internet_live, packet_path_live ON; radio PHY stays false; counts unchanged).
 // and with the AZVPN artifact (isolate-inbox honesty: not the QNM packet path; counts unchanged).
 // and with the 4dmap artifact (hermetic tests do not dial news or weather feeds; counts unchanged).
-assert.equal(list.registry_digest, "dc28b99f5be541dfd1a09dee21d42a9b03238bad95dd214a3adbc99f18c08bcf");
+// and with the aznet skill line (tools/list is 37; fraggate_preview is the read-only dry run).
+assert.equal(list.registry_digest, "7f438ccf0ceae8d6168248be2cdea06ada62b92335ea7740d0ed9d4bb5561c36");
 assert.equal(list.stub_op_count, 363);
 assert.equal(list.live_count, 42);
 n += 5;

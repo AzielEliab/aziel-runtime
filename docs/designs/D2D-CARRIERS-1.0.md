@@ -2,7 +2,7 @@
 
 **Author:** Aziel Eliab only.  
 **Phase:** A landed. B and C run on the local node. D is LIVE-when-three-local-nodes / fixture. E is scaffold.  
-**Version:** runtime stays `2.0.0-rc1`. Not a new MCP tool. Softwares stay 42. `tools/list` stays 36.
+**Version:** runtime stays `2.0.0-rc1`. Not a new MCP tool. Softwares stay 42. `tools/list` is 37.
 
 This plane is device-to-device packet reachability. It is separate from Cap-7. Design names: the name plane is **Plane N** and the packet plane is **Plane P** ([`PLANE-P-D2D-1.0.md`](PLANE-P-D2D-1.0.md)). The public Worker door stays NOT-READY / FG-STUB. `alt_internet_live` stays false. WARN-5 stays STANDS-until-demonstrated.
 

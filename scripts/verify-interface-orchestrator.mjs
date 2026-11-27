@@ -1,7 +1,7 @@
 /**
  * Human-side interface orchestration.
  * Plans do not launch or append. Seal uses ACT-RECEIPT-1.0 fields.
- * Live dispatch goes through FragGate. tools/list stays 36.
+ * Live dispatch goes through FragGate. tools/list is 37.
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -274,7 +274,7 @@ assert.equal(doorBody.increments_downloads, false);
 const listed = await post("/mcp", { jsonrpc: "2.0", id: 1, method: "tools/list", params: {} });
 const tools = await listed.json();
 const names = tools.result.tools.map((tool) => tool.name);
-assert.equal(names.length, 36);
+assert.equal(names.length, 37);
 assert.equal(names.length, PUBLIC_MCP_TOOLS.length);
 assert.equal(names.includes("interface_orchestrate"), false);
 assert.equal(names.includes(INTERFACE_MCP_METHOD), false);
@@ -827,4 +827,4 @@ assert.equal(guideAdapt.body.software_tab, false);
 assert.equal(guideAdapt.body.adaptive.receipt_hash, guideAdapt.body.receipt.hash);
 assert.equal((await sharedSnapshot({})).desks.azai, 1);
 
-console.log("ok interface orchestrator: plans stay local, seal uses ACT-RECEIPT fields, tools/list stays 36");
+console.log("ok interface orchestrator: plans stay local, seal uses ACT-RECEIPT fields, tools/list is 37");

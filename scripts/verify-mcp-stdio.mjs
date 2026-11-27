@@ -103,7 +103,7 @@ assert.match(
 assert.match(glamaDoc, /Worker remote: `https:\/\/aziel-runtime\.vibelock\.workers\.dev\/mcp`/);
 assert.match(glamaDoc, /`decisiongate_check` with a short proposal and `dry_run:true`/);
 assert.match(glamaDoc, /`forgereceipts` receipt for a completed task/);
-assert.match(glamaDoc, /MCP `tools\/list` is \*\*36\*\* tools/);
+assert.match(glamaDoc, /MCP `tools\/list` is \*\*37\*\* tools/);
 
 const dockerfile = await readFile(join(root, "Dockerfile"), "utf8");
 assert.match(dockerfile, /cli\/mcp-stdio\.mjs/);

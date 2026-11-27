@@ -42,7 +42,7 @@ FragGate is THE single public executable door. Lamb Lens is fabric ethics **afte
 
 ## 2. MCP tool names (frozen)
 
-Source of truth: `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js`. Live `POST /mcp` `tools/list` must equal this list. Cap: `PUBLIC_MCP_TOOL_MAX = 40`. Count at freeze: **36**.
+Source of truth: `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js`. Live `POST /mcp` `tools/list` must equal this list. Cap: `PUBLIC_MCP_TOOL_MAX = 40`. Count: **37**. The 2.0.0-rc1 freeze count was 36. Additive read-only name `fraggate_preview` (dry_run only, `readOnlyHint: true`) is documented and stays within cap 40. `fraggate_call` is unchanged.
 
 ### Door (`PUBLIC_DOOR_TOOLS`)
 
@@ -53,6 +53,7 @@ Source of truth: `PUBLIC_MCP_TOOLS` in `src/fraggate/codes.js`. Live `POST /mcp`
 | `fraggate_describe` | `name?`, `slug?` |
 | `fraggate_verify` | `name?`, `slug?`, `digest?` |
 | `fraggate_call` | **`op` required**; `name?`, `slug?`, `payload?`, `claim?` |
+| `fraggate_preview` | **`op` required**; `name?` or `slug?`; `payload?`. Dry run only. `readOnlyHint: true`. `confirm` is ignored. Does not execute. |
 | `decisiongate_check` | `statement?`, `evidence?[]`, `impact_pos?[]`, `impact_neg?[]`, `values?[]`, `accountable?` |
 | `library_lookup` | `q?`, `op?` (`search` \| `example` \| `skill` \| `health`) |
 

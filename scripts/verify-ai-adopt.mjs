@@ -1,7 +1,7 @@
 /**
  * AI adopt discovery: compact card, Content-Signal, HEAD parity, aliases,
  * slim Actions OpenAPI, install snippets, client matrix.
- * Freeze: Softwares 42 / tools/list 36. No invented DOI.
+ * Softwares 42 / tools/list 37. No invented DOI.
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -29,7 +29,7 @@ async function head(path, env) {
 }
 
 assert.equal(CONTENT_SIGNAL, "search=yes, ai-input=yes, ai-train=yes");
-assert.equal(PUBLIC_MCP_TOOLS.length, 36, "tools/list freeze");
+assert.equal(PUBLIC_MCP_TOOLS.length, 37, "tools/list freeze");
 assert.equal(CLIENT_CLASS_IDS.length, 17);
 
 const listed = await call("/mcp", {
@@ -38,7 +38,7 @@ const listed = await call("/mcp", {
   body: JSON.stringify({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }),
 });
 const listedBody = await listed.json();
-assert.equal(listedBody.result.tools.length, 36);
+assert.equal(listedBody.result.tools.length, 37);
 
 const softwareRes = await get("/v1/software");
 assert.equal(softwareRes.status, 200);
@@ -57,7 +57,7 @@ assert.equal(adopt.git_sha, software.git_sha);
 assert.equal(adopt.version_id, software.version_id);
 assert.equal(adopt.version_id_source, software.version_id_source);
 assert.equal(adopt.softwares_count, 42);
-assert.equal(adopt.tools_list_count, 36);
+assert.equal(adopt.tools_list_count, 37);
 assert.equal(adopt.door, "fraggate");
 assert.equal(adopt.second_door, false);
 assert.equal(adopt.mcp, origin + "/mcp");
@@ -105,8 +105,12 @@ const discovery = [
   "/mcp.json",
   "/.well-known/mcp.json",
   "/openapi/adopt-actions.json",
+  "/connect",
   "/install/cursor.json",
   "/install/claude-desktop.json",
+  "/install/vscode.json",
+  "/install/lmstudio.json",
+  "/install/chatgpt.md",
   "/v1/clients.json",
   "/glama.json",
   "/robots.txt",
@@ -146,13 +150,16 @@ const ai = await (await get("/ai.txt")).text();
 const wellAi = await (await get("/.well-known/ai.txt")).text();
 assert.equal(wellLlms, llms);
 assert.equal(wellAi, ai);
-assert.match(llms.split("\n").slice(0, 30).join("\n"), /Compact adopt card: \/adopt\.json/);
+assert.match(llms.split("\n").slice(0, 40).join("\n"), /Compact adopt card: \/adopt\.json/);
+assert.match(llms, /\/connect/);
 assert.match(llms, /www\.azieleliab\.com\/#aziel/);
 
 const plugin = await get("/.well-known/ai-plugin.json");
 assert.equal(plugin.status, 404);
 const wrongCard = await get("/.well-known/mcp/server.json");
 assert.equal(wrongCard.status, 404);
+const bareWellKnown = await get("/.well-known/mcp");
+assert.equal(bareWellKnown.status, 404, "HTML connect page is not aliased at /.well-known/mcp");
 
 const repoGlama = JSON.parse(readFileSync(new URL("../glama.json", import.meta.url), "utf8"));
 const servedGlama = await (await get("/glama.json")).json();
@@ -199,7 +206,13 @@ for (const row of matrix.clients) {
 }
 assert.equal(matrix.clients.find((c) => c.id === "cursor").snippet_url, origin + "/install/cursor.json");
 assert.equal(matrix.clients.find((c) => c.id === "claude").snippet_url, origin + "/install/claude-desktop.json");
-assert.equal(matrix.clients.find((c) => c.id === "chatgpt").snippet_url, origin + "/openapi/adopt-actions.json");
+assert.equal(matrix.clients.find((c) => c.id === "chatgpt").snippet_url, origin + "/install/chatgpt.md");
+assert.equal(matrix.clients.find((c) => c.id === "chatgpt").transport, "mcp");
+assert.ok(matrix.clients.find((c) => c.id === "chatgpt").also.includes(origin + "/openapi/adopt-actions.json"));
+assert.equal(matrix.clients.find((c) => c.id === "grok").transport, "mcp");
+assert.equal(matrix.clients.find((c) => c.id === "grok").snippet_url, origin + "/connect");
+assert.ok(matrix.clients.find((c) => c.id === "gemini").slot.some((s) => /consumer Gemini app/.test(s)));
+assert.equal(matrix.verified_count, 0);
 assert.ok(matrix.clients.find((c) => c.id === "chatgpt").slot.some((s) => /ai-plugin/i.test(s)));
 assert.ok(matrix.clients.find((c) => c.id === "apple").slot.some((s) => /Apple private API/.test(s)));
 assert.ok(matrix.clients.find((c) => c.id === "copilot").slot.some((s) => /ai-plugin/i.test(s)));
@@ -231,9 +244,13 @@ assert.match(robots, /Content-Signal: search=yes, ai-input=yes, ai-train=yes/);
 const sitemap = await (await get("/sitemap.xml")).text();
 for (const loc of [
   "/adopt.json",
+  "/connect",
   "/openapi/adopt-actions.json",
   "/install/cursor.json",
   "/install/claude-desktop.json",
+  "/install/vscode.json",
+  "/install/lmstudio.json",
+  "/install/chatgpt.md",
   "/v1/clients.json",
   "/mcp.json",
   "/.well-known/llms.txt",
@@ -241,5 +258,95 @@ for (const loc of [
 ]) {
   assert.match(sitemap, new RegExp(loc.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
 }
+
+const connectRes = await get("/connect");
+assert.equal(connectRes.status, 200);
+assert.match(connectRes.headers.get("content-type") || "", /text\/html/);
+const connect = await connectRes.text();
+const connectMain = connect.split("<footer")[0];
+assert.match(connectMain, new RegExp(origin.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "/mcp"));
+assert.match(connectMain, /openapi\/adopt-actions\.json/);
+assert.match(connectMain, /No authentication/);
+assert.match(connectMain, /No sign in/);
+assert.match(connectMain, /grok\.com\/connectors/);
+assert.match(connectMain, /consumer Gemini app has no custom MCP/);
+assert.match(connectMain, /cursor:\/\/anysphere\.cursor-deeplink\/mcp\/install\?name=aziel-runtime&amp;config=/);
+assert.match(connectMain, /vscode:mcp\/install\?/);
+assert.match(connectMain, /&quot;type&quot;: &quot;http&quot;/);
+assert.match(connectMain, /data-copy="mcp-url"/);
+assert.match(connectMain, /data-copy="actions-url"/);
+assert.match(connectMain, /confirm/);
+assert.match(connectMain, /consent/);
+assert.match(connectMain, /operator bearer/);
+assert.match(connectMain, /fraggate_preview/);
+assert.match(connectMain, /fraggate_call/);
+assert.match(connectMain, /ChatGPT/);
+assert.match(connectMain, /Claude/);
+assert.match(connectMain, /Grok/);
+assert.match(connectMain, /Gemini/);
+assert.match(connectMain, /Cursor/);
+assert.match(connectMain, /VS Code/);
+assert.match(connectMain, /LM Studio/);
+assert.match(connectMain, /Cap-7 is not ICANN/);
+assert.doesNotMatch(connectMain, /\bLIVE\b/);
+assert.doesNotMatch(connectMain, /verified client/i);
+assert.doesNotMatch(connectMain, /OAuth server is/i);
+assert.match(connectMain, /no OAuth server/i);
+assert.match(connect, /href="\/connect"|\/connect/);
+const home = await (await get("/")).text();
+assert.match(home, /href="https:\/\/aziel-runtime\.example\/connect"/);
+
+const vscode = await (await get("/install/vscode.json")).json();
+assert.equal(vscode.servers["aziel-runtime"].type, "http");
+assert.equal(vscode.servers["aziel-runtime"].url, origin + "/mcp");
+const lmstudio = await (await get("/install/lmstudio.json")).json();
+assert.equal(lmstudio.mcpServers["aziel-runtime"].url, origin + "/mcp");
+assert.equal(lmstudio.mcpServers["aziel-runtime"].headers, undefined);
+const chatgptMd = await (await get("/install/chatgpt.md")).text();
+assert.match(chatgptMd, /Add custom MCP server/);
+assert.match(chatgptMd, /No authentication/);
+assert.match(chatgptMd, /openapi\/adopt-actions\.json/);
+assert.doesNotMatch(chatgptMd, /\bLIVE\b/);
+
+const withheld = await get("/server.json");
+assert.equal(withheld.status, 404);
+const withheldBody = await withheld.json();
+assert.equal(withheldBody.code, "SERVER-CARD-MISMATCH");
+assert.ok(withheldBody.mismatch.includes("remote.url"));
+const liveOrigin = "https://aziel-runtime.vibelock.workers.dev";
+const liveServer = await handler(new Request(liveOrigin + "/server.json"), {});
+assert.equal(liveServer.status, 200);
+const liveBody = await liveServer.json();
+const repoServer = JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8"));
+assert.deepEqual(liveBody, repoServer);
+assert.equal(liveBody.version, "2.0.0-rc1");
+assert.equal(liveBody.remotes[0].url, liveOrigin + "/mcp");
+assert.equal(liveBody.remotes[0].type, "streamable-http");
+
+const previewList = await call("/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({ jsonrpc: "2.0", id: 3, method: "tools/list", params: {} }),
+});
+const previewTools = (await previewList.json()).result.tools;
+const previewTool = previewTools.find((t) => t.name === "fraggate_preview");
+const callTool = previewTools.find((t) => t.name === "fraggate_call");
+assert.equal(previewTool.annotations.readOnlyHint, true);
+assert.equal(callTool.annotations.readOnlyHint, false);
+const previewCall = await call("/mcp", {
+  method: "POST",
+  headers: { "content-type": "application/json" },
+  body: JSON.stringify({
+    jsonrpc: "2.0",
+    id: 4,
+    method: "tools/call",
+    params: { name: "fraggate_preview", arguments: { slug: "foldlock", op: "fold-append", confirm: true } },
+  }),
+});
+const previewBody = await previewCall.json();
+assert.equal(previewBody.result.structuredContent.dry_run, true);
+assert.equal(previewBody.result.structuredContent.mutated, false);
+assert.equal(previewBody.result.structuredContent.ledger_written, false);
+assert.notEqual(previewBody.result.structuredContent.code, "FG-OK");
 
 console.log("ok ai-adopt", Buffer.byteLength(adoptRaw), "adopt bytes");

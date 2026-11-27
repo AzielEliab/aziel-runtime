@@ -29,5 +29,5 @@ for (let i = 0; i < 5; i++) await worker.fetch(new Request(u), env, {});
 ok((await snap()) === before, "0 writes across 8 calls");
 const oa = await (await worker.fetch(new Request("https://rt.example/openapi.json"), env, {})).json();
 ok(oa.paths["/v1/azai/lattice"] && oa.paths["/v1/azai/lattice"].get.operationId === "azai_lattice_review" && !oa.paths["/v1/azai/lattice"].post, "openapi entry, GET only");
-ok(PUBLIC_MCP_TOOLS.length === 36, "MCP tools stay 36");
+ok(PUBLIC_MCP_TOOLS.length === 37, "MCP tools stay 36");
 console.log(`verify-azai-lattice-route: ${checks} checks pass`);

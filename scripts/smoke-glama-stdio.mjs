@@ -27,7 +27,7 @@ import assert from "node:assert/strict";
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const cli = resolve(root, "cli/mcp-stdio.mjs");
-const EXPECTED_TOOLS = 36;
+const EXPECTED_TOOLS = 37;
 const EXPECTED_VERSION = "2.0.0-rc1";
 
 const INIT = {

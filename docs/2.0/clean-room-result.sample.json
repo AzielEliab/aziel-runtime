@@ -7,26 +7,67 @@
   "generated_at": "2026-09-11T00:00:00.000Z",
   "verdict": "PASS",
   "steps": [
-    { "id": "install", "name": "npm install", "status": "PASS", "detail": "omit-optional not required" },
-    { "id": "npm_test", "name": "npm test", "status": "PASS", "detail": "exit 0" },
-    { "id": "docker_or_local", "name": "docker build/run or documented local", "status": "SKIP", "detail": "docker unavailable; used AZIEL_RUNTIME_MCP=local" },
-    { "id": "mcp_initialize", "name": "MCP initialize", "status": "PASS", "detail": "protocolVersion 2025-03-26" },
-    { "id": "tools_list", "name": "MCP tools/list", "status": "PASS", "detail": "36 PUBLIC_MCP_TOOLS" },
-    { "id": "harmless_call", "name": "fraggate_call decisiongate health", "status": "PASS", "detail": "FG-OK" },
-    { "id": "receipt_verify", "name": "session receipt verifyChainStrict", "status": "PASS", "detail": "chain_ok" },
-    { "id": "shutdown", "name": "session close / process exit", "status": "PASS", "detail": "closed" }
+    {
+      "id": "install",
+      "name": "npm install",
+      "status": "PASS",
+      "detail": "omit-optional not required"
+    },
+    {
+      "id": "npm_test",
+      "name": "npm test",
+      "status": "PASS",
+      "detail": "exit 0"
+    },
+    {
+      "id": "docker_or_local",
+      "name": "docker build/run or documented local",
+      "status": "SKIP",
+      "detail": "docker unavailable; used AZIEL_RUNTIME_MCP=local"
+    },
+    {
+      "id": "mcp_initialize",
+      "name": "MCP initialize",
+      "status": "PASS",
+      "detail": "protocolVersion 2025-03-26"
+    },
+    {
+      "id": "tools_list",
+      "name": "MCP tools/list",
+      "status": "PASS",
+      "detail": "37 PUBLIC_MCP_TOOLS"
+    },
+    {
+      "id": "harmless_call",
+      "name": "fraggate_call decisiongate health",
+      "status": "PASS",
+      "detail": "FG-OK"
+    },
+    {
+      "id": "receipt_verify",
+      "name": "session receipt verifyChainStrict",
+      "status": "PASS",
+      "detail": "chain_ok"
+    },
+    {
+      "id": "shutdown",
+      "name": "session close / process exit",
+      "status": "PASS",
+      "detail": "closed"
+    }
   ],
   "mcp": {
     "protocol_version": "2025-03-26",
     "server_name": "aziel-runtime",
     "server_version": "2.0.0-rc1",
-    "tools_list_count": 36,
+    "tools_list_count": 37,
     "tools_list_names": [
       "runtime_skill",
       "fraggate_list",
       "fraggate_describe",
       "fraggate_verify",
       "fraggate_call",
+      "fraggate_preview",
       "decisiongate_check",
       "library_lookup",
       "mesh_status",

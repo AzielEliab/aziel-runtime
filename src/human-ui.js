@@ -807,7 +807,7 @@ ${dashCards}
       </article>
       <article class="dash-card" id="desk-mcp" data-desk="mcp">
         <h4>MCP <span class="slug">interface/orchestrate</span></h4>
-        <p class="blurb">Agents and this pane share one planner. tools/list stays 36 names. Live dispatch still goes through FragGate.</p>
+        <p class="blurb">Agents and this pane share one planner. tools/list is 37 names. Live dispatch still goes through FragGate.</p>
         <div class="actions">
           <a href="${escapeHtml(base)}/mcp">Connect AI</a>
         </div>

@@ -20,7 +20,7 @@ import { createBridgeContext, dispatchMcp } from "../src/mcp-stdio.js";
 const handler = (await import("../src/index.js")).default.fetch;
 const origin = "https://aziel-runtime.example";
 
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PUBLIC_MCP_TOOLS.includes("Softwares"), true);
 assert.equal(PUBLIC_MCP_TOOLS.includes("runtime_software"), false);
 assert.equal(resolvePublicToolName("Softwares"), "Softwares");
@@ -72,7 +72,7 @@ assert.match(init.body.result.instructions, /runtime_software remains a tools\/c
 
 const listed = await mcp("tools/list", {}, 2, env, ctx);
 const names = listed.body.result.tools.map((tool) => tool.name);
-assert.equal(names.length, 36);
+assert.equal(names.length, 37);
 assert.equal(names.includes("Softwares"), true);
 assert.equal(names.includes("runtime_software"), false);
 assert.equal(names.includes("softwares"), false);

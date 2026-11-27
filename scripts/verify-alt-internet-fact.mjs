@@ -39,7 +39,7 @@ async function call(slug, op, payload) {
 
 assert.equal(SUITE_SOFTWARE_COUNT, 42);
 assert.equal(PRODUCTS.length, 41);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PRODUCTS.some((row) => row.slug === "alt-internet" || row.slug === "d2d"), false);
 
 const health = await get("/v1/health");

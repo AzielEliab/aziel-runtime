@@ -932,7 +932,7 @@ const tools = (await list.json()).result.tools;
 const byName = Object.fromEntries(tools.map((t) => [t.name, t]));
 assert.ok(byName.Softwares);
 assert.equal(byName.runtime_software, undefined);
-assert.equal(tools.length, 36);
+assert.equal(tools.length, 37);
 assert.match(byName.fraggate_list.title, /Step 1/);
 assert.match(byName.fraggate_describe.title, /Step 2/);
 assert.match(byName.fraggate_call.title, /Step 3/);

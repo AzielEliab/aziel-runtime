@@ -2,7 +2,7 @@
 
 **Author:** Aziel Eliab only.  
 **Runtime:** 2.0.0-rc1.  
-**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` stays 36.
+**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` is 37.
 
 This document is the reproduction path for the AZP-NS-1.0 fixture gates. It does not deploy a Worker, change DNS, or paint Plane B LIVE. A green run is not a live multi-provider result. `live_multi_provider` stays false. Encryption of the payload is not anonymity. The network is not claimed to be anonymous. The network is not claimed to be unkillable.
 

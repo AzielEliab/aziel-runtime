@@ -187,7 +187,7 @@ assert.equal(mirror.command_prompts, undefined);
 assert.equal(mirror.suite_command, undefined);
 assert.equal(mirror.software.filter((card) => card.suite_help).map((card) => card.slug).join(","), "aziel-corpus");
 
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 
 const helpTxt = await (await handler(new Request(origin + "/help.txt"), {})).text();
 const llms = await (await handler(new Request(origin + "/llms.txt"), {})).text();

@@ -29,7 +29,7 @@ export const SURFACE_HONESTY = Object.freeze({
   tun_tap: "SLOT",
   health_count: 41,
   softwares: 42,
-  mcp_tools: 36,
+  mcp_tools: 37,
 });
 
 export const HONESTY_SENTENCES = Object.freeze({

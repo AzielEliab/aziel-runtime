@@ -16,7 +16,7 @@ Glama Install Server is optional. Its hosted-tool meters stay separate from Work
 ## How to use
 
 1. Click **Install / Add to Glama** on https://glama.ai/mcp/servers/AzielEliab/aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` is 37.
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
@@ -24,7 +24,7 @@ Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
 Example first call: Softwares `{}`, pick a slug, then `fraggate_call` `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
-MCP `tools/list` is **36** tools. FragGate is the single door. Deeper admin, Docker, and local stdio stay below. Public connect is the remote URL in [Instructions](#instructions). Glama Install Server is optional; its hosted meters stay separate from Worker `GET /v1/uses`. Local stdio stays last.
+MCP `tools/list` is **37** tools. FragGate is the single door. Deeper admin, Docker, and local stdio stay below. Public connect is the remote URL in [Instructions](#instructions). Glama Install Server is optional; its hosted meters stay separate from Worker `GET /v1/uses`. Local stdio stays last.
 
 **[Try on Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** is the primary public host / discovery / install listing for aziel-runtime (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`). Worker origin stays the HTTP / OpenAPI / MCP execution surface.
 
@@ -42,7 +42,7 @@ Glama is one of the compatible AI clients (ChatGPT, Grok, Venice, Claude, Cursor
 
 A successful `tools/call` posts usage to `https://glama.ai/api/mcp/v1/telemetry/usage` with `server` `AzielEliab/aziel-runtime`, `tool` set to the called name, and `client` set to the request User-Agent or `https://aziel-runtime.vibelock.workers.dev`. The post does not block and does not fail the MCP response when telemetry fails. The stdio bridge posts the same body when it returns a successful `tools/call` that the Worker did not already mark with `X-Aziel-Glama-Telemetry: worker`. That body stays `{ server, tool, client }`. It does not add a slug. Softwares has no slug. Worker `GET /v1/uses` `by_op` records `mcp.<toolName>` (for example `mcp.Softwares`) and, for FragGate call or describe, `fraggate.call.<slug>` or `fraggate.describe.<slug>`.
 
-`tools/list` is **36 live MCP tools**. ChainLock and memory are append-only. Ledger ops stamp ChainLock, TemporalLock, and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
+`tools/list` is **37 live MCP tools**. ChainLock and memory are append-only. Ledger ops stamp ChainLock, TemporalLock, and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.
 
 This repo ships:
 
@@ -65,11 +65,11 @@ Glama Deploy / Install Server release **2.0.11** is a Glama label only. It is no
 
 The registry `description` names the three entry tools and stays inside the 2025-12-11 100-character cap: Softwares, FragGate, library. Catalog, single exec door, papers. FragGate stays the single exec door.
 
-`mcp-publisher publish` is out of band (GitHub device login). This repo lands the file. It does not run the publisher. `tools/list` stays 36 names.
+`mcp-publisher publish` is out of band (GitHub device login). This repo lands the file. It does not run the publisher. `tools/list` is 37 names.
 
 ## Why stdio
 
-Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is 36 live MCP tools. First call is `Softwares` (tools/list name Softwares). Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call`.
+Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-delimited JSON-RPC, same as `@modelcontextprotocol/sdk` `StdioServerTransport`). HTTP `POST /mcp` stays the Worker API; this CLI forwards `initialize`, `tools/list`, `tools/call`, `ping`, and notifications so the tool list is not duplicated. `tools/list` is 37 live MCP tools. First call is `Softwares` (tools/list name Softwares). Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call`.
 
 ## Worker down: discovery still answers (GLAMA-STDIO-DISCOVERY-1.0)
 
@@ -185,7 +185,7 @@ Install Server and Auto-Release are already ON (Glama release 2.0.11). After a `
 ```
 
    - Placeholder parameters: `{}` (the public Worker needs no credentials)
-3. **Deploy** — already succeeded. A later image rebuild still needs `initialize` / `tools/list` (36 tools) to succeed.
+3. **Deploy** — already succeeded. A later image rebuild still needs `initialize` / `tools/list` (37 tools) to succeed.
 4. **Make Release** — already produced Glama release 2.0.11. A Glama release is the listing release. It is not the Worker package version and not a GitHub release.
 
 5. **Sync `GLAMA_INSTALL_RELEASE`** — after Auto-Release or Make Release moves Latest, set `src/seo.js` `GLAMA_INSTALL_RELEASE` (and the Glama release strings in `docs/GLAMA.md`, README, `glama.json` description) to that new Latest. Worker / `package.json` / `glama.json` `version` stay `2.0.0-rc1`. Git cannot click Glama; the constant sync is the Worker-side honesty fix. Operator probe: `node scripts/check-glama-latest.mjs` (compares public page Latest to the constant).

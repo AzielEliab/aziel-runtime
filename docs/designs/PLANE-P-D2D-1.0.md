@@ -3,7 +3,7 @@
 **Author:** Aziel Eliab only.  
 **Operator lock:** Aziel Eliab, 2026-10-02, via AZBot.  
 **Kind:** design sketch and honesty notes. Phase B and C below name the local node path that landed after this sketch. This paper does not deploy and does not add a Softwares card.  
-**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` stays 36.
+**Not a Softwares card. No new MCP tool.** Softwares stay 42. `tools/list` is 37.
 
 Plane P is the device-to-device packet path: a node-mesh alternative internet, separate from ICANN. This repository does not operate that path as a public packet egress. This paper is not a LIVE public packet egress, not a multi-node PASS, and not an Internet-comparable BGP claim. It is not BGP.
 
@@ -111,7 +111,7 @@ AZBot Phase A (cloud agent `bc-c5243c31-a34c-5ed5-80a9-186f7d8f9297`) owns Softw
 - The RF **hop** in that scaffold is the dedicated carrier beyond Wi-Fi and Bluetooth (cellular / ModemManager when that radio is present). Absent is `QNM-RADIO-ABSENT`. The SDR row in the table above stays a local hardware-presence hook. It is not a LIVE packet hop.
 - `track2CarrierProbe()` may report `HW-PRESENT` or `REFUSE`. It never reports `LIVE`.
 - Phase A did not open a hop. Phase B/C on the local node opens LAN discovery and a sealed session. The public door still does not. Packets are not forwarded as an alt-internet.
-- This Plane P paper still does not edit the Softwares catalog. Catalog strings and the FG-STUB op tables live in the Phase A scaffold. Softwares stay 42. `tools/list` stays 36.
+- This Plane P paper still does not edit the Softwares catalog. Catalog strings and the FG-STUB op tables live in the Phase A scaffold. Softwares stay 42. `tools/list` is 37.
 
 ## Phase B and C exit (local node, WARN-5 still open)
 
@@ -130,7 +130,7 @@ Exit criteria for this slice:
 
 Phase D store-forward on the local node delivers a sealed object A→B→C in one process. Receipts recompute. `second_device` stays false. The public door stays FG-STUB. It does not set `alt_internet_live`. Phase E bootstrap lists and shelf cites stay scaffold. `live_multi_provider` stays false. Cold shelves stay SLOT.
 
-WARN-5 stays STANDS-until-demonstrated until a stranger can recompute a real multi-host Track 2 path, Cap-7 is still not the public Internet, and `negotiateBearer` still refuses `icann` and `cap7-egress`. The in-process A→B→C fixture does not close WARN-5. Wi-Fi, Bluetooth, RF, and photon exchanges are not demonstrated by a LAN fixture. The mobile join client ([`TRACK2-MOBILE-JOIN-1.0.md`](TRACK2-MOBILE-JOIN-1.0.md)) is a client of the local node. `mobile_client` stays `present-not-demonstrated`. It is not an app-store release and it does not set `alt_internet_live`. Softwares stay 42. `tools/list` stays 36. This section does not add a Softwares card.
+WARN-5 stays STANDS-until-demonstrated until a stranger can recompute a real multi-host Track 2 path, Cap-7 is still not the public Internet, and `negotiateBearer` still refuses `icann` and `cap7-egress`. The in-process A→B→C fixture does not close WARN-5. Wi-Fi, Bluetooth, RF, and photon exchanges are not demonstrated by a LAN fixture. The mobile join client ([`TRACK2-MOBILE-JOIN-1.0.md`](TRACK2-MOBILE-JOIN-1.0.md)) is a client of the local node. `mobile_client` stays `present-not-demonstrated`. It is not an app-store release and it does not set `alt_internet_live`. Softwares stay 42. `tools/list` is 37. This section does not add a Softwares card.
 
 ## What this cut does not do
 

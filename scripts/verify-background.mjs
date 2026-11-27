@@ -1,6 +1,6 @@
 /**
  * Honest background jobs. Running until a receipt hash. Quiet when missing.
- * tools/list stays 36. FragGate remains the single door.
+ * tools/list is 37. FragGate remains the single door.
  * Author: Aziel Eliab only.
  */
 import assert from "node:assert/strict";
@@ -26,7 +26,7 @@ const origin = "https://aziel-runtime.example";
 const env = {};
 env.SESSION = memorySessionNamespace(env);
 
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PUBLIC_MCP_TOOLS.includes("fraggate_call"), true);
 assert.equal(PUBLIC_MCP_TOOLS.includes("fraggate_background"), false);
 
@@ -44,7 +44,7 @@ assert.doesNotMatch(instructions, /append → tip or recall → verify → seal/
 assert.doesNotMatch(instructions, /call chainlock_append before/);
 assert.match(instructions, /fraggate_call is THE single door/);
 assert.match(instructions, /background=true/);
-assert.match(instructions, /tools\/list stays 36/);
+assert.match(instructions, /tools\/list is 37/);
 assert.doesNotMatch(instructions, /\bthis\b/);
 assert.doesNotMatch(instructions, /\bAziel\b/);
 assert.doesNotMatch(instructions, /\bFragGate\b/);
@@ -108,9 +108,9 @@ async function postCall(body, headers = {}) {
 resetBackgroundJobs();
 
 const listed = await mcp("tools/list", {}, 2);
-assert.equal(listed.result.tools.length, 36);
+assert.equal(listed.result.tools.length, 37);
 const names = listed.result.tools.map((tool) => tool.name);
-assert.equal(new Set(names).size, 36);
+assert.equal(new Set(names).size, 37);
 assert.equal(names.includes("fraggate_background"), false);
 const callTool = listed.result.tools.find((tool) => tool.name === "fraggate_call");
 assert.match(callTool.description, /CallEnvelope/);
@@ -515,4 +515,4 @@ try {
   await rm(home, { recursive: true, force: true });
 }
 
-console.log("ok background: Running until a receipt hash; Quiet when missing; tools/list stays 36");
+console.log("ok background: Running until a receipt hash; Quiet when missing; tools/list is 37");

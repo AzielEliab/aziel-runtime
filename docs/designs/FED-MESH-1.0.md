@@ -69,7 +69,7 @@ Softwares membership is on: mesh_node_live, alt_internet_live, and packet_path_l
 GET /v1/mesh never enables.
 ```
 
-`mesh_node_live`, `alt_internet_live`, and `packet_path_live` are true. That trio is Softwares membership, not the QNS cite plane. `GET /v1/mesh` never enables. `cap7_name_only` stays true: Cap-7 names-only is not ICANN. `public_icann` and `public_icann_registrar` stay false. This handle is not a mesh-internet door. Radio PHY stays false. This command does not enable auto-update, RF transmit, or satellite relay, and it does not spend. Softwares stay 42. `tools/list` stays 36.
+`mesh_node_live`, `alt_internet_live`, and `packet_path_live` are true. That trio is Softwares membership, not the QNS cite plane. `GET /v1/mesh` never enables. `cap7_name_only` stays true: Cap-7 names-only is not ICANN. `public_icann` and `public_icann_registrar` stay false. This handle is not a mesh-internet door. Radio PHY stays false. This command does not enable auto-update, RF transmit, or satellite relay, and it does not spend. Softwares stay 42. `tools/list` is 37.
 
 ## 3. One sequence per handle
 
@@ -173,7 +173,7 @@ This is not public ICANN DNS and not radio PHY. Cap-7 DNS publish stays out of t
 
 ### Name door
 
-FragGate ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and on Softwares slug `aznet`. They call the existing relay (`relay-name`, `relay-name-read`, `relay-slot-read`, `relay-witness`, `relay-witness-read`). Claim and witness write only with payload `confirm: true` and anchor ChainLock when the act is valid. Garden pair is not required for these name ops. No new MCP tool. `tools/list` stays 36.
+FragGate ops `name_claim`, `name_read`, `name_resolve`, `slot_read`, `witness`, and `witness_read` sit on slug `mesh` and on Softwares slug `aznet`. They call the existing relay (`relay-name`, `relay-name-read`, `relay-slot-read`, `relay-witness`, `relay-witness-read`). Claim and witness write only with payload `confirm: true` and anchor ChainLock when the act is valid. Garden pair is not required for these name ops. No new MCP tool. `tools/list` is 37.
 
 ### Routing cite (MESH-INTERNET-WARNS-1.0)
 

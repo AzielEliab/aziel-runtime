@@ -99,8 +99,12 @@ export function adoptCard({ origin, env = {}, catalog = {} }) {
     clients: CLIENT_CLASS_IDS.slice(),
     clients_matrix: `${base}/v1/clients.json`,
     install: {
+      connect: `${base}/connect`,
       cursor: `${base}/install/cursor.json`,
       claude_desktop: `${base}/install/claude-desktop.json`,
+      vscode: `${base}/install/vscode.json`,
+      lmstudio: `${base}/install/lmstudio.json`,
+      chatgpt: `${base}/install/chatgpt.md`,
     },
     author_id: AUTHOR_ID,
     content_signal: CONTENT_SIGNAL,

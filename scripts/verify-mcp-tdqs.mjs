@@ -10,13 +10,14 @@ import { buildMcpToolList, mcpCallPayload, mcpInitializeInstructions } from "../
 import { RUNTIME_VERSION } from "../src/runtime-api.js";
 import { sessionMcpTools } from "../src/session-http.js";
 
-/** Frozen tools/list names. Count stays 36. Hub catalog public name is Softwares. */
+/** Frozen tools/list names. Count is 37. Hub catalog public name is Softwares. */
 const PRE_CHANGE_TOOL_NAMES = Object.freeze([
   "runtime_skill",
   "fraggate_list",
   "fraggate_describe",
   "fraggate_verify",
   "fraggate_call",
+  "fraggate_preview",
   "decisiongate_check",
   "library_lookup",
   "mesh_status",
@@ -110,6 +111,10 @@ for (const name of execDoors) {
   assert.equal(byName[name].annotations.readOnlyHint, false, `${name} must not be globally read-only`);
   assert.equal(byName[name].annotations.idempotentHint, false, `${name} must not be globally idempotent`);
 }
+assert.equal(byName.fraggate_preview.annotations.readOnlyHint, true, "fraggate_preview is read-only");
+assert.equal(byName.fraggate_preview.annotations.destructiveHint, false);
+assert.match(byName.fraggate_preview.description, /dry_run|Read-only/i);
+assert.equal(byName.fraggate_call.annotations.readOnlyHint, false);
 
 assert.match(byName.fraggate_list.description, /discovery first|Discover names/i);
 assert.match(byName.fraggate_list.description, /fraggate_describe/);
@@ -180,7 +185,7 @@ assert.match(byName.Softwares.description, /runtime_software is a tools\/call al
 assert.equal(byName.runtime_software, undefined);
 assert.equal(names.includes("Softwares"), true);
 assert.equal(names.includes("runtime_software"), false);
-assert.equal(names.length, 36);
+assert.equal(names.length, 37);
 assert.match(byName.runtime_bundle.description, /not Software-tab/);
 assert.match(byName.runtime_pull.description, /unknown product/);
 assert.match(byName.runtime_pull.inputSchema.properties.product.description, /Alias of slug/);

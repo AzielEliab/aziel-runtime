@@ -33,7 +33,7 @@ resetMeshStore();
 
 assert.equal(SUITE_SOFTWARE_COUNT, 42);
 assert.equal(PRODUCTS.length, 41);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(MOBILE_CLIENT, "present-not-demonstrated");
 assert.equal(MOBILE_CLIENT, D2D_MOBILE_CLIENT);
 

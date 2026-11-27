@@ -69,7 +69,7 @@ Hosted AZAI remains protocol mirror + Lamb check, **not** the blend.
 
 If a future gateway Worker is ever proposed, it **must** terminate into `POST /v1/fraggate/call` only.
 
-Mutating MCP tools still require `confirm=true` or `dry_run=true` at call (optional in schema). HTTP FragGate call is unchanged. `PUBLIC_MCP_TOOLS` stays **36** / cap **40**.
+Mutating MCP tools still require `confirm=true` or `dry_run=true` at call (optional in schema). HTTP FragGate call is unchanged. `PUBLIC_MCP_TOOLS` is **37** / cap **40** (`fraggate_preview` is the documented additive read-only tool).
 
 ---
 
@@ -105,7 +105,7 @@ Self-test ≠ third-party lab.
 
 | Surface | Change |
 |---------|--------|
-| `PUBLIC_MCP_TOOLS` | **Unchanged** (36 / cap 40). No flat `{slug}_{op}` names. |
+| `PUBLIC_MCP_TOOLS` | **37** / cap 40. `fraggate_preview` is the documented additive read-only name. This architecture-fit note did not add it. No flat `{slug}_{op}` names. |
 | Isolation `software_count` | **Unchanged** (33). `domains_are_doors: false`. |
 | Softwares-tab placements | Adds `zkattest`, `mmconsensus`, `toolbench` (in-runtime; `worker_home` null). |
 | MCP well-known / `GET /mcp` | Additive `gateway` cite. |

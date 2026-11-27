@@ -34,8 +34,13 @@
  * GET  /.well-known/llms.txt  alias of /llms.txt
  * GET  /adopt.json            compact AI adopt card (suite tip, first call, client class ids)
  * GET  /openapi/adopt-actions.json  slim Actions OpenAPI (Softwares, fraggate call, skill, health)
+ * GET  /connect               paste-this-URL page for ChatGPT, Claude, Grok, Gemini, Cursor, VS Code, LM Studio
  * GET  /install/cursor.json   Cursor remote MCP paste snippet
  * GET  /install/claude-desktop.json  Claude Desktop remote MCP paste snippet
+ * GET  /install/vscode.json   VS Code .vscode/mcp.json snippet (type http)
+ * GET  /install/lmstudio.json LM Studio mcp.json snippet
+ * GET  /install/chatgpt.md    ChatGPT custom MCP steps, plus GPT Actions as the second option
+ * GET  /server.json           official MCP registry file, only when it matches this origin's server card
  * GET  /v1/clients.json       client class → transport → snippet matrix
  * GET  /mcp.json              alias of the MCP server card
  * GET  /glama.json            in-repo glama.json (withheld if a UUID or DOI appears)
@@ -266,7 +271,9 @@ import {
   hallucRefuse,
   mcpCallPayload,
   mcpInitializeInstructions,
+  previewFraggateCall,
   registryFor,
+  sanitizePreviewArgs,
   wrapFraggateEnvelope,
 } from "./mcp-surface.js";
 import {
@@ -278,7 +285,15 @@ import {
 import { adoptCard, llmsBodyCanonical } from "./adopt-card.js";
 import { clientMatrix } from "./client-matrix.js";
 import { cachedUses, statsFloorFor, STATS_CAP_CODE, STATS_FLOOR_UNAVAILABLE } from "./stats-cache.js";
-import { claudeDesktopInstallSnippet, cursorInstallSnippet } from "./install-snippets.js";
+import {
+  chatgptInstallMarkdown,
+  claudeDesktopInstallSnippet,
+  cursorInstallSnippet,
+  lmStudioInstallSnippet,
+  vscodeInstallSnippet,
+} from "./install-snippets.js";
+import { connectPageHtml } from "./connect-page.js";
+import { serverJsonDecision } from "./server-registry.js";
 import { adoptActionsOpenApi } from "./openapi-adopt-slim.js";
 import { glamaStaticCard } from "./glama-static.js";
 import { resolveCallingName, rewriteLiveCallingDisplay, rewriteLiveCallingKeywords } from "./calling-name.js";
@@ -1719,8 +1734,12 @@ function sitemapXml(origin) {
     { loc: base + "/.well-known/llms.txt", priority: "0.75", changefreq: "weekly" },
     { loc: base + "/adopt.json", priority: "0.95", changefreq: "daily" },
     { loc: base + "/openapi/adopt-actions.json", priority: "0.85", changefreq: "weekly" },
+    { loc: base + "/connect", priority: "0.9", changefreq: "weekly" },
     { loc: base + "/install/cursor.json", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/install/claude-desktop.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/install/vscode.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/install/lmstudio.json", priority: "0.8", changefreq: "weekly" },
+    { loc: base + "/install/chatgpt.md", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/v1/clients.json", priority: "0.8", changefreq: "weekly" },
     { loc: base + "/mcp.json", priority: "0.7", changefreq: "weekly" },
     { loc: base + "/.well-known/mcp.json", priority: "0.65", changefreq: "weekly" },
@@ -1875,6 +1894,7 @@ function llmsTxt(origin, env = {}) {
     `Kernel: ${FRAGGATE_GITHUB}`,
     `Catalog extras (hub kernel card): slug=fraggate worker=${FRAGGATE_WORKER} github=${FRAGGATE_GITHUB} worker_home=${FRAGGATE_WORKER_ORIGIN}/ download=${FRAGGATE_WORKER_ORIGIN}/download — read catalog.json extras[] / fraggate. FragGate is the kernel door; human UI + counted download is the separate FragGate Worker app. extras[] also cites sister product trades-runtime.`,
     `MCP: POST ${base}/mcp`,
+    `Connect (paste this URL): ${base}/connect`,
     `Uses: ${base}/v1/uses`,
     `Stats rollup: ${base}/v1/stats-rollups`,
     `Machine catalog: ${base}/v1/catalog.json`,
@@ -2566,6 +2586,7 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
     <a href="${origin}/v1/update/check?slug=aziel-runtime">/v1/update/check?slug=aziel-runtime</a>
     <a href="${origin}/cite.json">/cite.json</a>
     <a href="${origin}/shelves">/shelves</a>
+    <a href="${origin}/connect">/connect</a>
     <a href="${origin}/llms.txt">/llms.txt</a>
     <a href="${origin}/ai.txt">/ai.txt</a>
     <a href="${origin}/help.txt">/help.txt</a>
@@ -3869,6 +3890,27 @@ async function meshAdaptMcp(env, name, args, origin, request) {
 
 async function callTool(env, name, args, origin, request, ctx) {
   name = resolvePublicToolName(name);
+  if (name === "fraggate_preview") {
+    const src = sanitizePreviewArgs(args);
+    const registry = registryFor(PRODUCTS);
+    const entered = await enterFragGate({ name: "fraggate_call", args: src, registry, bySlug: BY_SLUG, dryRun: true });
+    if (!entered.proceed) {
+      const body = {
+        ...entered.envelope,
+        ...confirmConsentHonesty(),
+        tool: "fraggate_preview",
+        dry_run: true,
+        mutated: false,
+        ledger_written: false,
+        read_only: true,
+        executes: false,
+      };
+      return withRefuseInfra(
+        markDoorEntered(wrapFraggateEnvelope("fraggate_preview", body, null, body.op || src.op || null)),
+      );
+    }
+    return withPreviewInfra(markDoorEntered(previewFraggateCall(src, registry, BY_SLUG)));
+  }
   if ((name === "runtime_run" || name === "runtime_session_exec") && meshQuestionOf(args) && !explicitRouteTarget(args)) {
     return meshAdaptMcp(env, name, args, origin, request);
   }
@@ -3973,7 +4015,7 @@ async function handleMcp(request, env, origin, ctx) {
       auth: "none (public)",
       server_card: "/.well-known/mcp/server-card.json",
       oauth_protected_resource: "/.well-known/oauth-protected-resource",
-      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 36 live MCP tools. Call Softwares (tools/list name Softwares), pick a slug, then fraggate_call. library_lookup searches library papers and cites. The door runs before the tool. runtime_software remains a tools/call alias and is not a second listed name. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. fraggate_list, fraggate_describe, fraggate_call, and chainlock tools stay for diagnostics. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct after the door (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec enters FragGate first. FragGate stays the single exec door. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
+      note: "Durable Objects / agents McpAgent not used. Minimal HTTP JSON-RPC. tools/list is 37 live MCP tools. Call Softwares (tools/list name Softwares), pick a slug, then fraggate_call. library_lookup searches library papers and cites. The door runs before the tool. runtime_software remains a tools/call alias and is not a second listed name. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. fraggate_list, fraggate_describe, fraggate_call, and chainlock tools stay for diagnostics. Install / Try on Glama is the discovery listing. Fabric mesh_* / chainlock_* / memory_* / decisiongate_check / library_lookup are kernel-direct after the door (same kernels; not MASTER-33; not a second Softwares door). Hubs: GET /v1/software. Mutating tools require confirm=true or dry_run=true. This Worker POST /mcp is THE edge MCP gateway — Softwares exec enters FragGate first. FragGate stays the single exec door. Interface plans use JSON-RPC method interface/orchestrate (same body as POST /v1/interface). That method is not a tools/list name.",
       install: RUNTIME_GLAMA,
       glama: glamaInstallCite(RUNTIME_VERSION),
       door: "fraggate",
@@ -4507,6 +4549,27 @@ async function handleRequest(request, env, ctx) {
 
     if (url.pathname === "/install/claude-desktop.json" && (request.method === "GET" || request.method === "HEAD")) {
       return asHead(request, json(claudeDesktopInstallSnippet(origin), 200, extra("/install/claude-desktop.json")));
+    }
+
+    if (url.pathname === "/install/vscode.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(vscodeInstallSnippet(origin), 200, extra("/install/vscode.json")));
+    }
+
+    if (url.pathname === "/install/lmstudio.json" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, json(lmStudioInstallSnippet(origin), 200, extra("/install/lmstudio.json")));
+    }
+
+    if (url.pathname === "/install/chatgpt.md" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, text(chatgptInstallMarkdown(origin), extra("/install/chatgpt.md")));
+    }
+
+    if (url.pathname === "/connect" && (request.method === "GET" || request.method === "HEAD")) {
+      return asHead(request, html(connectPageHtml(origin), extra("/connect")));
+    }
+
+    if (url.pathname === "/server.json" && (request.method === "GET" || request.method === "HEAD")) {
+      const served = serverJsonDecision(origin, env);
+      return asHead(request, json(served.body, served.status, extra("/server.json")));
     }
 
     if (url.pathname === "/v1/clients.json" && (request.method === "GET" || request.method === "HEAD")) {

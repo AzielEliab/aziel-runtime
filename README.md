@@ -10,7 +10,15 @@ Public MCP — **no API key**:
 https://aziel-runtime.vibelock.workers.dev/mcp
 ```
 
-Transport: **Streamable HTTP**. Full client recipes: [`docs/AGENTS.md`](docs/AGENTS.md).
+Transport: **Streamable HTTP**. Full client recipes: [`docs/AGENTS.md`](docs/AGENTS.md). One page for ChatGPT, Claude, Grok, Gemini, Cursor, VS Code, and LM Studio: [`/connect`](https://aziel-runtime.vibelock.workers.dev/connect).
+
+### Paste this URL
+
+```text
+https://aziel-runtime.vibelock.workers.dev/mcp
+```
+
+Pick **No authentication**. There is no OAuth server. `confirm` is consent to run a call, not a login. GPT Actions is the second option: [`/openapi/adopt-actions.json`](https://aziel-runtime.vibelock.workers.dev/openapi/adopt-actions.json). Session and lattice tools that need an operator bearer are not available from ChatGPT custom MCP. Read-only clients can call `fraggate_preview` (`readOnlyHint: true`, dry_run only). `fraggate_call` is unchanged.
 
 Registry: `io.github.AzielEliab/aziel-runtime` · Glama: [Install](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)
 
@@ -27,7 +35,7 @@ Registry: `io.github.AzielEliab/aziel-runtime` · Glama: [Install](https://glama
 ## How to use
 
 1. Click **[Install / Add to Glama](https://glama.ai/mcp/servers/AzielEliab/aziel-runtime)** (also `https://glama.ai/mcp/servers/@AzielEliab/aziel-runtime`).
-2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` stays 36.
+2. In any MCP client, call Softwares (tools/list name Softwares). The door runs first. Pick a slug, then `fraggate_call`. `library_lookup` searches library papers and cites. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. `confirm=true` writes. `dry_run=true` previews and writes nothing. `background=true` returns Running until a receipt hash exists. Done only with that hash. `tools/list` is 37 (`fraggate_preview` is the read-only dry run).
 
 Diagnostics, if needed: `fraggate_list` → `fraggate_describe {name}` → `fraggate_call {name, op, payload, confirm:true}`.
 
@@ -35,7 +43,7 @@ Worker remote: `https://aziel-runtime.vibelock.workers.dev/mcp`
 
 Example first call: Softwares `{}`, pick a slug, then `fraggate_call` with `{ "slug": "foldlock", "op": "fold-preview" }`. `library_lookup` with `{ "q": "Florence", "op": "search" }` is a library paper or cite. Also: `decisiongate_check` with a short proposal and `dry_run:true`, or `forgereceipts` receipt for a completed task.
 
-MCP `tools/list` is **36** tools. FragGate is the single door. Public connect is the remote URL in [Install (remote first)](#install-remote-first) (Streamable HTTP, no API key). Glama Install Server is optional and meters separately from Worker `GET /v1/uses`. Local stdio stays last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
+MCP `tools/list` is **37** tools. FragGate is the single door. Public connect is the remote URL in [Install (remote first)](#install-remote-first) (Streamable HTTP, no API key). Glama Install Server is optional and meters separately from Worker `GET /v1/uses`. Local stdio stays last. Compatible AI clients are listed below. **Author:** Aziel Eliab.
 
 ## Designed purpose
 
@@ -192,13 +200,13 @@ Plane N is this Cap-7 / `.aziel` name plane. It is not an ICANN registrar and no
 
 ## FragGate door
 
-Public MCP `tools/list` is **36 live tools**. First call: `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call` (`foldlock` / `fold-preview`, or `decisiongate_check` with `dry_run=true`). The same list includes `runtime_skill`, `fraggate_verify`, `library_lookup`, suite `mesh_*`, append-only `chainlock_*` and `memory_*` (diagnostics and belief, not a pre-call), and catalog helpers. `runtime_run` and `runtime_session_*` are advanced/internal. Ledger ops stamp ChainLock on the acts chain, then TemporalLock and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp ChainLock, TemporalLock, or ForgeReceipts.
+Public MCP `tools/list` is **37 live tools**. First call: `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics stay `fraggate_list` → `fraggate_describe` → `fraggate_call` (`foldlock` / `fold-preview`, or `decisiongate_check` with `dry_run=true`). The same list includes `runtime_skill`, `fraggate_verify`, `library_lookup`, suite `mesh_*`, append-only `chainlock_*` and `memory_*` (diagnostics and belief, not a pre-call), and catalog helpers. `runtime_run` and `runtime_session_*` are advanced/internal. Ledger ops stamp ChainLock on the acts chain, then TemporalLock and ForgeReceipts. `fraggate_call` reports those three from the pipe when a real hash exists. Lamb Lens, SweepGate, Sentinel, and RoseClock run inside that pipe. Reads do not stamp ChainLock, TemporalLock, or ForgeReceipts.
 
 Every catalog product is a **hashed registry** entry (`name`, `slug`, `digest`, `status`, public `ops`). Status is `live` | `stub` | `local_only`.
 
 `stub_ops` / `stub_op_count` are named refuse verbs (never hosted), not extra catalog Software engines. `stub_count` is registry entries whose status is `stub` (none after 1.9.0 — **AZChat** is LIVE+bound). EmbryoLock is a live catalog engine (`live-with-local-destructive-boundary`); wipe / scorch / unlock stay `FG-STUB` on the public mesh. FragGate `live_count + local_only_count + stub_count ===` FragGate `product_count`. That `product_count` is registry entries, not the Softwares-tab count. Softwares includes `veillock` and `whitestone`. The public allowlist includes `memory` and `mesh` instead. `software_nodes` is the in-process product Worker fan-out (whitestone absent). `GET /v1/software` `catalog_sets.equate` is false. Do not equate those sets.
 
-**Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` is those 36 names. Start on the FragGate door.
+**Live on the public mesh** (via `fraggate_call`): every catalog Software product that makes sense on a public agent door — advisory / score / classify / gate / search / preview / render / verify / hash / receipt / game / overlay / route / status, plus the original five (DecisionGATE, GodLock, FoldLock, AZ-CLCE, Aziel Digital Library). VeilLock stays **local_only** (device-local camera/screen). MCP `tools/list` is those 37 names. Start on the FragGate door.
 
 **Stub ops** (named refuse verbs, never execute): EmbryoLock wipe/scorch/unlock/encrypt/decrypt/initialize/login, ARK scorch/wipe/unlock/encrypt, WhistleLock send/mail/release, MirageGrid VPN-hop/hop/tunnel/mesh (`geo-target` / `session-stick` / `egress-rotate` are LIVE on the Cap-7 plane, not a public egress IP), AzielTether mesh-join/vpn/arm, VeilLock inject/intercept/facetime, AZ-OS exec/shell/lattice, AZAI blend/complete/chat, EmployeeLock court/judge, PeaceLock transcript/transcribe/motive/counterfactual/invent/waive-duty/bypass-duty, 4DMap truth_score/lumen_panel/invent_mark/backdate_class. Safe hosted ops on those products can still be live; the stub verbs refuse forever.
 
@@ -337,22 +345,25 @@ This repo does not own product Workers. Copy that one line into those repos. Add
 
 Current suite software designs (AZL / SEC-FEAT / QNM-WP / NODE-OPS / **AZL-DONATE-1.0** / **CROSS-NETWORK-SURVIVAL-1.0** / **NO-LIE-NO-REWRITE-1.0**) plus LIVE fabric papers (CL-WP-0.4, AP-WP-0.2, SG-WP-0.1, LS-WP-0.1, RL-WP-0.1-runtime, **QNS-CD-1.0**, **ACT-RECEIPT-1.0** — not Softwares-tab products): [docs/designs/](docs/designs/). Author: **Aziel Eliab** only. MCP `chainlock_*`. `GET /v1/mesh` never enables. **QNS-CD-1.0** is the Quantum Node Signal packet-transfer coding design (photon QNS1 1.3). Implementation is local `qnsd` in [AzielEliab/qnm-node](https://github.com/AzielEliab/qnm-node). `GET /v1/qns` cites only — the public Worker does not proxy local via emit. Every `/v1/software` card carries `qns_cd`. Do not add QNS as a Softwares-tab product. **ACT-RECEIPT-1.0** is the public four-field action-receipt mesh copy. The chain lives on [corpus /receipts](https://www.azielcorpuslibrary.net/receipts). `GET /v1/receipts` cites; append runs after FragGate list/call and `POST /mcp` when `RECEIPT_APPEND_TOKEN` is set (fail-open). Do not add ACT-RECEIPT as a Softwares-tab product. **CROSS-NETWORK-SURVIVAL-1.0** is the umbrella survival law. If network and data die tomorrow, the chain survives on cold shelves (hosts / DOI / git / vault). Machine tip: `/cite.json` `survival.tip` and `/llms.txt`. Do not add it as a Softwares-tab product. **NO-LIE-NO-REWRITE-1.0** is companion law under that umbrella (does not replace the machine tip): receipts that still hash; copies not all on one tunnel; no rewrite key; the network is never allowed to lie even to self-preserve. Do not add it as a Softwares-tab product. `GET /v1/azpipe/arch` cites the locked MASTER-33 strip (same payload as `GET /v1/fraggate` `pipeline`). Not a Softwares-tab door.
 
-## Add to ChatGPT (GPT Actions)
+## Add to ChatGPT
 
-1. Create a GPT (or open GPT Actions).
-2. **Import from URL** → `https://aziel-runtime.vibelock.workers.dev/openapi.json`
-3. No authentication. CORS `*`.
-4. Ask the GPT to call Softwares (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Named live modules: `decisiongate_check`, `library_lookup`. Diagnostics: `fraggate_list`, then `fraggate_call`. Session tools and `runtime_run` are advanced/internal.
+Custom MCP (web):
+
+1. Plugins → Add custom MCP server.
+2. Paste `https://aziel-runtime.vibelock.workers.dev/mcp`.
+3. **No authentication**. There is no OAuth server.
+4. `confirm` is consent, not a login. Session and lattice tools that need an operator bearer are not available from ChatGPT custom MCP. Read-only clients call `fraggate_preview`.
+
+GPT Actions is the second option: import `https://aziel-runtime.vibelock.workers.dev/openapi/adopt-actions.json`. Steps: [`/install/chatgpt.md`](https://aziel-runtime.vibelock.workers.dev/install/chatgpt.md).
 
 ## Add to Grok
 
-- **Custom tool / OpenAPI:** import `https://aziel-runtime.vibelock.workers.dev/openapi.json`
-- **MCP remote:** `POST https://aziel-runtime.vibelock.workers.dev/mcp`  
-  Methods: `initialize`, `tools/list`, `tools/call`.  
-  `tools/list` is 36 live tools. First call: `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`.  
-  `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal.  
-  HTTP `/p/{product}/{op}` stays a proxy. Public, no OAuth.  
-  Tool results are `{ display, result, ledger_tip? }` — show `display` to the user.
+1. Open [grok.com/connectors](https://grok.com/connectors).
+2. Add a custom connector.
+3. Paste `https://aziel-runtime.vibelock.workers.dev/mcp`.
+4. **No authentication**.
+
+`tools/list` is 37 live tools. First call: `Softwares` (tools/list name Softwares). The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. `fraggate_preview` is dry_run only. `runtime_run`, `runtime_manifest`, and `runtime_session_*` are advanced/internal. HTTP `/p/{product}/{op}` stays a proxy. Public, no OAuth. Tool results are `{ display, result, ledger_tip? }` — show `display` to the user.
 
 ## Add to Claude Desktop
 
@@ -400,7 +411,7 @@ docker run --rm -i aziel-runtime-mcp
 
 Default bridge needs outbound **DNS + HTTPS** to `*.vibelock.workers.dev` / Cloudflare. A DNS miss is `FG-DNS` (`remote:false`). `--local` or `AZIEL_RUNTIME_MCP=local` is explicit in-process. Optional `RUNTIME_TOKEN` / `AZIEL_RUNTIME_TOKEN` when `REQUIRE_TOKEN=1`. Verify a real call hash: [docs/2.0/INSPECT.md](docs/2.0/INSPECT.md).
 
-**First call** after connect: `Softwares` (pick a slug) → `fraggate_call` → `library_lookup` for library papers and cites. FragGate stays the single exec door. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. `tools/list` is 36 live tools. ChainLock and memory are append-only.
+**First call** after connect: `Softwares` (pick a slug) → `fraggate_call` → `library_lookup` for library papers and cites. FragGate stays the single exec door. Diagnostics: `fraggate_list` → `fraggate_describe` → `fraggate_call`. Example: `{ "slug": "foldlock", "op": "fold-preview", "payload": { "text": "the cat and the dog" } }`, or `decisiongate_check` with `dry_run=true`. `tools/list` is 37 live tools. ChainLock and memory are append-only.
 
 Re-claim on the Glama Score tab after any `glama.json` change (`maintainers` = `AzielEliab`) so Schema and keywords refresh. Full steps: [docs/GLAMA.md](docs/GLAMA.md). Public identity: **Aziel Eliab** only.
 
@@ -637,7 +648,7 @@ Checkpoints are survivable and federated in the fixture model. This is not an un
 
 Relays are untrusted transport. They cannot decrypt payloads. That design rule is not a production zero-trust certification.
 
-Cap-7 is not public ICANN and is not a public egress IP. Mirage is not AZVPN. `aznet_replaces_internet` is false. Tor, UDP, radio, and sandbox bearers are refused and are not LIVE. Softwares stay 42. `tools/list` stays 36. Live multi-provider recovery and Plane B Framagit are operator work, not a result of these scripts.
+Cap-7 is not public ICANN and is not a public egress IP. Mirage is not AZVPN. `aznet_replaces_internet` is false. Tor, UDP, radio, and sandbox bearers are refused and are not LIVE. Softwares stay 42. `tools/list` is 37. Live multi-provider recovery and Plane B Framagit are operator work, not a result of these scripts.
 
 ## License
 

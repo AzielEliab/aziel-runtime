@@ -324,7 +324,7 @@ const openapi = await jsonReq("/openapi.json");
 assert.ok(openapi.data.paths["/v1/mesh/sot"]);
 assert.ok(openapi.data.paths["/v1/mesh/outlets"]);
 assert.ok(openapi.data.paths["/v1/mesh/sot-sync"]);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PUBLIC_MCP_TOOLS.includes("mesh_sot_sync"), false);
 
 const home = await handler(new Request(origin + "/", { headers: { "user-agent": "Mozilla/5.0", accept: "text/html" } }), env());

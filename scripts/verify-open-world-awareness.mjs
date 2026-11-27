@@ -151,7 +151,7 @@ const listed = await (
     env,
   )
 ).json();
-assert.equal(listed.result.tools.length, 36);
+assert.equal(listed.result.tools.length, 37);
 
 console.log(
   JSON.stringify({
@@ -160,6 +160,6 @@ console.log(
     law: "LIVE",
     worker_socket: "live-when-configured",
     local_listen: "LIVE",
-    tools: 36,
+    tools: 37,
   }),
 );

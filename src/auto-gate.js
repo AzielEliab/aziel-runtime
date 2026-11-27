@@ -1,7 +1,7 @@
 /**
  * FragGate, ChainLock, TemporalLock, and ForgeReceipts run before a Softwares
  * or runtime tool returns. Callers do not call those tools first.
- * Diagnostic tools stay available. tools/list stays 36.
+ * Diagnostic tools stay available. tools/list is 37.
  * Author: Aziel Eliab only.
  * SPDX-License-Identifier: Apache-2.0
  */

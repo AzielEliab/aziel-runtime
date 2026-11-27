@@ -29,7 +29,7 @@ const sc = (r) => { if (!r.result) throw new Error(JSON.stringify(r).slice(0, 30
 
 // tools/list publishes the schema hash; still 36 tools.
 const list = await mcp("tools/list");
-assert.equal(list.result.tools.length, 36);
+assert.equal(list.result.tools.length, 37);
 const schemaHash = list.result._meta["aziel/schema_hash"];
 assert.match(schemaHash, /^[a-f0-9]{64}$/);
 

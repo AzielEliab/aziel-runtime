@@ -22,7 +22,7 @@ assert.equal(init.result._meta["aziel-runtime/discovery"].remote, false);
 t = Date.now();
 await dispatchMcp({ jsonrpc: "2.0", method: "notifications/initialized" }, ctx);
 const list = await dispatchMcp({ jsonrpc: "2.0", id: 2, method: "tools/list" }, ctx);
-assert.equal(list.result.tools.length, 36);
+assert.equal(list.result.tools.length, 37);
 assert.ok(Date.now() - t < 1500, "skip window: no second wait");
 clearInterval(keepAlive);
 console.log("ok glama stdio deadline: black-holed egress answers discovery locally, 36 tools");

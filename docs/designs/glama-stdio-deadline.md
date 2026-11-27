@@ -1,6 +1,6 @@
 # GLAMA-STDIO-DEADLINE-1.0 and the 2026-10-11 runtime health audit
 
-Author: Aziel Eliab. Package stays 2.0.0-rc1. tools/list stays 36. Softwares stays 42.
+Author: Aziel Eliab. Package stays 2.0.0-rc1. tools/list is 37. Softwares stays 42.
 
 ## Problem
 

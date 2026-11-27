@@ -34,7 +34,7 @@ Missing `dry_run` and `confirm` returns `SOT-CONFIRM-REQUIRED` and writes nothin
 
 Outlet probes run together. A down pull is `unreachable` and keeps `last_known`. The other outlets still update. The desk does not wait on one site before painting the rest, and a failed refresh leaves the last matrix on screen.
 
-`tools/list` stays the 36 `PUBLIC_MCP_TOOLS`. Promoting `mesh_outlets` / `mesh_sot_status` / `mesh_sot_sync` onto that list is a later additive minor (cap 40). This draft does not do that.
+`tools/list` stays the 37 `PUBLIC_MCP_TOOLS`. Promoting `mesh_outlets` / `mesh_sot_status` / `mesh_sot_sync` onto that list is a later additive minor (cap 40). This draft does not do that.
 
 Nodes, Live Nodes, download counters, and `mesh_broadcast` are unchanged.
 

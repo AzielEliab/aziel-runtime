@@ -39,7 +39,7 @@ const REC = { observer_id: "obs-net-1", records_at: "observer://records/sess" };
 const now = () => new Date().toISOString();
 
 ok(RUNTIME_VERSION === "2.0.0-rc1", "version lock");
-ok(PUBLIC_MCP_TOOLS.length === 36, "tools/list stays 36");
+ok(PUBLIC_MCP_TOOLS.length === 37, "tools/list is 37");
 ok(!PUBLIC_MCP_TOOLS.includes("runtime_session_audit"), "audit is not an MCP tool");
 ok(buildRegistry().stub_op_count === 363, "stub ops stay 363");
 ok(listSoftwareEntries(PRODUCTS, "https://rt.example").length === 42, "Softwares stay 42");

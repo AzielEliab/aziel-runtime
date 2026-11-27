@@ -45,7 +45,19 @@ assert.equal(mut.result.structuredContent.result.retry.arguments.confirm, true);
 assert.match(mut.result.structuredContent.message, /is mutating/);
 
 const tools = (await mcp("tools/list")).result.tools;
-assert.equal(tools.length, 36);
+assert.equal(tools.length, 37);
+const previewTool = tools.find((t) => t.name === "fraggate_preview");
+assert.equal(previewTool.annotations.readOnlyHint, true);
+assert.equal(tools.find((t) => t.name === "fraggate_call").annotations.readOnlyHint, false);
+const preview = await mcp("tools/call", {
+  name: "fraggate_preview",
+  arguments: { slug: "foldlock", op: "fold-append", confirm: true, background: true },
+});
+assert.equal(preview.result.structuredContent.dry_run, true);
+assert.equal(preview.result.structuredContent.mutated, false);
+assert.equal(preview.result.structuredContent.ledger_written, false);
+assert.equal(preview.result.structuredContent.executes, false);
+assert.notEqual(preview.result.structuredContent.code, "FG-OK");
 const firstArgs = { fraggate_call: { slug: "foldlock", op: "health" }, runtime_pull: { slug: "foldlock" } };
 const SESSION_OR_ID = new Set(["memory_get", "runtime_session_receipt", "runtime_session_receipts"]);
 for (const t of tools) {
@@ -54,7 +66,11 @@ for (const t of tools) {
   if (r.result.isError) {
     const sc = r.result.structuredContent || {};
     const text = JSON.stringify(sc);
-    const ok = sc.code === MCP_CONFIRM_REQUIRED || sc.code === "MESH-DISABLE-REFUSED" || SESSION_OR_ID.has(t.name);
+    const ok =
+      sc.code === MCP_CONFIRM_REQUIRED ||
+      sc.code === "MESH-DISABLE-REFUSED" ||
+      SESSION_OR_ID.has(t.name) ||
+      (t.name === "fraggate_preview" && (sc.code === "FG-HALLUC-TOOL" || sc.code === "FG-UNKNOWN-OP" || sc.code === "MCP-DRY-RUN"));
     assert.ok(ok, `${t.name} errored on a reasonable first call: ${text.slice(0, 300)}`);
   }
 }

@@ -35,6 +35,7 @@ export const PUBLIC_DOOR_TOOLS = [
   "fraggate_describe",
   "fraggate_verify",
   "fraggate_call",
+  "fraggate_preview",
   "decisiongate_check",
   "library_lookup",
 ];

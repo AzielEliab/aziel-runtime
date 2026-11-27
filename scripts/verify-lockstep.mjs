@@ -40,7 +40,7 @@ ok((await hashOf(snap.contract)) === snap.contract_sha256, "snapshot contract ha
 
 // 2. locks unchanged. QNM named flags and Cap-7 active use are true. ICANN locks stay false.
 const c = buildLockstepContract(PRODUCTS);
-assert.deepEqual(c.locks, { softwares: 42, mcp_tools: 36, stub_op_count: 363, software_count: 33, health_count: 41 }); n++;
+assert.deepEqual(c.locks, { softwares: 42, mcp_tools: 37, stub_op_count: 363, software_count: 33, health_count: 41 }); n++;
 ok(c.runtime.version === "2.0.0-rc1", "version");
 const namedLive = new Set([
   "mesh_node_live",
@@ -54,7 +54,7 @@ const namedLive = new Set([
 ]);
 for (const [k, v] of Object.entries(c.flags)) ok(v === namedLive.has(k), namedLive.has(k) ? `flag ${k} is ON` : `flag ${k} stays false`);
 ok(c.flags.cap7_public_icann === false && c.flags.paid_registrar === false && c.flags.dns_publish === false && c.flags.cap7_public_egress === false, "Cap-7 is not ICANN and not a public egress");
-ok(c.doors.mcp_tools.length === 36 && c.doors.door === "fraggate", "doors");
+ok(c.doors.mcp_tools.length === 37 && c.doors.door === "fraggate", "doors");
 ok(c.chains.lattice_names.join() === "primary,secondary" && /^0{64}$/.test(c.chains.lattice_genesis), "lattice names + genesis");
 ok(c.chains.tether_chains.includes("refusals") && c.chains.anchor_chains.includes("session"), "chains");
 ok(c.mesh.path === "/v1/mesh" && c.mesh.nodes_are_not_unique_humans === true, "mesh identity");

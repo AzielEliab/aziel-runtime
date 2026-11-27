@@ -592,7 +592,7 @@ assert.equal(doorJoin.data.result.session.product, "foldlock");
 
 const listed = await mcp(doorEnv, "tools/list", {}, 2);
 const tools = listed.result.tools.map((t) => t.name);
-assert.equal(tools.length, 36, "tools/list stays 36");
+assert.equal(tools.length, 37, "tools/list is 37");
 for (const name of MESH_MCP_TOOLS) {
   assert.ok(tools.includes(name), `tools/list missing ${name}`);
 }

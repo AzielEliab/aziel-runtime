@@ -33,15 +33,15 @@ export const CLIENT_CLASS_IDS = Object.freeze([
 ]);
 
 const TRANSPORT = Object.freeze({
-  chatgpt: "openapi",
-  grok: "openapi",
+  chatgpt: "mcp",
+  grok: "mcp",
   venice: "openapi",
   claude: "mcp",
   cursor: "mcp",
   glama: "mcp",
   perplexity: "crawl",
   copilot: "crawl",
-  gemini: "openapi",
+  gemini: "mcp",
   mistral: "openapi",
   meta: "crawl",
   apple: "crawl",
@@ -54,6 +54,7 @@ const TRANSPORT = Object.freeze({
 
 const SLOT = Object.freeze({
   chatgpt: ["ChatGPT plugin store", "/.well-known/ai-plugin.json"],
+  gemini: ["consumer Gemini app (no custom MCP)"],
   copilot: ["ai-plugin store listing"],
   meta: ["vendor plugin card"],
   apple: ["Apple private API"],
@@ -77,9 +78,11 @@ function snippetUrl(id, base) {
     case "glama":
       return RUNTIME_GLAMA;
     case "chatgpt":
+      return `${base}/install/chatgpt.md`;
     case "grok":
-    case "venice":
     case "gemini":
+      return `${base}/connect`;
+    case "venice":
     case "mistral":
     case "amazon-q":
     case "cohere":
@@ -93,7 +96,13 @@ function snippetUrl(id, base) {
 }
 
 function alsoUrls(id, base) {
-  if (id === "grok" || id === "mistral" || id === "amazon-q" || id === "cohere" || id === "other") {
+  if (id === "chatgpt") {
+    return [`${base}/mcp`, `${base}/openapi/adopt-actions.json`, `${base}/openapi.json`];
+  }
+  if (id === "grok" || id === "gemini") {
+    return [`${base}/mcp`, `${base}/openapi.json`];
+  }
+  if (id === "mistral" || id === "amazon-q" || id === "cohere" || id === "other") {
     return [`${base}/mcp`, `${base}/openapi.json`];
   }
   if (TRANSPORT[id] === "openapi") return [`${base}/openapi.json`];
@@ -128,6 +137,8 @@ export function clientMatrix(origin) {
     integrate:
       "Softwares {} → pick a slug → fraggate_call { slug, op, payload?, dry_run|confirm } → show display → keep the receipt hash. Library papers: library_lookup.",
     confirm_is_not_auth: true,
+    connect: `${base}/connect`,
+    read_only_preview: "fraggate_preview",
     evidence_rule: CLIENT_EVIDENCE_RULE,
     verified_count: clients.filter((c) => c.status === "verified").length,
     clients,

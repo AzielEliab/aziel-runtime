@@ -74,7 +74,7 @@ resetMeshStore();
 
 assert.equal(SUITE_SOFTWARE_COUNT, 42);
 assert.equal(PRODUCTS.length, 41);
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.deepEqual(TRACK2_ORDER, ["lan", "wifi", "bluetooth", "rf", "photon"]);
 assert.equal(negotiateBearer("icann").code, "AZP-BEARER-REFUSE");
 assert.equal(negotiateBearer("cap7-egress").code, "AZP-BEARER-REFUSE");

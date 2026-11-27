@@ -35,7 +35,8 @@ Any of the following, once 2.0.0 is cut (and already treated as frozen for this 
 - Enriched listing metadata that does not change MCP/OpenAPI semantics (`glama.json` keywords already landed on 1.9.3).
 - Glama TDQS 5.0 `tools/list` description / parameter / annotation / `outputSchema` enrichment that does **not** rename tools, add tools, or change FragGate routing / Remain-OFF / refusal codes.
 - Tightening a refuse (more specific code, same `ok: false`) as long as previously-refused verbs stay refused.
-- Honest streamable-HTTP session headers (`Mcp-Session-Id`, `MCP-Protocol-Version`), `DELETE /mcp` teardown, and MCP-only `confirm` / `dry_run` on mutating tools. HTTP `POST /v1/fraggate/call` is not gated. No new public MCP tool name. No fake SSE. No invented OAuth IdP.
+- Honest streamable-HTTP session headers (`Mcp-Session-Id`, `MCP-Protocol-Version`), `DELETE /mcp` teardown, and MCP-only `confirm` / `dry_run` on mutating tools. HTTP `POST /v1/fraggate/call` is not gated. No fake SSE. No invented OAuth IdP.
+- Documented additive public MCP name `fraggate_preview` (dry_run only, `readOnlyHint: true`). Count **37**, still ≤ 40. `fraggate_call` is unchanged. The list → describe → call flow is unchanged. No flat `{slug}_{op}` names. Package version stays `2.0.0-rc1`.
 
 ---
 

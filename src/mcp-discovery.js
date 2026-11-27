@@ -142,7 +142,7 @@ export function mcpServerCard(origin, env = {}) {
       door: "fraggate",
       pipeline: PUBLIC_DOOR_TOOLS.slice(),
       summary:
-        "36 live MCP tools on POST /mcp tools/list. First call: Softwares (pick a slug), then fraggate_call. library_lookup searches library papers and cites. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. FragGate stays the single exec door. ChainLock and memory are append-only.",
+        `${PUBLIC_MCP_TOOLS.length} live MCP tools on POST /mcp tools/list. First call: Softwares (pick a slug), then fraggate_call. fraggate_preview is dry_run only (readOnlyHint). library_lookup searches library papers and cites. The door runs first. ChainLock, TemporalLock, and ForgeReceipts stamp when the call needs a ledger. Diagnostics: fraggate_list → fraggate_describe → fraggate_call. FragGate stays the single exec door. ChainLock and memory are append-only.`,
       names: PUBLIC_MCP_TOOLS.slice(),
       count: PUBLIC_MCP_TOOLS.length,
       pointer: PUBLIC_MCP_POINTER,

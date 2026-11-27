@@ -31,7 +31,7 @@ async function seal(body) {
 
 ok(LINEAGE_LIVE === false && LINEAGE_SPEC === "AZRT-REFUSAL-LINEAGE-1.0" && LINEAGE_BACKLOG === "RIB-057");
 ok(DEFAULT_MAX_HOPS === 32);
-ok(PUBLIC_MCP_TOOLS.length === 36 && !PUBLIC_MCP_TOOLS.some((name) => /lineage|refusal-walk/i.test(name)), "tools/list stays 36");
+ok(PUBLIC_MCP_TOOLS.length === 37 && !PUBLIC_MCP_TOOLS.some((name) => /lineage|refusal-walk/i.test(name)), "tools/list is 37");
 
 const root = await seal({
   kind: "aziel-runtime.receipt",

@@ -26,7 +26,7 @@ const VECTOR_SEED = "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1
 const VECTOR_HANDLE = "#CPV0CWYPXP4";
 const VECTOR_PUBLIC = "ebVWLo_mVPlAeLES6KmLp5AfhTrmlb7X4OORC60ElmQ";
 
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.equal(PUBLIC_MCP_TOOLS.includes("handle"), false);
 const guide = await readFile(new URL("../src/guide-reason.js", import.meta.url), "utf8");
 assert.match(guide, /SUITE_SOFTWARE_COUNT = 42/);

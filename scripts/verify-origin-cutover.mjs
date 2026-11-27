@@ -66,7 +66,7 @@ assert.match(survivalPaper, /ORIGIN-CUTOVER-1\.0/);
 assert.match(cold, /home-origin/);
 
 assert.ok(SUITE_DESIGNS.some((d) => d.id === ORIGIN_CUTOVER && d.kind === "law" && d.file === "ORIGIN-CUTOVER-1.0.md"));
-assert.equal(PUBLIC_MCP_TOOLS.length, 36);
+assert.equal(PUBLIC_MCP_TOOLS.length, 37);
 assert.ok(!PUBLIC_MCP_TOOLS.includes("origin_cutover"));
 assert.ok(!PUBLIC_MCP_TOOLS.includes("sidenet"));
 
