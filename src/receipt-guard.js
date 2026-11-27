@@ -459,6 +459,12 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
     out = await runWithCallMeta(meta, () => call());
   }
   const env = envelopeOf(out);
+  // fraggate_preview is dry_run only. A refusal must not seal a receipt or a follow.
+  if (String(name || "") === "fraggate_preview") {
+    if (context) attachToResult(out, "context", context);
+    if (badGoalId(src)) attachToResult(out, "goal_id_ignored", badGoalId(src));
+    return out;
+  }
   let code = refusalCodeOf(env, out);
   // RIB-018 addendum: an op that refuses inside an accepted door envelope (e.g. memory lattice-learn
   // LATTICE-LEARN-BAD-CHAIN: envelope FG-OK, result ok:false, fail_closed / written:false) is a refusal too.

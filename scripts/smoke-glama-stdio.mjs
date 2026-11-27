@@ -5,12 +5,12 @@
  * Glama builds a container from this repo, runs `node cli/mcp-stdio.mjs`
  * (wrapped by mcp-proxy) and checks MCP `initialize` + `tools/list`.
  * This script spawns the real CLI the same way and asserts:
- *   1. --local: initialize ok, tools/list = 36.
+ *   1. --local: initialize ok, tools/list = 37.
  *   2. bridge with the Worker DOWN (mock answers Cloudflare 1101 HTML / or
- *      the origin refuses): initialize + tools/list still answer 36 tools
+ *      the origin refuses): initialize + tools/list still answer 37 tools
  *      from the in-process catalog, labeled remote:false; tools/call and
  *      ping stay honest errors (no execution, no receipt).
- *   3. optional live bridge (GLAMA_SMOKE_LIVE=1): 36 tools from the Worker.
+ *   3. optional live bridge (GLAMA_SMOKE_LIVE=1): 37 tools from the Worker.
  *
  *   node scripts/smoke-glama-stdio.mjs                 # 1 + 2 (offline-safe)
  *   GLAMA_SMOKE_LIVE=1 node scripts/smoke-glama-stdio.mjs

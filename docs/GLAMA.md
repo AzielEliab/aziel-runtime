@@ -75,7 +75,7 @@ Glama wraps the process with `mcp-proxy` and talks MCP on stdin/stdout (newline-
 
 Glama's image is a stdio **bridge** to the Worker. When the Worker failed (Cloudflare 1101 from the KV daily put quota, Oct 2026), the bridge answered Glama's `initialize` / `tools/list` with `Upstream returned non-JSON (HTTP 500)`, so Glama inspection and Auto-Release failed even though the repo and image were fine.
 
-Now, when the bridge itself fails (DNS, network, non-JSON, HTTP error), **only** `initialize` and `tools/list` are answered from the in-process catalog in the image (same 36 tools, `serverInfo.version` 2.0.0-rc1), labeled `result._meta["aziel-runtime/discovery"] = { source: "local-catalog", remote: false, fraggate_receipt: false }` and logged on stderr as `DISCOVERY-LOCAL`. `tools/call`, `ping`, and every other method stay the honest FG-DNS / FG-NET / upstream error: no execution, no receipt, no local validation. A real JSON-RPC answer from the Worker is never replaced. `AZIEL_RUNTIME_DISCOVERY_FALLBACK=0` restores the strict error.
+Now, when the bridge itself fails (DNS, network, non-JSON, HTTP error), **only** `initialize` and `tools/list` are answered from the in-process catalog in the image (same 37 tools, `serverInfo.version` 2.0.0-rc1), labeled `result._meta["aziel-runtime/discovery"] = { source: "local-catalog", remote: false, fraggate_receipt: false }` and logged on stderr as `DISCOVERY-LOCAL`. `tools/call`, `ping`, and every other method stay the honest FG-DNS / FG-NET / upstream error: no execution, no receipt, no local validation. A real JSON-RPC answer from the Worker is never replaced. `AZIEL_RUNTIME_DISCOVERY_FALLBACK=0` restores the strict error.
 
 Check it the way Glama does:
 

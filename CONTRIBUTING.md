@@ -12,7 +12,7 @@ Thanks for helping. This is a small project with one maintainer. Clear, small ch
 
 - **Additive only.** Public schemas, codes and MCP tools are not removed or renamed. See
   [`docs/2.0/COMPATIBILITY-POLICY.md`](docs/2.0/COMPATIBILITY-POLICY.md).
-- **Frozen counts.** The version stays `2.0.0-rc1`. MCP `tools/list` stays at 36 tools, and Softwares stays at 42,
+- **Frozen counts.** The version stays `2.0.0-rc1`. MCP `tools/list` stays at 37 tools, and Softwares stays at 42,
   unless a release explicitly changes them.
 - **One door.** Tool calls go through FragGate. Don't add a side entrance.
 - **Fail closed.** Missing config or a failed check produces an explicit refusal code, never a silent pass.

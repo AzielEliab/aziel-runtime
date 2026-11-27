@@ -1,6 +1,6 @@
 /**
  * FragGate read-only ops run on a plain first call; mutating ops keep MCP-CONFIRM-REQUIRED.
- * Plus an all-36-tools first-call smoke: every tool answers (no RPC error, no throw),
+ * Plus an all-37-tools first-call smoke: every tool answers (no RPC error, no throw),
  * and every refusal is a documented code with a message.
  * Author: Aziel Eliab.
  */

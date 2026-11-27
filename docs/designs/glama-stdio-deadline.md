@@ -22,7 +22,7 @@ A refused / no-network container already fell back in ~0.3 s (#239).
 - For 60 s after a missed deadline, discovery and notifications skip the remote
   hop (same honest local tag). `tools/call` is never affected: it keeps the
   full timeout and the remote FragGate door, and never falls back locally.
-- Result: black-holed egress answers `initialize` + `tools/list` (36) in ~4.4 s.
+- Result: black-holed egress answers `initialize` + `tools/list` (37) in ~4.4 s.
 
 FragGate stays the single door; no receipt is minted on the local path
 (fail-closed, honest flags). No schema change.

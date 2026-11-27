@@ -4393,6 +4393,7 @@ async function handleRequest(request, env, ctx) {
     const url = new URL(request.url);
     const origin = originOf(request);
     const extra = (path) => linkHeaders(origin, path);
+    const pasteCache = (path) => ({ ...extra(path), ...catalogCacheHeaders() });
 
     if (request.method === "OPTIONS") {
       return new Response(null, { status: 204, headers: corsHeaders() });
@@ -4544,27 +4545,38 @@ async function handleRequest(request, env, ctx) {
     }
 
     if (url.pathname === "/install/cursor.json" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, json(cursorInstallSnippet(origin), 200, extra("/install/cursor.json")));
+      return asHead(request, json(cursorInstallSnippet(origin), 200, pasteCache("/install/cursor.json")));
     }
 
     if (url.pathname === "/install/claude-desktop.json" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, json(claudeDesktopInstallSnippet(origin), 200, extra("/install/claude-desktop.json")));
+      return asHead(request, json(claudeDesktopInstallSnippet(origin), 200, pasteCache("/install/claude-desktop.json")));
     }
 
     if (url.pathname === "/install/vscode.json" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, json(vscodeInstallSnippet(origin), 200, extra("/install/vscode.json")));
+      return asHead(request, json(vscodeInstallSnippet(origin), 200, pasteCache("/install/vscode.json")));
     }
 
     if (url.pathname === "/install/lmstudio.json" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, json(lmStudioInstallSnippet(origin), 200, extra("/install/lmstudio.json")));
+      return asHead(request, json(lmStudioInstallSnippet(origin), 200, pasteCache("/install/lmstudio.json")));
     }
 
     if (url.pathname === "/install/chatgpt.md" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, text(chatgptInstallMarkdown(origin), extra("/install/chatgpt.md")));
+      return asHead(request, text(chatgptInstallMarkdown(origin), pasteCache("/install/chatgpt.md")));
+    }
+
+    if (url.pathname === "/connect/" && (request.method === "GET" || request.method === "HEAD")) {
+      return new Response(request.method === "HEAD" ? null : "", {
+        status: 301,
+        headers: {
+          Location: "/connect",
+          ...corsHeaders(),
+          ...catalogCacheHeaders(),
+        },
+      });
     }
 
     if (url.pathname === "/connect" && (request.method === "GET" || request.method === "HEAD")) {
-      return asHead(request, html(connectPageHtml(origin), extra("/connect")));
+      return asHead(request, html(connectPageHtml(origin), pasteCache("/connect")));
     }
 
     if (url.pathname === "/server.json" && (request.method === "GET" || request.method === "HEAD")) {

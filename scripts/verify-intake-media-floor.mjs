@@ -2,7 +2,7 @@
  * CORPUS-INTAKE-SAFETY-1.0 media floor on the runtime side: AZNews `news_ingest` /
  * `news_pin` never keep image bytes. Supplied or fetched bytes are hashed and dropped;
  * the receipt keeps the content hash plus the fetch URL. Synthetic header bytes only.
- * Counts and version are untouched (36 tools / 42 Softwares / 2.0.0-rc1).
+ * Counts and version are untouched (37 tools / 42 Softwares / 2.0.0-rc1).
  */
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
