@@ -14,14 +14,17 @@ import { PRODUCTS } from "../src/index.js";
 import { SUITE_SOFTWARE_COUNT } from "../src/guide-reason.js";
 import { PUBLIC_MCP_TOOLS } from "../src/fraggate/codes.js";
 import { buildRegistry, classifyCall } from "../src/fraggate/registry.js";
-import { sealPlaintext } from "../src/fed-mesh/e2e.js";
+import { sealPlaintext as sealFramePlain } from "../src/fed-mesh/e2e.js";
+function sealPlaintext(opts) {
+  return sealFramePlain({ carrier: "lan", route_class: "direct", ...opts });
+}
 import { createIdentity, signObject, verifyObject } from "../src/fed-mesh/identity.js";
 import { startInstance } from "../src/fed-mesh/instance.js";
 import { hashStatement } from "../src/fed-mesh/codec.js";
 import { MAX_ENVELOPE_BYTES } from "../src/fed-mesh/spec.js";
 
 function shareStatement(env) {
-  return {
+  const body = {
     v: env.v,
     kind: env.kind,
     plane: env.plane,
@@ -33,6 +36,9 @@ function shareStatement(env) {
     ciphertext: env.ciphertext,
     route_class: env.route_class,
   };
+  if (env.frame_v != null) body.frame_v = env.frame_v;
+  if (env.carrier) body.carrier = env.carrier;
+  return body;
 }
 
 function shareEnvelope(base, seq, sealed) {
@@ -42,6 +48,8 @@ function shareEnvelope(base, seq, sealed) {
     nonce: sealed.nonce,
     eph_public_key: sealed.eph_public_key,
     ciphertext: sealed.ciphertext,
+    frame_v: sealed.frame_v,
+    carrier: sealed.carrier,
   };
 }
 import { locksetHash } from "../src/lockset.js";
@@ -210,10 +218,10 @@ const denied = await openPeerSession(alice, bob, { directUrl: "http://192.168.50
 assert.equal(denied.ok, false);
 assert.equal(denied.code, "MESH-PEER-NOT-ALLOWED");
 assert.equal(denied.deny_by_default, true);
-alice.allowSession(bob.state.identity.handle);
+alice.allowSession(bob.state.identity.public_key);
 const halfDenied = await openPeerSession(alice, bob, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
 assert.equal(halfDenied.code, "MESH-PEER-NOT-ALLOWED", "responder must allow too");
-bob.allowSession(alice.state.identity.handle);
+bob.allowSession(alice.state.identity.public_key);
 const opened = await openPeerSession(alice, bob, {
   directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct",
   relayUrl: "https://relay.example/v1/mesh/relay",
@@ -361,18 +369,7 @@ const poison = {
   route_class: row.route_class,
   ...sealed,
 };
-poison.session_sig = await signObject(row.signPrivate, {
-  v: poison.v,
-  kind: poison.kind,
-  plane: poison.plane,
-  session_id: poison.session_id,
-  to_session: poison.to_session,
-  seq: poison.seq,
-  nonce: poison.nonce,
-  eph_public_key: poison.eph_public_key,
-  ciphertext: poison.ciphertext,
-  route_class: poison.route_class,
-});
+poison.session_sig = await signObject(row.signPrivate, shareStatement(poison));
 const ingress = await bob.recv(poison);
 assert.equal(ingress.code, "FED-MESH-POISON");
 assert.equal(ingress.plaintext, null);
@@ -389,8 +386,8 @@ const seqLeft = await node("55".repeat(32));
 const seqRight = await node("66".repeat(32));
 await seqLeft.arm(["lan"]);
 await seqRight.arm(["lan"]);
-seqLeft.allowSession(seqRight.state.identity.handle);
-seqRight.allowSession(seqLeft.state.identity.handle);
+seqLeft.allowSession(seqRight.state.identity.public_key);
+seqRight.allowSession(seqLeft.state.identity.public_key);
 assert.equal((await seqLeft.exchange(seqRight)).ok, true);
 const seqPair = await openPeerSession(seqLeft, seqRight, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
 assert.equal(seqPair.ok, true);
@@ -577,8 +574,8 @@ async function exhaustedPair(mark) {
   const b = await node(`${mark}b`.padEnd(64, "b").slice(0, 64));
   await a.arm(["lan"]);
   await b.arm(["lan"]);
-  a.allowSession(b.state.identity.handle);
-  b.allowSession(a.state.identity.handle);
+  a.allowSession(b.state.identity.public_key);
+  b.allowSession(a.state.identity.public_key);
   assert.equal((await a.exchange(b)).ok, true);
   const opened = await openPeerSession(a, b, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
   assert.equal(opened.ok, true);
@@ -675,8 +672,8 @@ await convergeFork("parallel");
   const other = await node("88".repeat(32));
   await limited.arm(["lan"]);
   await other.arm(["lan"]);
-  limited.allowSession(other.state.identity.handle);
-  other.allowSession(limited.state.identity.handle);
+  limited.allowSession(other.state.identity.public_key);
+  other.allowSession(limited.state.identity.public_key);
   assert.equal((await limited.exchange(other)).ok, true);
   const opened = await openPeerSession(limited, other, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
   assert.equal(opened.ok, true);
@@ -706,8 +703,8 @@ await convergeFork("parallel");
   assert.equal(peer.replaySeq, 2);
   const third = await node("99".repeat(32));
   await third.arm(["lan"]);
-  limited.allowSession(third.state.identity.handle);
-  third.allowSession(limited.state.identity.handle);
+  limited.allowSession(third.state.identity.public_key);
+  third.allowSession(limited.state.identity.public_key);
   assert.equal((await limited.exchange(third)).ok, true);
   const side = await openPeerSession(limited, third, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
   assert.equal(side.ok, true);
@@ -754,8 +751,8 @@ await convergeFork("parallel");
   const mate = await node("cd".repeat(32));
   await gate.arm(["lan"]);
   await mate.arm(["lan"]);
-  gate.allowSession(mate.state.identity.handle);
-  mate.allowSession(gate.state.identity.handle);
+  gate.allowSession(mate.state.identity.public_key);
+  mate.allowSession(gate.state.identity.public_key);
   assert.equal((await gate.exchange(mate)).ok, true);
   const paired = await openPeerSession(gate, mate, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
   assert.equal(paired.ok, true);
@@ -797,8 +794,8 @@ await convergeFork("parallel");
   const mate = await node("12".repeat(32));
   await gate.arm(["lan"]);
   await mate.arm(["lan"]);
-  gate.allowSession(mate.state.identity.handle);
-  mate.allowSession(gate.state.identity.handle);
+  gate.allowSession(mate.state.identity.public_key);
+  mate.allowSession(gate.state.identity.public_key);
   assert.equal((await gate.exchange(mate)).ok, true);
   const paired = await openPeerSession(gate, mate, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
   assert.equal(paired.ok, true);
@@ -835,8 +832,8 @@ await convergeFork("parallel");
   const mate = await node("67".repeat(32));
   await gate.arm(["lan"]);
   await mate.arm(["lan"]);
-  gate.allowSession(mate.state.identity.handle);
-  mate.allowSession(gate.state.identity.handle);
+  gate.allowSession(mate.state.identity.public_key);
+  mate.allowSession(gate.state.identity.public_key);
   assert.equal((await gate.exchange(mate)).ok, true);
   const paired = await openPeerSession(gate, mate, { directUrl: "http://192.168.50.2:8781/v1/fed-mesh/direct" });
   assert.equal(paired.ok, true);

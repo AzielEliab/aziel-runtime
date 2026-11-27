@@ -614,7 +614,8 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
     fixture: fixture === true,
     peerRecvPerMin: peerRecvPerMin || undefined,
     preAuthPerMin: preAuthPerMin || undefined,
-    // AZRT-MESH-PEER-DENY-1.0: empty unless the local operator lists handles (option or FED_MESH_SESSION_ALLOW).
+    // AZRT-MESH-PEER-DENY-1.0: empty unless the operator lists public keys or sha256 pins.
+    // FED_MESH_SESSION_ALLOW is comma-separated raw public keys or 64-hex pins, not handles.
     sessionAllow: Array.isArray(sessionAllow)
       ? sessionAllow
       : String((typeof process !== "undefined" && process.env && process.env.FED_MESH_SESSION_ALLOW) || "").split(",").map((h) => h.trim()).filter(Boolean),
@@ -713,6 +714,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
       out = {
         ok: true,
         handle: node.identity.handle,
+        public_key: node.identity.public_key,
         spec: FED_SPEC,
         direct: true,
         listen_host: share.listenHost,
@@ -753,7 +755,7 @@ export async function startInstance({ dataDir, port = 0, host = "127.0.0.1", adv
           sent: false,
         };
       } else {
-        out = node.track2.allowSession(body.handle || body.peer);
+        out = node.track2.allowSession(body.public_key || body.peer_public_key || body.handle || body.peer);
       }
     } else if (req.method === "POST" && (url.pathname === "/v1/fed-mesh/deliver" || url.pathname === "/local/deliver")) {
       const presented = body.admin_token || req.headers["x-aziel-admin-token"];
