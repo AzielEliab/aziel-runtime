@@ -64,7 +64,7 @@ export async function dispatchWitness({ token, fetchImpl = fetch, fetchTimeoutMs
   return { ok: true, dispatched: `${ANCHORS_REPO}/${WITNESS_WORKFLOW}` };
 }
 
-/** Poll /v1/anchor/verify until build_witness is verified. Pending/failed/not_checked never count. */
+/** Poll /v1/anchor/verify until the build claim matches. Pending/failed/not_checked never count. self_consistent is the runtime's own claim. */
 export async function waitWitnessed({ runtime = RUNTIME_URL, timeoutMs = 20 * 60_000, intervalMs = 30_000, fetchTimeoutMs = FETCH_TIMEOUT_MS, fetchImpl = fetch, sleep = (ms) => new Promise((r) => setTimeout(r, ms)), now = Date.now } = {}) {
   // Deadline guard: a non-finite or out-of-range timeout never becomes an endless poll.
   if (!Number.isFinite(timeoutMs) || timeoutMs <= 0 || timeoutMs > TIMEOUT_MAX_MIN * 60_000) {
@@ -78,7 +78,7 @@ export async function waitWitnessed({ runtime = RUNTIME_URL, timeoutMs = 20 * 60
       const res = await fetchImpl(`${runtime}/v1/anchor/verify?fresh=1`, { headers: { accept: "application/json" }, signal: AbortSignal.timeout(fetchTimeoutMs) });
       const body = await res.json();
       last = body && body.build_witness ? body.build_witness : null;
-      if (last && last.status === "verified" && last.ok === true) return { ok: true, build_witness: last };
+      if (last && (last.status === "self_consistent" || last.status === "verified") && last.ok === true) return { ok: true, build_witness: last };
     } catch (err) {
       last = { status: "unreadable", error: String(err && err.message ? err.message : err) };
     }

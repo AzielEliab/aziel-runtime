@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { cachedUses, clearStatsMemo, statsFloorFor, statsFloorStorageKey, STATS_TTL_S, STATS_DO_CAP_PER_MIN } from "../src/stats-cache.js";
 import { memoryChainWriterNamespace } from "../src/chainlock/writer-do.js";
 import { USES_TOTAL_SOURCE } from "../src/uses.js";
+import { clearUsesRectifyCache, rectifyUsesBody } from "../src/uses-rectify.js";
 let n = 0;
 const T = STATS_TTL_S * 1000;
 const body = (uses, complete = true) => ({ ok: true, uses, uses_complete: complete });
@@ -253,6 +254,78 @@ assert.equal(STATS_DO_CAP_PER_MIN, 6); n++;
   assert.equal((await fp.raise("full", 0)).floor, 112111);
   assert.ok(raised.every(([k, u]) => k !== series || u !== 112111));
   assert.ok(raised.some(([k, u]) => k === series && u === 67939));
+  n++;
+}
+// Live 2026-11-19 shape: full floor 562200 must not cover a rollup whose 38 meters 1042.
+{
+  clearStatsMemo();
+  clearUsesRectifyCache();
+  const envF = { CHAINLOCK: memoryChainWriterNamespace({}) };
+  const ff = statsFloorFor(envF);
+  const series = "full:" + USES_TOTAL_SOURCE;
+  await ff.raise(series, 562200);
+  const base = {
+    ok: true,
+    uses: 124752,
+    uses_complete: true,
+    uses_legacy: 62051,
+    uses_durable: 62701,
+    uses_total_source: USES_TOTAL_SOURCE,
+  };
+  const fail = async () => {
+    throw new Error("error code: 1042");
+  };
+  const partial = await rectifyUsesBody(base, {
+    meters: [
+      { slug: "vibelock", meter_stats: "https://vibelock-download-tracker.vibelock.workers.dev/stats" },
+      { slug: "aziel-corpus", meter_stats: "https://aziel-corpus-download-tracker.vibelock.workers.dev/stats" },
+    ],
+    siteLive: { site_live_viewers: 0, site_live_viewers_complete: true },
+    fetchImpl: fail,
+    now: 9_000_000,
+  });
+  assert.equal(partial.uses_components.sum_views, 0);
+  assert.equal(partial.uses_components.uses_views_complete, false);
+  assert.equal(partial.uses_complete, false);
+  assert.equal(partial.uses, 124752);
+  const served = await cachedUses("full", async () => partial, { now: 9_000_000, cache: null, floor: ff });
+  assert.equal(served.uses, 124752);
+  assert.notEqual(served.uses, 562200);
+  assert.equal(served.cache.uses_floor_applied, false);
+  assert.equal(served.cache.floor_skipped, "views-incomplete");
+  assert.equal(served.uses_complete, false);
+  assert.equal((await ff.raise(series, 0)).floor, 562200);
+  n++;
+  clearUsesRectifyCache();
+  const complete = await rectifyUsesBody(base, {
+    meters: [{ slug: "aziel-corpus", meter_stats: "https://aziel-corpus-download-tracker.vibelock.workers.dev/stats" }],
+    siteLive: { site_live_viewers: 0, site_live_viewers_complete: true },
+    fetchImpl: async (url) => {
+      const json = (obj) => ({ ok: true, async json() { return obj; } });
+      if (String(url).includes("aziel-corpus-download-tracker")) return json({ views: 450477 });
+      if (url === "https://www.azieleliab.com/v1/stats") return json({ views: 6623 });
+      if (url === "https://godlock.uk/stats") return json({ views: 7657 });
+      throw new Error("unexpected " + url);
+    },
+    now: 9_100_000,
+  });
+  const sum = 62051 + 62701 + 450477 + 6623 + 7657;
+  assert.equal(complete.uses, sum);
+  assert.equal(complete.uses_complete, true);
+  assert.ok(sum > 562200);
+  clearStatsMemo();
+  const up = await cachedUses("full", async () => complete, { now: 9_100_000, cache: null, floor: ff });
+  assert.equal(up.uses, sum);
+  assert.equal(up.cache.uses_floor_applied, false);
+  assert.equal(up.uses_complete, true);
+  assert.equal((await ff.raise(series, 0)).floor, sum);
+  clearStatsMemo();
+  const lagged = await cachedUses("full", async () => ({ ...complete, uses: sum - 10 }), { now: 9_200_000, cache: null, floor: ff });
+  assert.equal(lagged.uses, sum);
+  assert.equal(lagged.uses_read, sum - 10);
+  assert.equal(lagged.cache.uses_floor_applied, true);
+  assert.equal(lagged.uses_complete, false);
+  assert.match(lagged.uses_complete_note, /floor substituted/);
   n++;
 }
 console.log(`ok stats floor: ${n} checks`);

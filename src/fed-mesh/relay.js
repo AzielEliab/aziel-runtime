@@ -718,6 +718,59 @@ async function allowedUrls(state) {
   return set;
 }
 
+async function relayEnvelopeV2(state, body, now) {
+  const secret = rejectSecrets(body);
+  if (secret) return secret;
+  const exec = rejectExec(body);
+  if (exec) return exec;
+  if (body.plaintext || body.payload || body.body) {
+    return fail("FED-MESH-BAD-INPUT", "FED-MESH-ENVELOPE-2 is ciphertext only. The relay does not decrypt it.");
+  }
+  if (typeof body.ciphertext !== "string" || typeof body.nonce !== "string" || typeof body.eph_public_key !== "string") {
+    return fail("FED-MESH-BAD-INPUT", "FED-MESH-ENVELOPE-2 carries nonce, eph_public_key, and ciphertext.");
+  }
+  const handle = canonicalHandle(body.handle);
+  const to = canonicalHandle(body.to);
+  if (!handle || !to) return fail("FED-MESH-BAD-HANDLE", "handle and to must be #handles.");
+  const match = await publicKeyMatchesHandle(body.public_key, handle);
+  if (!match) return fail("FED-MESH-HANDLE-MISMATCH", "Handle does not match the signing key.");
+  if (!Number.isInteger(body.seq) || body.seq < 1) return fail("FED-MESH-BAD-INPUT", "seq must be an integer starting at 1.");
+  const statement = {
+    v: FED_ENVELOPE_V2,
+    kind: "msg",
+    handle,
+    public_key: body.public_key,
+    to,
+    seq: body.seq,
+    prev: body.prev,
+    nonce: body.nonce,
+    eph_public_key: body.eph_public_key,
+    ciphertext: body.ciphertext,
+  };
+  const good = await verifyObject(body.public_key, statement, body.sig);
+  if (!good) return fail("FED-MESH-BAD-SIG", "FED-MESH-ENVELOPE-2 signature did not verify. The ciphertext was not opened.");
+  const roster = await loadRoster(state);
+  if (!roster[to]) return fail("FED-MESH-NO-ROUTE", "This relay stores FED-MESH-ENVELOPE-2 only for a registered handle.");
+  const before = body.ciphertext;
+  const stored = await storeInbox(state, to, { ...statement, sig: body.sig }, now);
+  if (!stored.ok) return stored;
+  return ok({
+    op: "post",
+    wire_spec: FED_ENVELOPE_V2,
+    fed_mesh_compat: FED_SPEC,
+    decrypted: false,
+    mutated: stored && before === body.ciphertext ? false : true,
+    relay_sees_plaintext: false,
+    not_azrt_sealed_frame: true,
+    not_azp_ns: true,
+    wire_identical_to_azrt_sealed_frame: false,
+    wire_identical_to_azp_ns: false,
+    msg_hash: stored.msg_hash,
+    stored: true,
+    to,
+  });
+}
+
 async function storeInbox(state, to, envelope, now) {
   const handle = canonicalHandle(to);
   if (!handle) return fail("FED-MESH-BAD-HANDLE", "Recipient handle is not a #handle.");
@@ -741,7 +794,11 @@ async function storeInbox(state, to, envelope, now) {
   return { ok: true, msg_hash };
 }
 
+/** Opaque mesh envelope. Not AZRT-SEALED-FRAME-1.0 and not AZP-NS-1.0. */
+export const FED_ENVELOPE_V2 = "FED-MESH-ENVELOPE-2";
+
 export async function relayPost(state, body, now = Date.now(), opts = {}) {
+  if (body && body.v === FED_ENVELOPE_V2) return relayEnvelopeV2(state, body, now);
   const ready = await prepare(state, body, "msg", now);
   if (!ready.ok) return ready;
   const seqErr = requireSeq(body);

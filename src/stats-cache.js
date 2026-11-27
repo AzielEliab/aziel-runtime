@@ -38,6 +38,16 @@ function countOf(body) {
   return Number.isFinite(n) ? n : -1;
 }
 
+/**
+ * A reconciled body that did not collect every meter and hosted view.
+ * Bodies with no uses_components (plain KV tests, pre-rectify reads) are not this case.
+ */
+function viewsRollupIncomplete(body) {
+  const components = body && body.uses_components;
+  if (!components || !Object.prototype.hasOwnProperty.call(components, "uses_views_complete")) return false;
+  return components.uses_views_complete !== true;
+}
+
 /** Pick the entry to serve: never one with a lower count than `high`; ties go to the newer read. */
 function pickEntry(a, b) {
   if (!a) return b || null;
@@ -118,8 +128,10 @@ async function cachedUsesLocal(key, read, { now = Date.now(), cache = defaultCac
   const body = await read();
   const entry = { at: now, body };
   if (!cacheable(body)) {
-    if (high && countOf(high.body) > countOf(body)) return stamp(high.body, high.at, true, now, true);
-    highWater.set(key, entry); // served, so it is the floor; still never cached
+    // A missing-meter rollup must stay the live partial. Replacing it with an older
+    // higher body is how sum_views 0 was served as a finished total.
+    if (!viewsRollupIncomplete(body) && high && countOf(high.body) > countOf(body)) return stamp(high.body, high.at, true, now, true);
+    if (!viewsRollupIncomplete(body)) highWater.set(key, entry); // served, so it is the floor; still never cached
     return stamp(body, now, false, now);
   }
   const best = pickEntry(high, entry);
@@ -172,8 +184,18 @@ function floorCache(body, served, extra) {
 
 function finishFloor(body, served, extra) {
   const out = { ...body, breakdown: BREAKDOWN_NOTE, cache: floorCache(body, served, extra) };
-  if (served > countOf(body)) out.uses_read = body.uses;
+  const lifted = served > countOf(body);
+  if (lifted) out.uses_read = body.uses;
   out.uses = served;
+  if (lifted) {
+    out.uses_complete = false;
+    out.uses_complete_note = "uses_complete is false because the shared floor substituted a higher uses than this live read.";
+  } else if (viewsRollupIncomplete(body)) {
+    out.uses_complete = false;
+    if (!out.uses_complete_note) {
+      out.uses_complete_note = "uses_complete is false because one or more Softwares meters or hosted view sources are missing. Missing meters are not counted as a complete total.";
+    }
+  }
   return out;
 }
 
@@ -241,7 +263,7 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
       const fresh = await read();
       if (reconciledBody(fresh)) body = fresh;
     }
-    if (reconciledBody(body)) {
+    if (reconciledBody(body) && !viewsRollupIncomplete(body)) {
       const entry = { at: now, body };
       const prev = highWater.get(epochKey);
       const best = pickEntry(prev && reconciledBody(prev.body) ? prev : null, entry);
@@ -250,6 +272,24 @@ export async function cachedUses(key, read, { now = Date.now(), cache = defaultC
     }
   }
   const floorKey = statsFloorStorageKey(key, body);
+  const liveCount = countOf(body);
+  // Missing meters are not a floor candidate and are not covered by a stored floor.
+  // raise(key, 0) only proves the Durable Object is up; max(floor, 0) does not climb.
+  if (viewsRollupIncomplete(body) && liveCount >= 0) {
+    let probe;
+    try {
+      probe = await raiseBatched(floor, floorKey, 0, now);
+    } catch {
+      return refuse("unreachable");
+    }
+    if (probe && probe.capped) {
+      return { ok: false, code: STATS_CAP_CODE, retry_after_s: probe.retry_after_s, message: `Stats floor calls are capped at ${STATS_DO_CAP_PER_MIN} per minute per isolate. No count was served. Retry after ${probe.retry_after_s}s.`, spec: "STATS-FLOOR-CAP-1.0" };
+    }
+    const got = probe && probe.got;
+    const probed = Number(got && got.floor);
+    if (!got || got.ok !== true || !Number.isFinite(probed)) return refuse("bad-reply");
+    return finishFloor(body, liveCount, { floor_reused: false, floor_skipped: "views-incomplete", floor_batch: probe.batch_size });
+  }
   const seriesHigh = highWater.get(floorKey);
   const seriesCount = seriesHigh && statsFloorStorageKey(key, seriesHigh.body) === floorKey ? countOf(seriesHigh.body) : -1;
   const candidate = Math.max(0, countOf(body), seriesCount);

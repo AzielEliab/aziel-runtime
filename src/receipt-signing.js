@@ -23,8 +23,12 @@ import { sha256Hex } from "./session-core.js";
 
 export const HELD_KEY_SPEC = "AZRT-HELD-KEY-1.0";
 export const SIG_DOMAIN = "azrt-receipt-sig-1:";
-/** Pinned trusted receipt public keys (raw Ed25519, base64url). None pinned yet. */
-export const PINNED_RECEIPT_KEYS = Object.freeze([]);
+/**
+ * Pinned receipt public key published at GET /v1/receipt-key on 2026-11-20.
+ * Raw Ed25519, base64url. key_id ed25519:78aa5564baffbda0fcf1dfc4a2d07f41d730062f2175a2eeb786236f7b576874.
+ * The private key is not in this repo.
+ */
+export const PINNED_RECEIPT_KEYS = Object.freeze(["5hjGrDhtR5IFJqEY30smt8CyRKXIRMYdijU_IAT8iP8"]);
 /**
  * AZRT-KEYS-1.0: retired receipt keys, append-only epochs { public_key, from, until } (ISO times).
  * When the deploy side replaces the held key, the old PUBLIC key is added here (in a reviewed PR) so
@@ -69,14 +73,28 @@ const cache = new WeakMap();
 const NO_KEY = Object.freeze({ ok: false, reason: "no receipt signing key provisioned; receipts are hash-linked and sealed, not signed" });
 
 /** Load the provisioned key. Never generates one. Cached per env object (default epochs only). */
-export async function heldSignerFromEnv(env, { epochs, witnessedKeyId, tip } = {}) {
+export async function heldSignerFromEnv(env, { epochs, witnessedKeyId, tip, witnessLogOk, statement, rootPubkeys, pinned } = {}) {
   if (!env || typeof env !== "object") return NO_KEY;
   let loaded;
-  if (epochs !== undefined) loaded = await load(env, epochs);
+  const custom = epochs !== undefined || statement !== undefined || rootPubkeys !== undefined || pinned !== undefined;
+  if (custom) loaded = await load(env, epochs === undefined ? RECEIPT_KEY_EPOCHS : epochs, { statement, rootPubkeys, pinned });
   else if (cache.has(env)) loaded = cache.get(env);
   else {
     loaded = await load(env);
     cache.set(env, loaded);
+  }
+  // Unreadable witness log: do not sign. A missing statement key is not this case.
+  if (witnessLogOk === false && loaded && loaded.ok) {
+    return {
+      ok: false,
+      code: "KEY-WITNESS-UNREADABLE",
+      key_id: loaded.provenance && loaded.provenance.key_id,
+      reason: "witness log could not be read; refusing to sign",
+    };
+  }
+  if (loaded && loaded.ok) {
+    const blocked = await replacementVerdict(env, loaded.provenance.public_key, epochs === undefined ? RECEIPT_KEY_EPOCHS : epochs, { statement, rootPubkeys });
+    if (blocked) return blocked;
   }
   // RIB-049: a loaded key that is not the witnessed key is a second mint. No key is generated here.
   // witnessedKeyId undefined uses the isolate note; null means this call saw no witnessed id.
@@ -90,7 +108,7 @@ export async function publishedReceiptKey(env) {
   return loaded && loaded.ok ? loaded.provenance : null;
 }
 
-async function load(env, epochs = RECEIPT_KEY_EPOCHS) {
+async function load(env, epochs = RECEIPT_KEY_EPOCHS, opts = {}) {
   const priv = env.RECEIPT_SIGNING_KEY;
   const pub = env.RECEIPT_SIGNING_PUBLIC_KEY;
   if (!priv) return NO_KEY;
@@ -144,9 +162,22 @@ export function sigCommitFor(signer = active) {
   return signer && signer.ok ? { spec: HELD_KEY_SPEC, key_id: signer.provenance.key_id } : { spec: HELD_KEY_SPEC, mode: "none" };
 }
 
+/** A held key other than the pinned live key needs a dual signature, even when the retired list is empty. */
+async function replacementVerdict(env, pub, epochs, opts) {
+  const pubId = await keyIdOf(pub);
+  for (const k of PINNED_RECEIPT_KEYS) {
+    if ((await keyIdOf(k)) === pubId) return null;
+  }
+  const { admitReplacement } = await import("./receipt-key-guard.js");
+  const verdict = await admitReplacement({ env, heldPublic: pub, epochs, statement: opts.statement, rootPubkeys: opts.rootPubkeys, pinnedKeys: PINNED_RECEIPT_KEYS });
+  return verdict && verdict.ok ? null : verdict;
+}
+
 /** The `signature` field for a receipt hash. Unsigned when no key: sig null + reason. */
 export async function signatureFor(hash, signer = active) {
-  if (!signer || !signer.ok) return { spec: HELD_KEY_SPEC, sig: null, reason: (signer && signer.reason) || NO_KEY.reason };
+  if (!signer || !signer.ok) {
+    return { spec: HELD_KEY_SPEC, sig: null, reason: (signer && signer.reason) || NO_KEY.reason, ...(signer && signer.code ? { code: signer.code } : {}) };
+  }
   return { spec: HELD_KEY_SPEC, alg: "Ed25519", sig: await signer.sign(SIG_DOMAIN + hash), ...signer.provenance };
 }
 
