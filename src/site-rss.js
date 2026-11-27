@@ -160,6 +160,7 @@ export function siteRssXml(origin, options = {}) {
   const base = String(origin || "").replace(/\/$/, "");
   const items = siteRssItems({ origin: base, ...options });
   const self = `${base}${SITE_RSS_PATH}`;
+  // Newest recorded item date. Not the request clock.
   const newest = items[0] ? items[0].pubDate : null;
   const body = items
     .map((item) => {

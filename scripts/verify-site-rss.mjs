@@ -162,15 +162,41 @@ assert.equal(refusedItems.some((item) => item.category === "software"), false);
 assert.equal(shouldIncrementUse("GET", SITE_RSS_PATH), false);
 assert.equal(shouldIncrementUse("GET", SITE_RSS_ALIAS), false);
 
+const again = await (await get(SITE_RSS_PATH)).text();
+assert.equal(again, rss);
+const channel = rss.split("<item>")[0];
+const built = channel.match(/<lastBuildDate>([^<]*)<\/lastBuildDate>/);
+assert.ok(built);
+assert.equal(built[1], items[0].pubDate);
+assert.doesNotMatch(channel, /<pubDate>/);
+const feedSrc = readFileSync(new URL("../src/site-rss.js", import.meta.url), "utf8");
+assert.doesNotMatch(feedSrc, /new Date\(\s*\)/);
+assert.doesNotMatch(feedSrc, /Date\.now\(\)/);
+
+const creators = [...rss.matchAll(/<dc:creator>([^<]*)<\/dc:creator>/g)].map((match) => match[1]);
+assert.ok(creators.length >= 1);
+for (const name of creators) assert.equal(name, "Aziel Eliab");
+assert.doesNotMatch(rss, /<author>/);
+
+function visibleHtml(html) {
+  const head = html.match(/<head[\s\S]*?<\/head>/i);
+  assert.ok(head, "page has a head");
+  return html.slice(head.index + head[0].length);
+}
+
 const home = await (await get("/")).text();
 assert.match(home, new RegExp(`rel="alternate" type="application/rss\\+xml" href="${origin}${SITE_RSS_PATH}"`));
-assert.match(home, new RegExp(`href="${origin}${SITE_RSS_PATH}">/rss.xml</a>`));
+assert.doesNotMatch(visibleHtml(home), /href="[^"]*\/(?:rss|feed)\.xml"/);
+
+const softwarePage = await (await get("/software")).text();
+assert.match(softwarePage, new RegExp(`rel="alternate" type="application/rss\\+xml" href="${origin}${SITE_RSS_PATH}"`));
+assert.doesNotMatch(visibleHtml(softwarePage), /href="[^"]*\/(?:rss|feed)\.xml"/);
 
 const softwareHtml = await (
   await get("/v1/software", {}, { accept: "text/html" })
 ).text();
 assert.match(softwareHtml, new RegExp(`rel="alternate" type="application/rss\\+xml" href="${origin}${SITE_RSS_PATH}"`));
-assert.match(softwareHtml, /href="\/rss\.xml">rss<\/a>/);
+assert.doesNotMatch(visibleHtml(softwareHtml), /href="[^"]*\/(?:rss|feed)\.xml"/);
 
 const llms = await (await get("/llms.txt")).text();
 assert.match(llms, new RegExp(`RSS: ${origin}${SITE_RSS_PATH}`));
@@ -184,5 +210,8 @@ assert.match(openapi.paths[SITE_RSS_PATH].get.summary, /GET \/feed\.xml is the s
 
 const health = await (await get("/v1/health")).json();
 assert.equal(health.rss, SITE_RSS_PATH);
+
+const robots = await (await get("/robots.txt")).text();
+assert.match(robots, new RegExp(`# RSS: ${origin}${SITE_RSS_PATH}`));
 
 console.log(`ok site-rss: ${items.length} items (release, Softwares catalog, ${RIB_RECORDS.length} dated RIB notes)`);

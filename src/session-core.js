@@ -349,6 +349,18 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
   const { verifyHarnessSeals } = await import("./harness-seal.js");
   const harness_seal = verifyHarnessSeals(receipts);
   for (const e of harness_seal.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-021: counterparty evidence is absent until sealed, and unverified when it does not recompute.
+  const { verifyCounterparty } = await import("./counterparty-receipt.js");
+  const counterparty = await verifyCounterparty(receipts);
+  for (const e of counterparty.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-022: calibration probes link a later verdict to a premise sealed first.
+  const { verifyCalibration } = await import("./calibration-probe.js");
+  const calibration = await verifyCalibration(receipts);
+  for (const e of calibration.errors) errors.push({ seq: e.seq, error: e.code });
+  // RIB-025: portable AER-1 export. An open chain is not a failure. A broken commitment is.
+  const { verifySealedAer } = await import("./aer1-receipt.js");
+  const aer1 = await verifySealedAer(receipts);
+  for (const e of aer1.errors) errors.push({ seq: e.seq, error: e.code });
   const hashPresent = (receipts || []).length > 0 && (receipts || []).every((r) => r && typeof r.hash === "string");
   return {
     ok: errors.length === 0,
@@ -375,6 +387,9 @@ export async function verifyChainStrict(receipts, { trustedKeys = null } = {}) {
     audit_path,
     writer_fence,
     harness_seal,
+    counterparty,
+    calibration,
+    aer1,
     dual_lattice: {
       ok: dual.ok,
       lattice_rows: dual.lattice_rows,
@@ -1139,6 +1154,96 @@ export async function applyArtifactChange(session, nowIso, raw) {
   const req = changeRequestOf(raw, session.receipts);
   if (!req.ok) throw sessionError(req.code === "FROZEN-ARTIFACT-NONE" ? 409 : 400, req.code, req.message);
   return appendReceipt(session, "artifact_change", {}, nowIso, { artifact_change: req.change });
+}
+
+function refuseStopped(session) {
+  if (session && session.writer_stopped) {
+    throw sessionError(409, "SESSION-STOPPED", "The runtime stopped this session. Stopping a run does not undo an external effect. Nothing was sealed.", { written: false, executed: false });
+  }
+}
+
+/**
+ * Same pre-exec plane as recordIntent: preExecScreen runs before the row is appended.
+ * A refusal seals a session `refused` receipt with the attribution block and writes
+ * nothing else. An engaged allow stamps that block onto the row.
+ */
+async function screenReceiptWrite(session, name, raw, nowIso) {
+  const { preExecScreen } = await import("./x-reply-policy.js");
+  const screen = await preExecScreen({
+    name,
+    session,
+    args: raw && typeof raw === "object" ? raw : {},
+    now: Number.isFinite(Date.parse(nowIso)) ? Date.parse(nowIso) : Date.now(),
+  });
+  if (screen.engaged && !screen.ok) {
+    const err = sessionError(screen.status || 403, screen.code, screen.message, {
+      executed: false,
+      written: false,
+      attribution: screen.attribution,
+    });
+    const receipt = await sealSessionRefusal(session, err, { slug: "session", op: name, payloadText: "" }, nowIso);
+    err.extra = {
+      ...(err.extra || {}),
+      refused_receipt: { sealed: true, seq: receipt.seq, hash: receipt.hash, code: err.code },
+    };
+    err.sessionDirty = true;
+    throw err;
+  }
+  return screen;
+}
+
+function attributionPayload(base, screen) {
+  if (!screen || !screen.engaged || !screen.ok || !screen.attribution) return base;
+  const attribution = screen.attribution;
+  return {
+    ...base,
+    attribution,
+    agent_id: attribution.agent_id ?? null,
+    caller_identity: attribution.caller_identity ?? null,
+    ...(screen.hook_tip ? { hook_tip: screen.hook_tip } : {}),
+  };
+}
+
+/** RIB-021: seal a counterparty receipt after a policy-gated exec. Caller status is ignored. */
+export async function applyCounterparty(session, nowIso, raw) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  refuseWhilePaused(session, "counterparty");
+  refuseStopped(session);
+  requireReceiptRoom(session);
+  const { counterpartyRequestOf } = await import("./counterparty-receipt.js");
+  const req = await counterpartyRequestOf(session.receipts, raw, nowIso);
+  if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false });
+  const screen = await screenReceiptWrite(session, "counterparty", raw, nowIso);
+  return appendReceipt(session, "counterparty", attributionPayload({ counterparty: req.counterparty }, screen), nowIso, {});
+}
+
+/** RIB-022: pre-register a deliberately wrong premise, or seal premise × response × verdict later. */
+export async function applyProbe(session, nowIso, raw) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  refuseWhilePaused(session, "probe");
+  refuseStopped(session);
+  requireReceiptRoom(session);
+  const { calibrationRequestOf } = await import("./calibration-probe.js");
+  const req = await calibrationRequestOf(session.receipts, raw);
+  if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false });
+  const screen = await screenReceiptWrite(session, "probe", raw, nowIso);
+  return appendReceipt(session, "probe", attributionPayload({ calibration: req.calibration }, screen), nowIso, {});
+}
+
+/** RIB-025: seal one portable execution receipt onto the session chain. */
+export async function applyAer(session, nowIso, raw, origin) {
+  if (!session) throw sessionError(404, "session_not_found", "session not found");
+  if (session.closed) throw sessionError(409, "session_closed", "session is sealed; no further stamps", { session_id: session.id });
+  refuseWhilePaused(session, "aer");
+  refuseStopped(session);
+  requireReceiptRoom(session);
+  const { planAerSeal } = await import("./aer1-receipt.js");
+  const req = await planAerSeal(session, raw, nowIso, origin || null);
+  if (!req.ok) throw sessionError(req.status || 400, req.code, req.message, { written: false });
+  const screen = await screenReceiptWrite(session, "aer", raw, nowIso);
+  return appendReceipt(session, "aer", attributionPayload({ aer1: req.aer1 }, screen), nowIso, {});
 }
 
 /** RIB-055: seal a recorder health transition (healthy / degraded / down). Does not exec. */

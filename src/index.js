@@ -2590,7 +2590,6 @@ ${workerLaunchHtml(origin, { slug: resolveCallingName(env).calling_slug, name: r
     <a href="${origin}/addendum.txt">/addendum.txt</a>
     <a href="${origin}/help/softwares.txt">/help/softwares.txt</a>
     <a href="${origin}/sitemap.xml">/sitemap.xml</a>
-    <a href="${origin}${SITE_RSS_PATH}">/rss.xml</a>
     <a href="${origin}/sitemap-index.xml">/sitemap-index.xml</a>
     <a href="${origin}/robots.txt">/robots.txt</a>
     <a href="${origin}/mcp">MCP (POST JSON-RPC)</a>

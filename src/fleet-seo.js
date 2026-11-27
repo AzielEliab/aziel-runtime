@@ -288,7 +288,7 @@ export function siteFooterHtml() {
   const paths = TAB_PATHS.map((tab) => `<a href="${esc(tab.href)}">${esc(tab.href)}</a>`).join(" · ");
   return `<footer id="aziel-runtime-site-footer" style="margin:2rem 0 0;padding:1rem 0 0;border-top:1px solid #2a3140;color:#9aa3b2;font:14px/1.55 system-ui,sans-serif">
 <nav class="ecosystem" aria-label="${esc(ECOSYSTEM_HEADING)}"><p>${esc(ECOSYSTEM_HEADING)}</p><ul style="margin:.4rem 0 0;padding-left:1.2rem">${eco}</ul></nav>
-<p>${esc(AUTHOR_NAME)} · <a href="/cite.json">cite.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a> · <a href="/sitemap.xml">sitemap</a> · <a href="/rss.xml">rss</a> · <a href="${AZIEL_HANDLES_PATH}">Aziel</a> · Apache-2.0</p>
+<p>${esc(AUTHOR_NAME)} · <a href="/cite.json">cite.json</a> · <a href="/llms.txt">llms.txt</a> · <a href="/ai.txt">ai.txt</a> · <a href="/sitemap.xml">sitemap</a> · <a href="${AZIEL_HANDLES_PATH}">Aziel</a> · Apache-2.0</p>
 <p class="paths">Paths: ${paths}.</p>
 <p>${esc(GROWTH_ON_ALLOW)}</p>
 <p>${esc(HDJ_NOTE)} ${esc(CAP7_PUBLIC)} ${esc(PAID_SAT_PUBLIC)} ${esc(DECRYPTION_PUBLIC)} ${esc(FURNACE_NOTE)} ${esc(UNSEAL_NOTE)}</p>
