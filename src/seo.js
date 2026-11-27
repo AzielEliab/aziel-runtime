@@ -724,6 +724,7 @@ export function robotsTxt(origin, products) {
     lines.push("Allow: /");
   }
   lines.push("");
+  lines.push(`# RSS: ${base}/rss.xml`);
   lines.push(`Sitemap: ${base}/sitemap-index.xml`);
   for (const url of hubSitemapList(origin, products)) {
     lines.push(`Sitemap: ${url}`);
