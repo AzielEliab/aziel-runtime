@@ -23,6 +23,7 @@
  */
 
 import { existsSync, readdirSync, readFileSync, writeFileSync, accessSync, constants } from "node:fs";
+import { photonCarrier } from "../../src/transport/carriers.js";
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 
@@ -380,6 +381,11 @@ const sleepMs = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
  * Send one framed payload by switching the real LED. Refuses when no emitter is present.
  * `write` and `sleep` default to the real file write and timer.
  */
+/** Seal a share with the shared frame before a light send. Does not mark the carrier live. */
+export function sealPhotonFrame(opts = {}) {
+  return photonCarrier.seal(opts);
+}
+
 export async function photonSend(payload, { root, chipMs = PHOTON_DEFAULT_CHIP_MS, write, sleep } = {}) {
   const emitter = findEmitter({ root });
   if (!emitter) return absent("send", probeLightHardware({ root }));

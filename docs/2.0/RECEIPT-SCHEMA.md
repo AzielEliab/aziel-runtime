@@ -288,12 +288,12 @@ This is its own hash-linked log. It is not a session receipt, not a ForgeReceipt
 
 A row that was sealed before this kind exists is unchanged: session fixtures, pre-anchor ChainLock stamps, FragGate ledger rows, and a ForgeReceipts body without attempt fields still verify. This kind does not add keys to those canonical bytes.
 
-Events: `page_delivered`, `human_ack`, `ack_miss`, `read_receipt`, `auto_reply`, `reassign`, `resolved`, `reopen`, `intake_linked`.
+Events: `page_delivered`, `human_ack`, `ack_miss`, `read_receipt`, `auto_reply`, `reassign`, `resolved`, `reopen`, `intake_linked`, `intake_proposed`, `intake_confirmed`, `intake_rejected`.
 
 RIB-066: delivery and a named human ack are different rows. Delivery arms `budget_ms`. A miss seals `ack_miss` and, when a next person is on the ladder, a new `page_delivered`. Read receipts and auto-replies seal a row with `stops_clock: false`. `ack_latency_ms` and `resolution_ms` are separate. Weekly ack latency is the mean of `human_ack` rows in a time window, recomputed from the chain.
 
 RIB-064: `reassign` restarts ack for a new owner and does not move `resolution_started_ms`. Reassign back to the original owner uses that owner's first ack start. If that first ack already stopped the clock, it stays stopped. Every reassign increments `handoff_count`. Past two (`handoff_count > 2`) sets `handoff_flagged`.
 
-RIB-065 and RIB-067: `total_age_ms` is from the original open. `reopen` increments `reopen_count` (the second sets `reopen_flagged`) and sets `re_resolve_started_ms` on a row whose `original_receipt_hash` is the first seal. The same requester and issue key, while the item is unresolved or within 30 days of `resolved_ms`, is `intake_linked` instead of a new item.
+RIB-065 and RIB-067: `total_age_ms` is from the original open. `reopen` increments `reopen_count` (the second sets `reopen_flagged`) and sets `re_resolve_started_ms` on a row whose `original_receipt_hash` is the first seal. The same requester and issue key, while the item is unresolved or within 30 days of `resolved_ms`, matches that item instead of opening a new one. Twitter backlog RIB-058 seals that match as `intake_proposed` until `intake_confirmed` (re-enters, bumps `reopen_count`) or `intake_rejected` (does not re-enter). A legacy `intake_linked` row still verifies as a reopen. AZRT-ANCHOR-COVERAGE-1.0's RIB-058 label is the coverage verifier, not this state machine.
 
 Cap-7 and `.aziel` strings on a row stay names (`name_resolved: false`). The sealed `boundary` says Cap-7 is not ICANN and not a public egress IP. `paid_sat` is `HELD`. Not a Softwares card. Not an MCP tool. Not a public door.

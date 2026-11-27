@@ -153,14 +153,14 @@ try {
 
   const allowRight = await peerFetch(`${right.loop}/v1/fed-mesh/allow`, {
     method: "POST",
-    json: { handle: leftHealth.handle },
+    json: { public_key: leftHealth.public_key },
     tlsPin: right.pin,
     headers: { "x-aziel-admin-token": adminToken },
   });
   assert.equal(allowRight.json.ok, true, JSON.stringify(allowRight.json));
   const allowLeft = await peerFetch(`${left.loop}/v1/fed-mesh/allow`, {
     method: "POST",
-    json: { handle: rightHealth.handle },
+    json: { public_key: rightHealth.public_key },
     tlsPin: left.pin,
     headers: { "x-aziel-admin-token": adminToken },
   });

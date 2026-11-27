@@ -330,7 +330,7 @@ export function createColdStart(track2, opts = {}) {
       }
       const peer = [...track2.state.roster.values()].find((row) => row.verified === true && row.mutual === true && row.presence !== "isolated");
       if (!peer) return fail("MESH-NO-ROUTE", "No mutual peer to deliver to.", { fetches });
-      const allowed = track2.allowSession(peer.handle);
+      const allowed = track2.allowSession(peer.public_key);
       if (!allowed.ok) return { ...allowed, ...record() };
       const directUrl = `${supplied.origin}/v1/fed-mesh/direct`;
       const offered = await track2.offer(peer.handle, { directUrl });

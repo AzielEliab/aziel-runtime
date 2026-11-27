@@ -274,8 +274,8 @@ try {
   peerB = await startInstance({ dataDir: mkdtempSync(join(tmpdir(), "au-b-")), port: 0, host: "127.0.0.1", advertise: "127.0.0.1", fixture: true, product: "aziel-runtime" });
   ok(!!peerA.directUrl && !!peerB.directUrl, "loopback direct urls");
   ok((await peerA.track2.arm("lan", "operator")).ok === true && (await peerB.track2.arm("lan", "operator")).ok === true, "lan armed by the operator");
-  peerA.track2.allowSession(peerB.handle);
-  peerB.track2.allowSession(peerA.handle);
+  peerA.track2.allowSession(peerB.public_key);
+  peerB.track2.allowSession(peerA.public_key);
   const exchanged = await peerA.track2.exchange(peerB.track2);
   ok(exchanged.ok === true, "beacon exchange");
   const aHost = peerA.track2.state.autoUpdateHost;

@@ -466,7 +466,7 @@ import {
 } from "./ai-clients.js";
 import { finishWithUse, peekUsesTotal, readUses, requestForUseCount } from "./uses.js";
 import { rectifyUsesBody } from "./uses-rectify.js";
-import { softwareMeterRoster } from "./software-meters.js";
+import { SERVICE_BINDING_OVERRIDES, serviceBindingName, softwareMeterRoster } from "./software-meters.js";
 import {
   SOFTWARE_FRAMING,
   WORKER_ONLY_PRODUCTS,
@@ -3476,12 +3476,10 @@ async function combinedOpenApi(request, env) {
 
 // A binding name must be a JS identifier, so a slug that starts with a digit
 // gets a spelled-out name. Must match [[services]] binding in wrangler.toml.
-export const BINDING_NAME_OVERRIDES = Object.freeze({ "4dmap": "FOURDMAP" });
+export const BINDING_NAME_OVERRIDES = SERVICE_BINDING_OVERRIDES;
 
 export function bindingName(product) {
-  const slug = String(product.slug || "");
-  if (Object.prototype.hasOwnProperty.call(BINDING_NAME_OVERRIDES, slug)) return BINDING_NAME_OVERRIDES[slug];
-  return slug.toUpperCase().replace(/-/g, "_");
+  return serviceBindingName(product);
 }
 
 function withUpstreamHeaders(init) {
@@ -5086,7 +5084,7 @@ async function handleRequest(request, env, ctx) {
         ? { spec: rs.HELD_KEY_SPEC, signing: true, alg: "Ed25519", ...held.provenance, sig_domain: rs.SIG_DOMAIN, pinned: (await rs.trustedReceiptKeys(null)).map((k) => k.key_id),
             ...(await (async () => { const pinnedIds = (await rs.trustedReceiptKeys(null)).map((k) => k.key_id); const isPinned = pinnedIds.includes(held.provenance.key_id); return { trusted: isPinned, key_source: isPinned ? "pinned" : "published (self, unpinned)" }; })()),
             note: "Session receipts minted while this key is held carry an Ed25519 signature over sig_domain + hash. Chainlock rows (refusals etc.) are not signed. The key was provisioned by the deploy side; the runtime cannot generate, rotate or export it.", signing_scope: scope }
-        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
+        : { spec: rs.HELD_KEY_SPEC, signing: false, reason: scope.session_receipts.reason || held.reason, ...(held.code ? { code: held.code } : {}), note: "Receipts are hash-linked and sealed, not signed (signature.sig null with this reason).", signing_scope: scope };
       return asHead(request, json(body, 200, { "access-control-allow-origin": "*", "cache-control": "no-store" }));
     }
     if ((url.pathname === "/v1/anchor" || url.pathname.startsWith("/v1/anchor/")) && (request.method === "GET" || request.method === "HEAD")) {
@@ -5123,6 +5121,7 @@ async function handleRequest(request, env, ctx) {
           witnessedKeyId: groupd.log_ok ? groupd.receipt_key_id : null,
           attemptedKeyId: heads.receipt_key && heads.receipt_key.key_id,
           checked: groupd.checked,
+          logOk: groupd.log_ok,
         });
         return asHead(request, json(heads, 200, hdrs));
       }
@@ -5337,7 +5336,17 @@ async function handleRequest(request, env, ctx) {
       const meters = softwareMeterRoster(PRODUCTS, WORKER_ONLY_PRODUCTS).meters;
       const uses = await cachedUses(light ? "light" : "full", async () => {
         const raw = await readUses(env, { light, budget_ms: 8_000, maps: "snapshot" });
-        return rectifyUsesBody(raw, { meters, siteLive, fetchImpl: env && env.USES_VIEWS_FETCH, now: Date.now() });
+        return rectifyUsesBody(raw, {
+          meters,
+          siteLive,
+          bindFetch: (product) => {
+            const bind = env && env[bindingName(product)];
+            if (!bind || typeof bind.fetch !== "function") return null;
+            return (request) => bind.fetch(request);
+          },
+          fetchImpl: env && env.USES_VIEWS_FETCH,
+          now: Date.now(),
+        });
       }, { floor: statsFloorFor(env) });
       // Option A: do not start buildUsesSnapshot here. A stale map (maps_refresh "due")
       // stays the last snapshot. The odd-minute tether cron rebuilds it. N concurrent
