@@ -1802,7 +1802,8 @@ function sitemapXml(origin) {
   const firstParty = urls.filter((u) => isFirstPartyCanonicalLoc(origin, u.loc));
   const body = firstParty
     .map((u) => {
-      const last = `    <lastmod>${SITEMAP_LASTMOD}</lastmod>\n`;
+      const lastmod = u.lastmod || SITEMAP_LASTMOD;
+      const last = `    <lastmod>${lastmod}</lastmod>\n`;
       return `  <url>\n    <loc>${escapeXml(u.loc)}</loc>\n${last}    <changefreq>${u.changefreq}</changefreq>\n    <priority>${u.priority}</priority>\n  </url>`;
     })
     .join("\n");
