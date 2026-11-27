@@ -493,6 +493,38 @@ function typeOf(value) {
   return typeof value;
 }
 
+/**
+ * True when a caller value cannot be inspected safely: a BigInt, a throwing
+ * getter, or a key walk that throws. Fail closed. The thrown text is not kept.
+ */
+export function hostileInput(value, depth = 0) {
+  try {
+    if (typeof value === "bigint") return true;
+    if (value == null || typeof value !== "object") return false;
+    if (depth > 32) return false;
+    let keys;
+    try {
+      keys = Object.keys(value);
+    } catch {
+      return true;
+    }
+    const cap = Math.min(keys.length, 10000);
+    if (keys.length > cap) return true;
+    for (let i = 0; i < cap; i++) {
+      let child;
+      try {
+        child = value[keys[i]];
+      } catch {
+        return true;
+      }
+      if (hostileInput(child, depth + 1)) return true;
+    }
+    return false;
+  } catch {
+    return true;
+  }
+}
+
 function typeOk(schema, value) {
   const want = schema && schema.type;
   if (!want) return true;
@@ -609,6 +641,21 @@ function dispositionOf(errors, phase) {
 }
 
 export function validateAgainst(schema, value, phase = "input") {
+  try {
+    if (hostileInput(value)) {
+      const errors = [];
+      push(errors, "$", "schema", "value could not be read");
+      return { ok: false, errors, failure: dispositionOf(errors, phase) };
+    }
+    return validateAgainstInner(schema, value, phase);
+  } catch {
+    const errors = [];
+    push(errors, "$", "schema", "value could not be read");
+    return { ok: false, errors, failure: dispositionOf(errors, phase) };
+  }
+}
+
+function validateAgainstInner(schema, value, phase) {
   const errors = [];
   if (!schema || typeof schema !== "object") {
     push(errors, "$", "schema", "no schema for this tool");
@@ -730,8 +777,25 @@ function statusShapeError(output) {
 
 function prepareArgs(schema, args) {
   if (!args || typeof args !== "object" || Array.isArray(args)) return args;
+  if (hostileInput(args)) return args;
   const props = schema && schema.properties && typeof schema.properties === "object" ? schema.properties : {};
-  const copy = { ...args };
+  const copy = {};
+  let keys;
+  try {
+    keys = Object.keys(args);
+  } catch {
+    return args;
+  }
+  for (const key of keys) {
+    if (PROTO_KEYS.has(key)) continue;
+    let child;
+    try {
+      child = args[key];
+    } catch {
+      return args;
+    }
+    putPlain(copy, key, child);
+  }
   for (const key of DOOR_META) {
     if (!Object.prototype.hasOwnProperty.call(props, key)) delete copy[key];
   }
@@ -815,28 +879,49 @@ export function toolErrorShapeOk(row) {
 }
 
 function classesOf(value, out, depth) {
-  if (!value || typeof value !== "object" || depth > 8) return;
-  if (Array.isArray(value)) {
-    for (const item of value) classesOf(item, out, depth + 1);
-    return;
-  }
-  if (value.credential_mode === "hosted") out.add("password");
-  const scopes = value.credential_scopes || value.scopes;
-  if (Array.isArray(scopes)) {
-    for (const scope of scopes) {
-      if (typeof scope !== "string") continue;
-      const token = scope.trim().toLowerCase();
-      if (!/^[a-z][a-z0-9_.:-]{0,63}$/.test(token)) continue;
-      if (leakScan(token)) continue;
-      const known = ["password", "secret", "api_key", "private_key", "bearer", "token", "pii", "gated"].includes(token);
-      out.add(known || token.startsWith("scope:") ? token : `scope:${token}`);
+  try {
+    if (!value || typeof value !== "object" || depth > 8) return;
+    if (Array.isArray(value)) {
+      for (const item of value) classesOf(item, out, depth + 1);
+      return;
     }
-  }
-  for (const [key, child] of Object.entries(value)) {
-    if (key === "credential_scopes" || key === "scopes" || key === "credential_mode") continue;
-    const cls = keyClass(key);
-    if (cls && typeof child === "string" && child.length > 0 && !REDACT_MARK.test(child)) out.add(cls);
-    else if (child && typeof child === "object") classesOf(child, out, depth + 1);
+    let mode;
+    try {
+      mode = value.credential_mode;
+    } catch {
+      return;
+    }
+    if (mode === "hosted") out.add("password");
+    let scopes;
+    try {
+      scopes = value.credential_scopes || value.scopes;
+    } catch {
+      return;
+    }
+    if (Array.isArray(scopes)) {
+      for (const scope of scopes) {
+        if (typeof scope !== "string") continue;
+        const token = scope.trim().toLowerCase();
+        if (!/^[a-z][a-z0-9_.:-]{0,63}$/.test(token)) continue;
+        if (leakScan(token)) continue;
+        const known = ["password", "secret", "api_key", "private_key", "bearer", "token", "pii", "gated"].includes(token);
+        out.add(known || token.startsWith("scope:") ? token : `scope:${token}`);
+      }
+    }
+    let entries;
+    try {
+      entries = Object.entries(value);
+    } catch {
+      return;
+    }
+    for (const [key, child] of entries) {
+      if (key === "credential_scopes" || key === "scopes" || key === "credential_mode") continue;
+      const cls = keyClass(key);
+      if (cls && typeof child === "string" && child.length > 0 && !REDACT_MARK.test(child)) out.add(cls);
+      else if (child && typeof child === "object") classesOf(child, out, depth + 1);
+    }
+  } catch {
+    return;
   }
 }
 

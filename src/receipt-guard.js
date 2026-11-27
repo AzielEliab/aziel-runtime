@@ -435,6 +435,67 @@ export function innerOpRefusal(env) {
   return { code, reason: String(r.message || r.reason || "") };
 }
 
+const ELEVATION_FIELDS = Object.freeze(["trust", "policy", "operator", "trusted", "untrusted", "privilege", "trust_level"]);
+
+function readField(obj, key) {
+  try {
+    return { ok: true, value: obj[key] };
+  } catch {
+    return { ok: false, value: undefined };
+  }
+}
+
+/**
+ * A caller- or tool-supplied claim that it is trusted, an operator, or otherwise
+ * elevated. A throwing getter is a claim too: fail closed, and do not keep the text.
+ * Returns null when no elevation is present.
+ */
+function selfSuppliedElevation(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return null;
+  const found = {};
+  for (const key of ELEVATION_FIELDS) {
+    const got = readField(value, key);
+    if (!got.ok) return { operatorOnly: false };
+    found[key] = got.value;
+  }
+  const trustUp = typeof found.trust === "string" && found.trust.toUpperCase() !== "UNTRUSTED";
+  const levelUp = typeof found.trust_level === "string" && found.trust_level.toUpperCase() !== "UNTRUSTED";
+  const policyUp = found.policy === true;
+  const operatorUp = found.operator === true;
+  const trustedUp = found.trusted === true;
+  const untrustedDown = found.untrusted === false;
+  const privilegeUp = found.privilege != null && found.privilege !== false;
+  if (!(trustUp || levelUp || policyUp || operatorUp || trustedUp || untrustedDown || privilegeUp)) return null;
+  return { operatorOnly: operatorUp && !trustUp && !levelUp && !policyUp && !trustedUp && !untrustedDown && !privilegeUp };
+}
+
+/** Operator elevation is allowed only when the request token matches the server secret. */
+async function elevationAllowed(claim, request, env) {
+  if (!claim || !claim.operatorOnly) return false;
+  try {
+    const { isOperator } = await import("./packed-catalog.js");
+    return isOperator(request, env) === true;
+  } catch {
+    return false;
+  }
+}
+
+function elevationStop(executed) {
+  return {
+    ok: false,
+    code: "TRUST-SELF-ELEVATION",
+    disposition: "abort",
+    spec: "AZRT-UNTRUSTED-RESULT-1.0",
+    executed: executed === true,
+    accepted: false,
+    returned: false,
+    policy: false,
+    operator: false,
+    message: "Trust is not taken from the caller. Elevation comes only from server-side state.",
+    result: null,
+  };
+}
+
 /**
  * Replace a tool result with a new plain object. Arrays and primitives are
  * wrapped so the runtime taint is always a top-level field. Text-only plain
@@ -458,10 +519,66 @@ async function installPlainEnvelope(out, obs, name) {
     }
   }
   if (!parsed) return;
-  const minted = await obs.mintPlainEnvelope(source, name);
+  if (obs.hostileInput(source)) {
+    const closed = {
+      ok: false,
+      code: "SCHEMA-OUTPUT-ABORT",
+      disposition: "abort",
+      spec: obs.SCHEMA_DISPOSITION_SPEC,
+      executed: true,
+      accepted: false,
+      returned: false,
+      message: "The tool result could not be read.",
+      result: null,
+    };
+    out.envelope = closed;
+    out.status = 422;
+    out.text = JSON.stringify(closed, null, 2);
+    return;
+  }
+  let minted;
+  try {
+    minted = await obs.mintPlainEnvelope(source, name);
+  } catch {
+    minted = null;
+  }
+  if (!minted || obs.hostileInput(minted)) {
+    const closed = {
+      ok: false,
+      code: "SCHEMA-OUTPUT-ABORT",
+      disposition: "abort",
+      spec: obs.SCHEMA_DISPOSITION_SPEC,
+      executed: true,
+      accepted: false,
+      returned: false,
+      message: "The tool result could not be read.",
+      result: null,
+    };
+    out.envelope = closed;
+    out.status = 422;
+    out.text = JSON.stringify(closed, null, 2);
+    return;
+  }
   const forceEnvelope = hadEnvelope || Array.isArray(source) || source == null || typeof source !== "object";
   if (forceEnvelope) out.envelope = minted;
-  out.text = JSON.stringify(minted, null, 2);
+  try {
+    out.text = JSON.stringify(minted, null, 2);
+  } catch {
+    const closed = {
+      ok: false,
+      code: "SCHEMA-OUTPUT-ABORT",
+      disposition: "abort",
+      spec: obs.SCHEMA_DISPOSITION_SPEC,
+      executed: true,
+      accepted: false,
+      returned: false,
+      message: "The tool result could not be read.",
+      result: null,
+    };
+    out.envelope = closed;
+    out.status = 422;
+    out.text = JSON.stringify(closed, null, 2);
+  }
 }
 
 /**
@@ -483,22 +600,77 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   const meta = { goal_key: goal ? goal.key : null, context, schema_hash: schemaHash || null };
   const obs = await import("./run-observability.js");
   let out;
-  const inputCheck = drift ? null : await obs.validateToolInvocation({ name, args: src, phase: "input" });
+  let inputCheck = null;
+  if (!drift) {
+    try {
+      inputCheck = await obs.validateToolInvocation({ name, args: src, phase: "input" });
+    } catch {
+      inputCheck = {
+        ok: false,
+        code: obs.SCHEMA_INPUT_ABORT,
+        disposition: "abort",
+        spec: obs.SCHEMA_DISPOSITION_SPEC,
+        phase: "input",
+        executed: false,
+        accepted: false,
+        returned: false,
+        status: 422,
+        message: "The tool arguments could not be read.",
+        result: null,
+      };
+    }
+  }
+  const argElevation = selfSuppliedElevation(src);
+  const argAllowed = argElevation ? await elevationAllowed(argElevation, request, runtimeEnv) : false;
   if (drift) {
     out = { status: 409, text: JSON.stringify(drift, null, 2), envelope: { ...drift } };
+  } else if (argElevation && !argAllowed) {
+    const body = elevationStop(false);
+    out = { status: 422, text: JSON.stringify(body), envelope: body };
   } else if (inputCheck && inputCheck.ok === false) {
     out = { status: inputCheck.status || 400, text: JSON.stringify(inputCheck), envelope: inputCheck };
   } else {
     out = await runWithCallMeta(meta, () => call());
     const produced = envelopeOf(out);
-    if (produced && typeof produced === "object" && !Array.isArray(produced)) {
+    const producedElevation = selfSuppliedElevation(produced);
+    const producedAllowed = producedElevation ? await elevationAllowed(producedElevation, request, runtimeEnv) : false;
+    if (producedElevation && !producedAllowed) {
+      const body = elevationStop(true);
+      out = { status: 422, text: JSON.stringify(body), envelope: body };
+    } else if (produced && obs.hostileInput(produced)) {
+      const body = {
+        ok: false,
+        code: obs.SCHEMA_OUTPUT_ABORT,
+        disposition: "abort",
+        spec: obs.SCHEMA_DISPOSITION_SPEC,
+        executed: true,
+        accepted: false,
+        returned: false,
+        message: "The tool result could not be read.",
+        result: null,
+      };
+      out = { status: 422, text: JSON.stringify(body), envelope: body };
+    } else if (produced && typeof produced === "object" && !Array.isArray(produced)) {
       let producedClean;
       try {
         producedClean = obs.stripResultTaint(produced);
       } catch {
         producedClean = { redacted: true, code: "LOG-LEAK-CLOSED", spec: obs.OBS_SPEC };
       }
-      const outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: producedClean });
+      let outputCheck = null;
+      try {
+        outputCheck = await obs.validateToolInvocation({ name, args: src, phase: "output", output: producedClean });
+      } catch {
+        outputCheck = {
+          ok: false,
+          code: obs.SCHEMA_OUTPUT_ABORT,
+          disposition: "abort",
+          spec: obs.SCHEMA_DISPOSITION_SPEC,
+          status: 422,
+          message: "The tool result could not be read.",
+          result: null,
+        };
+      }
       if (outputCheck && outputCheck.ok === false) {
         const body = { ...obs.stripResultTaint(outputCheck), result: null };
         delete body.result_taint;
@@ -528,11 +700,16 @@ export async function guardToolCall({ store, request, name, args, schemaHash, ca
   // plain object. Arrays stay wrapped; text-only objects stay unwrapped so
   // the display envelope can still nest result.
   await installPlainEnvelope(out, obs, name);
-  const touch = await obs.observeCredentialTouch({
-    store: obs.mcpCredentialStore(),
-    identity: src.identity,
-    value: src,
-  });
+  let touch = { baselineView: null, anomaly: null };
+  try {
+    touch = await obs.observeCredentialTouch({
+      store: obs.mcpCredentialStore(),
+      identity: src.identity,
+      value: src,
+    });
+  } catch {
+    touch = { baselineView: null, anomaly: null };
+  }
   if (touch.baselineView) attachToResult(out, "credential_baseline", touch.baselineView);
   if (touch.anomaly) attachToResult(out, "credential_anomaly", touch.anomaly);
   const after = envelopeOf(out);
